@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/custom-colors
+      - fix/import-redundant-resort
   pull_request:
     branches:
       - dev
