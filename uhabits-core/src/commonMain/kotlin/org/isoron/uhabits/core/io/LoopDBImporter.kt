@@ -119,7 +119,6 @@ class LoopDBImporter(
                 habit.recompute()
             }
             habitList.resort()
-            db.close()
         } finally {
             db.close()
         }
