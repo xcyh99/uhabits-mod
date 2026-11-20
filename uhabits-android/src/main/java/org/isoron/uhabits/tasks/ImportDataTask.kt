@@ -51,13 +51,13 @@ class ImportDataTask(
 
             modelFactory.database.commit()
             transactionStarted = false
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             result = FAILED
             Log.e("ImportDataTask", "Import failed", e)
             if (transactionStarted) {
                 try {
                     modelFactory.database.run("ROLLBACK")
-                } catch (rollbackError: Exception) {
+                } catch (rollbackError: Throwable) {
                     Log.e("ImportDataTask", "Rollback failed", rollbackError)
                 }
             }
