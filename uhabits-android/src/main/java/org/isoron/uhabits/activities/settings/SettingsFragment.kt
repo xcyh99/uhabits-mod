@@ -206,57 +206,67 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             addView(username)
             addView(password)
         }
-        AlertDialog.Builder(requireContext())
+        val dialog = AlertDialog.Builder(requireContext())
             .setTitle(R.string.webdav_sync)
             .setMessage(R.string.webdav_enter_details)
             .setView(form)
-            .setPositiveButton(R.string.webdav_save_continue) { _, _ ->
-                val url = server.text.toString().trim()
-                val user = username.text.toString().trim()
-                val pass = password.text.toString()
-                if (!url.startsWith("https://") || user.isBlank() || pass.isBlank()) {
-                    Toast.makeText(requireContext(), R.string.webdav_https_required, Toast.LENGTH_LONG).show()
-                    return@setPositiveButton
-                }
-                prefs.edit()
-                    .putString("webdav_server", url)
-                    .putString("webdav_username", user)
-                    .putString("webdav_password", pass)
-                    .apply()
-                showWebDavActions()
+            .setPositiveButton(R.string.webdav_upload, null)
+            .setNegativeButton(R.string.webdav_download, null)
+            .setNeutralButton(R.string.webdav_test_connection, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                runWebDavAction(server, username, password, prefs, 1)
             }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
+                runWebDavAction(server, username, password, prefs, 2)
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                runWebDavAction(server, username, password, prefs, 0)
+            }
+        }
+        dialog.show()
     }
 
-    private fun showWebDavActions() {
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.webdav_sync)
-            .setItems(arrayOf(getString(R.string.webdav_test_connection), getString(R.string.webdav_upload), getString(R.string.webdav_download))) { _, which ->
-                val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
-                val config = WebDavSync.Config(
-                    prefs.getString("webdav_server", "") ?: "",
-                    prefs.getString("webdav_username", "") ?: "",
-                    prefs.getString("webdav_password", "") ?: ""
-                )
-                val appContext = requireContext().applicationContext
-                Thread {
-                    val result = runCatching {
-                        val sync = WebDavSync(appContext)
-                        when (which) {
-                            0 -> { sync.test(config); getString(R.string.webdav_connection_success) }
-                            1 -> { sync.upload(config); getString(R.string.webdav_upload_success) }
-                            else -> { sync.download(config); getString(R.string.webdav_download_success) }
-                        }
-                    }
-                    activity?.runOnUiThread {
-                        val message = result.getOrElse { it.message ?: getString(R.string.webdav_operation_failed) }
-                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
-                    }
-                }.start()
+    private fun runWebDavAction(
+        server: EditText,
+        username: EditText,
+        password: EditText,
+        prefs: SharedPreferences,
+        action: Int
+    ) {
+        val url = server.text.toString().trim()
+        val user = username.text.toString().trim()
+        val pass = password.text.toString()
+        if (!url.startsWith("https://") || user.isBlank() || pass.isBlank()) {
+            Toast.makeText(requireContext(), R.string.webdav_https_required, Toast.LENGTH_LONG).show()
+            return
+        }
+        prefs.edit()
+            .putString("webdav_server", url)
+            .putString("webdav_username", user)
+            .putString("webdav_password", pass)
+            .apply()
+
+        val appContext = requireContext().applicationContext
+        Thread {
+            val result = runCatching {
+                val sync = WebDavSync(appContext)
+                when (action) {
+                    0 -> { sync.test(WebDavSync.Config(url, user, pass)); getString(R.string.webdav_connection_success) }
+                    1 -> { sync.upload(WebDavSync.Config(url, user, pass)); getString(R.string.webdav_upload_success) }
+                    else -> { sync.download(WebDavSync.Config(url, user, pass)); getString(R.string.webdav_download_success) }
+                }
             }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            activity?.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+                val message = result.getOrElse {
+                    it.message ?: getString(R.string.webdav_operation_failed)
+                }
+                Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+            }
+        }.start()
     }
 
     private fun updateWeekdayPreference() {
