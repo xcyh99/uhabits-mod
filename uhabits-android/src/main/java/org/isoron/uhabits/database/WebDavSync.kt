@@ -44,7 +44,7 @@ class WebDavSync(private val context: Context) {
             }
             val code = c.responseCode
             if (code != 207 && code != 200) {
-                throw IllegalStateException("WebDAV connection failed: HTTP $code")
+                throw IllegalStateException("WebDAV 连接失败，HTTP 状态码：$code")
             }
         } finally {
             c.disconnect()
@@ -53,7 +53,7 @@ class WebDavSync(private val context: Context) {
 
     fun upload(config: Config) {
         val dir = File(context.cacheDir, "webdav-backup").apply {
-            if (!exists() && !mkdirs()) error("Cannot create backup staging directory")
+            if (!exists() && !mkdirs()) error("无法创建备份临时目录")
         }
         val path = DatabaseUtils.saveDatabaseCopy(context, dir)
         val file = File(path)
@@ -66,7 +66,7 @@ class WebDavSync(private val context: Context) {
                 c.outputStream.use { output -> input.copyTo(output) }
             }
             val code = c.responseCode
-            if (code !in 200..299) throw IllegalStateException("Upload failed: HTTP $code")
+            if (code !in 200..299) throw IllegalStateException("备份上传失败，HTTP 状态码：$code")
         } finally {
             c.disconnect()
             file.delete()
@@ -76,21 +76,21 @@ class WebDavSync(private val context: Context) {
     fun download(config: Config) {
         val folderUri = PreferenceManager.getDefaultSharedPreferences(context)
             .getString("publicBackupFolder", null)
-            ?: throw IllegalStateException("Please select a local backup folder in Settings first")
+            ?: throw IllegalStateException("请先在设置中选择本地备份文件夹")
         val folder = DocumentFile.fromTreeUri(context, Uri.parse(folderUri))
-            ?: throw IllegalStateException("Cannot open selected backup folder")
+            ?: throw IllegalStateException("无法打开所选备份文件夹")
         val c = connection(config, "GET", "shizi-habits-backup.db")
         try {
             val code = c.responseCode
             if (code != HttpURLConnection.HTTP_OK) {
-                throw IllegalStateException("Download failed: HTTP $code")
+                throw IllegalStateException("备份下载失败，HTTP 状态码：$code")
             }
             val outputFile = folder.findFile("WebDAV-shizi-habits-backup.db")
                 ?: folder.createFile("application/octet-stream", "WebDAV-shizi-habits-backup.db")
-                ?: throw IllegalStateException("Cannot create file in selected backup folder")
+                ?: throw IllegalStateException("无法在所选备份文件夹中创建文件")
             context.contentResolver.openOutputStream(outputFile.uri, "wt")?.use { output ->
                 c.inputStream.use { input -> input.copyTo(output) }
-            } ?: throw IllegalStateException("Cannot write downloaded backup")
+            } ?: throw IllegalStateException("无法写入下载的备份文件")
         } finally {
             c.disconnect()
         }
