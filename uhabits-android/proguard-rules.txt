@@ -28,3 +28,12 @@
 
 
 -dontskipnonpubliclibraryclassmembers
+
+# Optional TLS providers referenced by OkHttp; Android uses its platform TLS provider.
+-dontwarn org.bouncycastle.jsse.**
+-dontwarn org.conscrypt.**
+-dontwarn org.openjsse.**
+
+# Ktor 1.6.x contains a reference to a coroutine dispatcher class not shipped
+# by the app's newer kotlinx-coroutines version; this optional path is unused.
+-dontwarn kotlinx.coroutines.scheduling.ExperimentalCoroutineDispatcher
