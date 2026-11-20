@@ -152,9 +152,28 @@ class LoopDBImporter(
                 lastImportStage = "$stage：$currentHabit"
                 habit.recompute()
             }
-            stage = "整理习惯顺序"
-            lastImportStage = stage
-            habitList.resort()
+            // New habits are sorted by add(), and edited habits are sorted by
+            // EditHabitCommand. Re-sorting here is only necessary when a newly
+            // imported habit has just had its score/status recomputed, because
+            // those are the only sort keys that can change after the command.
+            val scoreOrStatusOrders = setOf(
+                HabitList.Order.BY_SCORE_ASC,
+                HabitList.Order.BY_SCORE_DESC,
+                HabitList.Order.BY_STATUS_ASC,
+                HabitList.Order.BY_STATUS_DESC
+            )
+            val needsPostImportSort =
+                habitList.primaryOrder in scoreOrStatusOrders ||
+                    habitList.secondaryOrder in scoreOrStatusOrders
+
+            stage = if (needsPostImportSort) "整理习惯顺序" else "刷新习惯列表"
+            lastImportStage = "$stage（${habitList.size()} 项）"
+            if (needsPostImportSort) {
+                habitList.resort()
+            } else {
+                // Keep observers in sync without allocating a second full-sort buffer.
+                habitList.observable.notifyListeners()
+            }
         } catch (e: Throwable) {
             logger.error(IllegalStateException("Import failed at stage: $stage; habit: $currentHabit", e))
             throw IllegalStateException("导入阶段：$stage；习惯：$currentHabit", e)
