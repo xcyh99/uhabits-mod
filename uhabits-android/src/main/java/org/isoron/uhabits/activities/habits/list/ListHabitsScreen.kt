@@ -409,7 +409,7 @@ class ListHabitsScreen(
 
     private fun onImportData(file: org.isoron.platform.io.UserFile, onFinished: () -> Unit) {
         taskRunner.execute(
-            importTaskFactory.create(file) { result ->
+            importTaskFactory.create(file) { result, diagnostic ->
                 when (result) {
                     ImportDataTask.SUCCESS -> {
                         refresh()
@@ -421,7 +421,13 @@ class ListHabitsScreen(
                     }
 
                     else -> {
-                        activity.showMessage(activity.resources.getString(R.string.could_not_import))
+                        activity.showMessage(
+                            if (diagnostic.isNullOrBlank()) {
+                                activity.resources.getString(R.string.could_not_import)
+                            } else {
+                                "导入失败：$diagnostic"
+                            }
+                        )
                     }
                 }
                 onFinished()
