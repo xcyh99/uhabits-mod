@@ -239,9 +239,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     prefs.getString("webdav_username", "") ?: "",
                     prefs.getString("webdav_password", "") ?: ""
                 )
+                val appContext = requireContext().applicationContext
                 Thread {
                     val result = runCatching {
-                        val sync = WebDavSync(requireContext().applicationContext)
+                        val sync = WebDavSync(appContext)
                         when (which) {
                             0 -> { sync.test(config); "Connection successful." }
                             1 -> { sync.upload(config); "Backup uploaded successfully." }
