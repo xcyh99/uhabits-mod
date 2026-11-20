@@ -168,15 +168,26 @@ class ListHabitsScreen(
     }
 
     private fun onOpenDocumentResult(resultCode: Int, data: Intent?) {
-        if (data == null) return
         if (resultCode != Activity.RESULT_OK) return
+
+        val uri = data?.data
+        if (uri == null) {
+            activity.showMessage(activity.resources.getString(R.string.could_not_import))
+            return
+        }
+
+        var tempFile: File? = null
         try {
-            val inStream = activity.contentResolver.openInputStream(data.data!!)!!
-            val cacheDir = activity.externalCacheDir
-            val tempFile = File.createTempFile("import", "", cacheDir)
-            inStream.copyTo(tempFile)
-            onImportData(JavaUserFile(tempFile.toPath())) { tempFile.delete() }
-        } catch (e: IOException) {
+            val input = activity.contentResolver.openInputStream(uri)
+                ?: throw IOException("Unable to open selected backup file")
+            val importedFile = File.createTempFile("import", ".db", activity.cacheDir)
+            tempFile = importedFile
+            input.use { source ->
+                importedFile.outputStream().use { output -> source.copyTo(output) }
+            }
+            onImportData(JavaUserFile(importedFile.toPath())) { importedFile.delete() }
+        } catch (e: Exception) {
+            tempFile?.delete()
             activity.showMessage(activity.resources.getString(R.string.could_not_import))
             e.printStackTrace()
         }
