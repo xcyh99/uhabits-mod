@@ -116,12 +116,19 @@ class LoopDBImporter(
 
                 stage = "读取历史打卡记录"
                 db.query(
-                    "SELECT timestamp, value, notes FROM Repetitions WHERE habit = ? ORDER BY timestamp DESC",
+                    "SELECT timestamp, value, length(notes), notes FROM Repetitions WHERE habit = ? ORDER BY timestamp DESC",
                     habitData.id.toString()
                 ) { stmt ->
                     val timestamp = stmt.getLongOrNull(0) ?: return@query
                     val value = stmt.getIntOrNull(1) ?: return@query
-                    val notes = stmt.getTextOrNull(2) ?: ""
+                    val notesLength = stmt.getLongOrNull(2) ?: 0L
+                    if (notesLength > MAX_IMPORT_TEXT_LENGTH) {
+                        throw IllegalStateException(
+                            "打卡备注异常过长：习惯 " + habitData.name +
+                                "，日期时间戳 " + timestamp + "，长度 " + notesLength + " 字符"
+                        )
+                    }
+                    val notes = stmt.getTextOrNull(3) ?: ""
                     val date = LocalDate.fromUnixTime(timestamp)
                     val (_, existingValue, existingNotes) = entries.get(date)
                     if (existingValue != value || existingNotes != notes) {
@@ -195,5 +202,10 @@ class LoopDBImporter(
             )
         }
         return result
+    }
+
+    companion object {
+        // Check text size in SQLite before Cursor.getString() allocates the value.
+        private const val MAX_IMPORT_TEXT_LENGTH = 16L * 1024L * 1024L
     }
 }
