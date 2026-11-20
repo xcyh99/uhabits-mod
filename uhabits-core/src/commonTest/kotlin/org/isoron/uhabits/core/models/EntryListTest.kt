@@ -117,6 +117,20 @@ class EntryListTest : BaseUnitTest() {
     }
 
     @Test
+    fun testComputeNumericalIgnoresBlankUnknownHistory() {
+        val today = LocalDate(2026, 11, 21)
+        setToday(today)
+
+        val original = EntryList()
+        original.add(Entry(LocalDate(2001, 1, 1), UNKNOWN))
+
+        val computed = EntryList()
+        computed.recomputeFrom(original, Frequency.DAILY, isNumerical = true)
+
+        assertEquals(emptyList(), computed.getKnown())
+    }
+
+    @Test
     fun testComputeNumericalDaily() {
         val today = LocalDate(2015, 1, 25)
         setToday(today)
