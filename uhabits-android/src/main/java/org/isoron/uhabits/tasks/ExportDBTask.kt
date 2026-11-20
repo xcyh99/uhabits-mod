@@ -69,18 +69,40 @@ class ExportDBTask(
             SQLiteDatabase.OPEN_READWRITE
         )
         try {
-            val rows = mutableListOf<Pair<Long, Int>>()
-            db.rawQuery("SELECT id, color FROM Habits", null).use { cursor ->
+            val rows = mutableListOf<Triple<Long, Int, String?>>()
+            db.rawQuery("SELECT id, color, uuid FROM Habits", null).use { cursor ->
                 while (cursor.moveToNext()) {
-                    rows.add(cursor.getLong(0) to cursor.getInt(1))
+                    rows.add(
+                        Triple(
+                            cursor.getLong(0),
+                            cursor.getInt(1),
+                            if (cursor.isNull(2)) null else cursor.getString(2)
+                        )
+                    )
                 }
             }
             db.beginTransaction()
             try {
-                for ((id, storedColor) in rows) {
+                // Preserve exact custom colors in an extra table. The original
+                // app ignores this table, while Shizi Habits can restore it later.
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS ShiziCustomColors (" +
+                        "habit_id INTEGER PRIMARY KEY, habit_uuid TEXT, argb INTEGER NOT NULL)"
+                )
+                db.delete("ShiziCustomColors", null, null)
+                for ((id, storedColor, uuid) in rows) {
                     // Legacy palette identifiers 0..19 are already compatible.
                     if (storedColor in PaletteColor.LEGACY_COLORS.indices) continue
                     val argb = PaletteColor.fromStoredValue(storedColor).argb
+                    db.insert(
+                        "ShiziCustomColors",
+                        null,
+                        ContentValues().apply {
+                            put("habit_id", id)
+                            put("habit_uuid", uuid)
+                            put("argb", argb)
+                        }
+                    )
                     val nearest = PaletteColor.LEGACY_COLORS.indices.minByOrNull { index ->
                         val candidate = PaletteColor.LEGACY_COLORS[index]
                         val dr = ((argb shr 16) and 0xFF) - ((candidate shr 16) and 0xFF)
