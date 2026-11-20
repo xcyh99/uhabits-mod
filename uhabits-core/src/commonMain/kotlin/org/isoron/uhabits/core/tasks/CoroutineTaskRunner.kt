@@ -50,16 +50,24 @@ class CoroutineTaskRunner(
         task.onAttached(this)
         val job = scope.launch {
             activeCount++
-            listeners.forEach { it.onTaskStarted(task) }
-            task.onPreExecute()
-            if (!task.isCanceled()) {
-                withContext(ioDispatcher) {
-                    task.doInBackground()
+            try {
+                listeners.forEach { it.onTaskStarted(task) }
+                task.onPreExecute()
+                if (!task.isCanceled()) {
+                    withContext(ioDispatcher) {
+                        task.doInBackground()
+                    }
+                }
+            } finally {
+                // Always notify the task and listeners, even if background work throws.
+                // Otherwise the UI can remain without a result message and task count leaks.
+                try {
+                    task.onPostExecute()
+                } finally {
+                    activeCount--
+                    listeners.forEach { it.onTaskFinished(task) }
                 }
             }
-            task.onPostExecute()
-            activeCount--
-            listeners.forEach { it.onTaskFinished(task) }
         }
         job.invokeOnCompletion { jobs.remove(job) }
         jobs.add(job)
