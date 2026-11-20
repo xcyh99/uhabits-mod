@@ -34,7 +34,14 @@ class WebDavSync(private val context: Context) {
         val c = connection(config, "PROPFIND", "")
         try {
             c.setRequestProperty("Depth", "0")
-            c.connect()
+            c.setRequestProperty("Content-Type", "application/xml; charset=utf-8")
+            c.doOutput = true
+            c.outputStream.use { output ->
+                output.write(
+                    """<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/></d:prop></d:propfind>"""
+                        .toByteArray(Charsets.UTF_8)
+                )
+            }
             val code = c.responseCode
             if (code != 207 && code != 200) {
                 throw IllegalStateException("WebDAV connection failed: HTTP $code")
