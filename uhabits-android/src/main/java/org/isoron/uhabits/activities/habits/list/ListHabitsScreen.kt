@@ -432,7 +432,7 @@ class ListHabitsScreen(
                         } else {
                             val density = activity.resources.displayMetrics.density
                             val messageView = TextView(activity).apply {
-                                text = "导入失败：\\n$diagnostic"
+                                text = "导入失败：\n$diagnostic"
                                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
                                 setTextIsSelectable(true)
                                 setPadding(
