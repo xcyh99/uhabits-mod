@@ -59,9 +59,13 @@ class GenericImporter(
     }
 
     override suspend fun importHabitsFromFile(file: UserFile) {
+        // A backup file belongs to exactly one importer. Continuing through the
+        // list makes later importers inspect an already-imported binary database;
+        // the CSV importer would read the entire SQLite file as text and can OOM.
         for (importer in importers) {
             if (importer.canHandle(file)) {
                 importer.importHabitsFromFile(file)
+                return
             }
         }
     }
