@@ -1,6 +1,7 @@
 name: Android debug APK
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - feature/custom-colors
