@@ -134,7 +134,7 @@ class LoopDBImporter(
             stage = "整理习惯顺序"
             habitList.resort()
         } catch (e: Throwable) {
-            logger.error("Import failed at stage: $stage; habit: $currentHabit", e)
+            logger.error(IllegalStateException("Import failed at stage: $stage; habit: $currentHabit", e))
             throw IllegalStateException("导入阶段：$stage；习惯：$currentHabit", e)
         } finally {
             db.close()
