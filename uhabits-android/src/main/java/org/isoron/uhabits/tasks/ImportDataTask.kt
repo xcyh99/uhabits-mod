@@ -46,7 +46,7 @@ class ImportDataTask(
                 .joinToString("\n") { cause ->
                     "${cause.javaClass.simpleName}: ${cause.message ?: "没有提供错误详情"}"
                 }
-            diagnostic = "${stage}\n${causes}"
+            diagnostic = "${stage}\n导入器内部阶段：${importer.lastImportStage}\n${causes}"
             Log.e("ImportDataTask", "Import failed at: ${stage}", e)
             if (transactionStarted) {
                 try {
