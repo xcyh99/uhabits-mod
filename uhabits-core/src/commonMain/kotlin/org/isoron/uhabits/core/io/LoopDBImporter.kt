@@ -55,8 +55,15 @@ class LoopDBImporter(
 
     private val logger = logging.getLogger("LoopDBImporter")
 
+    // Kept outside the stack trace so the caller can still identify the last phase if OOM
+    // prevents this importer from allocating a wrapped exception.
+    var lastImportStage: String = "尚未开始"
+        private set
+
     override suspend fun canHandle(file: UserFile): Boolean {
+        lastImportStage = "检查备份文件格式"
         if (!isSQLite3File(file)) return false
+        lastImportStage = "打开备份数据库并检查表结构"
         val db = opener.open(file.pathString)
         return try {
             val count = db.querySingle(
@@ -86,18 +93,23 @@ class LoopDBImporter(
         var currentHabit = ""
         try {
             stage = "迁移备份数据库"
+            lastImportStage = stage
             db.migrateTo(DATABASE_VERSION) { version ->
+                lastImportStage = "迁移数据库：执行第 ${version} 版"
                 val filename = org.isoron.platform.io.format("%02d.sql", version)
                 fileOpener.openResourceFile("migrations/$filename").lines().joinToString("\n")
             }
 
             stage = "读取习惯列表"
+            lastImportStage = stage
             val habitDataList = loadHabits(db)
             stage = "恢复自定义颜色"
+            lastImportStage = stage
             restoreShiziCustomColors(db, habitDataList)
             for ((index, habitData) in habitDataList.withIndex()) {
                 currentHabit = "${index + 1}/${habitDataList.size} ${habitData.name}"
                 stage = "创建或更新习惯"
+                lastImportStage = "$stage：$currentHabit"
                 var habit = habitList.getByUUID(habitData.uuid)
 
                 if (habit == null) {
@@ -115,6 +127,7 @@ class LoopDBImporter(
                 val entries = habit.originalEntries
 
                 stage = "读取历史打卡记录"
+                lastImportStage = "$stage：$currentHabit"
                 db.query(
                     "SELECT timestamp, value, length(notes), notes FROM Repetitions WHERE habit = ? ORDER BY timestamp DESC",
                     habitData.id.toString()
@@ -136,9 +149,11 @@ class LoopDBImporter(
                     }
                 }
                 stage = "重新计算习惯数据"
+                lastImportStage = "$stage：$currentHabit"
                 habit.recompute()
             }
             stage = "整理习惯顺序"
+            lastImportStage = stage
             habitList.resort()
         } catch (e: Throwable) {
             logger.error(IllegalStateException("Import failed at stage: $stage; habit: $currentHabit", e))
@@ -156,8 +171,12 @@ class LoopDBImporter(
 
         val byUuid = mutableMapOf<String, Int>()
         val byId = mutableMapOf<Long, Int>()
-        db.query("SELECT habit_id, habit_uuid, argb FROM ShiziCustomColors") { stmt ->
+        db.query("SELECT habit_id, habit_uuid, argb, length(habit_uuid) FROM ShiziCustomColors") { stmt ->
             val id = stmt.getLongOrNull(0)
+            val uuidLength = stmt.getLongOrNull(3) ?: 0L
+            if (uuidLength > MAX_IMPORT_TEXT_LENGTH) {
+                throw IllegalStateException("自定义颜色表中的 habit_uuid 异常过长：${uuidLength} 字符")
+            }
             val uuid = stmt.getTextOrNull(1)
             val argb = stmt.getInt(2)
             if (id != null) byId[id] = argb
@@ -174,9 +193,17 @@ class LoopDBImporter(
         db.query(
             "SELECT id, name, description, question, freq_num, freq_den, color, " +
                 "position, reminder_hour, reminder_min, reminder_days, highlight, " +
-                "archived, type, target_value, target_type, unit, uuid, category " +
+                "archived, type, target_value, target_type, unit, uuid, category, " +
+                "length(name), length(description), length(question), length(unit), length(uuid), length(category) " +
                 "FROM Habits ORDER BY position"
         ) { stmt ->
+            val textColumns = listOf("name", "description", "question", "unit", "uuid", "category")
+            for (i in textColumns.indices) {
+                val length = stmt.getLongOrNull(19 + i) ?: 0L
+                if (length > MAX_IMPORT_TEXT_LENGTH) {
+                    throw IllegalStateException("习惯表字段 ${textColumns[i]} 异常过长：记录 id=${stmt.getLongOrNull(0)}，长度 ${length} 字符")
+                }
+            }
             result.add(
                 HabitData(
                     id = stmt.getLongOrNull(0),
