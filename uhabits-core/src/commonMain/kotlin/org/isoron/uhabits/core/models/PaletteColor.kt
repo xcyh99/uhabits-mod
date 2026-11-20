@@ -40,7 +40,11 @@ data class PaletteColor(val paletteIndex: Int) {
         return result.toString()
     }
 
-    fun compareTo(other: PaletteColor): Int = argb.compareTo(other.argb)
+    fun compareTo(other: PaletteColor): Int {
+        if (isCustom != other.isCustom) return if (isCustom) 1 else -1
+        return if (isCustom) argb.compareTo(other.argb)
+        else paletteIndex.compareTo(other.paletteIndex)
+    }
 
     companion object {
         private val LEGACY_CSV_COLORS = arrayOf(
