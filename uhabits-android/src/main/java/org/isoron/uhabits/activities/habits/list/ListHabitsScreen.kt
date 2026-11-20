@@ -24,6 +24,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
+import android.provider.OpenableColumns
 import androidx.appcompat.app.AppCompatActivity
 import me.tatarka.inject.annotations.Inject
 import nl.dionsegijn.konfetti.core.Party
@@ -93,6 +94,7 @@ const val RESULT_BUG_REPORT = 104
 const val RESULT_REPAIR_DB = 105
 const val REQUEST_OPEN_DOCUMENT = 106
 const val REQUEST_SETTINGS = 107
+const val REQUEST_SAVE_BACKUP = 108
 
 @Inject
 @ActivityScope
@@ -118,6 +120,7 @@ class ListHabitsScreen(
     ListHabitsSelectionMenuBehavior.Screen {
 
     val activity = (context as AppCompatActivity)
+    private var pendingBackupFilename: String? = null
 
     fun onAttached() {
         commandRunner.addListener(this)
@@ -156,6 +159,7 @@ class ListHabitsScreen(
         when (requestCode) {
             REQUEST_OPEN_DOCUMENT -> onOpenDocumentResult(resultCode, data)
             REQUEST_SETTINGS -> onSettingsResult(resultCode)
+            REQUEST_SAVE_BACKUP -> onSaveBackupResult(resultCode, data)
         }
     }
 
@@ -407,11 +411,36 @@ class ListHabitsScreen(
         taskRunner.execute(
             exportDBFactory.create { filename ->
                 if (filename != null) {
-                    activity.showSendFileScreen(filename)
+                    pendingBackupFilename = filename
+                    val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = "application/octet-stream"
+                        putExtra(Intent.EXTRA_TITLE, File(filename).name)
+                    }
+                    activity.startActivityForResult(intent, REQUEST_SAVE_BACKUP)
                 } else {
                     activity.showMessage(activity.resources.getString(R.string.could_not_export))
                 }
             }
         )
+    }
+
+    private fun onSaveBackupResult(resultCode: Int, data: Intent?) {
+        val sourcePath = pendingBackupFilename
+        pendingBackupFilename = null
+        if (resultCode != Activity.RESULT_OK || data?.data == null || sourcePath == null) return
+        try {
+            val source = File(sourcePath)
+            source.inputStream().use { input ->
+                activity.contentResolver.openOutputStream(data.data!!, "w")!!.use { output ->
+                    input.copyTo(output)
+                }
+            }
+            source.delete()
+            activity.showMessage(activity.getString(R.string.backup_saved))
+        } catch (e: Exception) {
+            activity.showMessage(activity.getString(R.string.could_not_export))
+            e.printStackTrace()
+        }
     }
 }
