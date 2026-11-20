@@ -21,13 +21,13 @@ package org.isoron.uhabits.tasks
 
 import android.content.Context
 import me.tatarka.inject.annotations.Inject
-import org.isoron.uhabits.AndroidDirFinder
 import org.isoron.uhabits.inject.AppContext
 
 @Inject
 class ExportDBTaskFactory(
     @AppContext private val context: Context,
-    private val system: AndroidDirFinder
+    private val unused: Unit = Unit
 ) {
-    fun create(listener: ExportDBTask.Listener) = ExportDBTask(context, system, listener)
+    fun create(listener: ExportDBTask.Listener, legacyCompatible: Boolean = false) =
+        ExportDBTask(context, listener, legacyCompatible)
 }
