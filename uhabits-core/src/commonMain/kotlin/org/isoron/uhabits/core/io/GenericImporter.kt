@@ -42,6 +42,9 @@ class GenericImporter(
         habitsCSVImporter
     )
 
+    val lastImportStage: String
+        get() = loopDBImporter.lastImportStage
+
     fun reloadHabitListCache() {
         loopDBImporter.reloadHabitListCache()
     }
