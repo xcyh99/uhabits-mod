@@ -74,7 +74,7 @@ class WebDavSync(private val context: Context) {
                     is OutgoingContent -> this.body = body
                     is String -> {
                         header(HttpHeaders.ContentType, ContentType.Application.Xml.toString())
-                        this.body = TextContent(body, ContentType.Application.Xml.withCharset(Charsets.UTF_8))
+                        this.body = TextContent(body, ContentType.Application.Xml)
                     }
                 }
             }
