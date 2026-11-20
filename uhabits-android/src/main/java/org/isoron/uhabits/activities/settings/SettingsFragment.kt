@@ -296,13 +296,37 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             .apply()
 
         val appContext = requireContext().applicationContext
+        val config = WebDavSync.Config(url, user, pass)
         Thread {
+            if (action == 2) {
+                val result = runCatching { WebDavSync(appContext).listBackupFiles(config) }
+                activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
+                    result.fold(
+                        { files -> showRemoteBackupPicker(files, config, appContext) },
+                        { error ->
+                            Toast.makeText(
+                                requireContext(),
+                                error.message ?: getString(R.string.webdav_operation_failed),
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    )
+                }
+                return@Thread
+            }
+
             val result = runCatching {
                 val sync = WebDavSync(appContext)
                 when (action) {
-                    0 -> { sync.test(WebDavSync.Config(url, user, pass)); getString(R.string.webdav_connection_success) }
-                    1 -> { sync.upload(WebDavSync.Config(url, user, pass)); getString(R.string.webdav_upload_success) }
-                    else -> { sync.download(WebDavSync.Config(url, user, pass)); getString(R.string.webdav_download_success) }
+                    0 -> {
+                        sync.test(config)
+                        getString(R.string.webdav_connection_success)
+                    }
+                    else -> {
+                        sync.upload(config)
+                        getString(R.string.webdav_upload_success)
+                    }
                 }
             }
             activity?.runOnUiThread {
@@ -310,6 +334,66 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 val message = result.getOrElse {
                     it.message ?: getString(R.string.webdav_operation_failed)
                 }
+                Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+            }
+        }.start()
+    }
+
+    private fun showRemoteBackupPicker(
+        files: List<WebDavSync.RemoteFile>,
+        config: WebDavSync.Config,
+        appContext: android.content.Context
+    ) {
+        if (files.isEmpty()) {
+            Toast.makeText(requireContext(), "服务器目录中没有找到备份文件（.db）", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        fun formatSize(size: Long?): String {
+            if (size == null) return "大小未知"
+            return when {
+                size >= 1024L * 1024L -> String.format(Locale.getDefault(), "%.2f MB", size / 1048576.0)
+                size >= 1024L -> String.format(Locale.getDefault(), "%.1f KB", size / 1024.0)
+                else -> "$size B"
+            }
+        }
+
+        val labels = files.map { file ->
+            "${file.name}\n${file.modified ?: "修改时间未知"}  ·  ${formatSize(file.size)}"
+        }.toTypedArray()
+        var selectedIndex = -1
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("选择要下载的备份")
+            .setSingleChoiceItems(labels, -1) { _, which ->
+                selectedIndex = which
+            }
+            .setNegativeButton("取消", null)
+            .setPositiveButton("下载所选文件") { _, _ ->
+                if (selectedIndex !in files.indices) {
+                    Toast.makeText(requireContext(), "请先选择一个备份文件", Toast.LENGTH_SHORT).show()
+                } else {
+                    downloadRemoteBackup(files[selectedIndex], config, appContext)
+                }
+            }
+            .show()
+    }
+
+    private fun downloadRemoteBackup(
+        remoteFile: WebDavSync.RemoteFile,
+        config: WebDavSync.Config,
+        appContext: android.content.Context
+    ) {
+        Thread {
+            val result = runCatching {
+                WebDavSync(appContext).download(config, remoteFile)
+            }
+            activity?.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+                val message = result.fold(
+                    { getString(R.string.webdav_download_success) },
+                    { it.message ?: getString(R.string.webdav_operation_failed) }
+                )
                 Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
             }
         }.start()
