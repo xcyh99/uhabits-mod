@@ -24,6 +24,12 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
+import android.view.ViewGroup
+import android.widget.ScrollView
+import android.widget.TextView
+import android.util.TypedValue
+import androidx.appcompat.app.AlertDialog
+import android.provider.OpenableColumns
 import androidx.appcompat.app.AppCompatActivity
 import me.tatarka.inject.annotations.Inject
 import nl.dionsegijn.konfetti.core.Party
@@ -89,10 +95,13 @@ import java.util.concurrent.TimeUnit
 const val RESULT_IMPORT_DATA = 101
 const val RESULT_EXPORT_CSV = 102
 const val RESULT_EXPORT_DB = 103
+const val RESULT_EXPORT_LEGACY_DB = 109
 const val RESULT_BUG_REPORT = 104
 const val RESULT_REPAIR_DB = 105
 const val REQUEST_OPEN_DOCUMENT = 106
 const val REQUEST_SETTINGS = 107
+const val REQUEST_SAVE_BACKUP = 108
+const val REQUEST_SAVE_CSV = 110
 
 @Inject
 @ActivityScope
@@ -118,6 +127,8 @@ class ListHabitsScreen(
     ListHabitsSelectionMenuBehavior.Screen {
 
     val activity = (context as AppCompatActivity)
+    private var pendingBackupFilename: String? = null
+    private var pendingCsvFilename: String? = null
 
     fun onAttached() {
         commandRunner.addListener(this)
@@ -156,19 +167,32 @@ class ListHabitsScreen(
         when (requestCode) {
             REQUEST_OPEN_DOCUMENT -> onOpenDocumentResult(resultCode, data)
             REQUEST_SETTINGS -> onSettingsResult(resultCode)
+            REQUEST_SAVE_BACKUP -> onSaveBackupResult(resultCode, data)
+            REQUEST_SAVE_CSV -> onSaveCsvResult(resultCode, data)
         }
     }
 
     private fun onOpenDocumentResult(resultCode: Int, data: Intent?) {
-        if (data == null) return
         if (resultCode != Activity.RESULT_OK) return
+
+        val uri = data?.data
+        if (uri == null) {
+            activity.showMessage(activity.resources.getString(R.string.could_not_import))
+            return
+        }
+
+        var tempFile: File? = null
         try {
-            val inStream = activity.contentResolver.openInputStream(data.data!!)!!
-            val cacheDir = activity.externalCacheDir
-            val tempFile = File.createTempFile("import", "", cacheDir)
-            inStream.copyTo(tempFile)
-            onImportData(JavaUserFile(tempFile.toPath())) { tempFile.delete() }
-        } catch (e: IOException) {
+            val input = activity.contentResolver.openInputStream(uri)
+                ?: throw IOException("Unable to open selected backup file")
+            val importedFile = File.createTempFile("import", ".db", activity.cacheDir)
+            tempFile = importedFile
+            input.use { source ->
+                importedFile.outputStream().use { output -> source.copyTo(output) }
+            }
+            onImportData(JavaUserFile(importedFile.toPath())) { importedFile.delete() }
+        } catch (e: Exception) {
+            tempFile?.delete()
             activity.showMessage(activity.resources.getString(R.string.could_not_import))
             e.printStackTrace()
         }
@@ -178,7 +202,8 @@ class ListHabitsScreen(
         when (resultCode) {
             RESULT_IMPORT_DATA -> showImportScreen()
             RESULT_EXPORT_CSV -> behavior.value.onExportCSV()
-            RESULT_EXPORT_DB -> onExportDB()
+            RESULT_EXPORT_DB -> onExportDB(legacyCompatible = false)
+            RESULT_EXPORT_LEGACY_DB -> onExportDB(legacyCompatible = true)
             RESULT_BUG_REPORT -> behavior.value.onSendBugReport()
             RESULT_REPAIR_DB -> behavior.value.onRepairDB()
         }
@@ -250,7 +275,13 @@ class ListHabitsScreen(
     }
 
     override fun showSendFileScreen(filename: String) {
-        activity.showSendFileScreen(filename)
+        pendingCsvFilename = filename
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "application/zip"
+            putExtra(Intent.EXTRA_TITLE, File(filename).name)
+        }
+        activity.startActivityForResult(intent, REQUEST_SAVE_CSV)
     }
 
     override fun showConfetti(color: PaletteColor, x: Float, y: Float) {
@@ -383,7 +414,7 @@ class ListHabitsScreen(
 
     private fun onImportData(file: org.isoron.platform.io.UserFile, onFinished: () -> Unit) {
         taskRunner.execute(
-            importTaskFactory.create(file) { result ->
+            importTaskFactory.create(file) { result, diagnostic ->
                 when (result) {
                     ImportDataTask.SUCCESS -> {
                         refresh()
@@ -395,7 +426,38 @@ class ListHabitsScreen(
                     }
 
                     else -> {
-                        activity.showMessage(activity.resources.getString(R.string.could_not_import))
+                        refresh()
+                        if (diagnostic.isNullOrBlank()) {
+                            activity.showMessage(activity.resources.getString(R.string.could_not_import))
+                        } else {
+                            val density = activity.resources.displayMetrics.density
+                            val messageView = TextView(activity).apply {
+                                text = "导入失败：\n$diagnostic"
+                                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                                setTextIsSelectable(true)
+                                setPadding(
+                                    (16 * density).toInt(),
+                                    (12 * density).toInt(),
+                                    (16 * density).toInt(),
+                                    (12 * density).toInt()
+                                )
+                            }
+                            val scrollView = ScrollView(activity).apply {
+                                isFillViewport = true
+                                addView(
+                                    messageView,
+                                    ViewGroup.LayoutParams(
+                                        ViewGroup.LayoutParams.MATCH_PARENT,
+                                        ViewGroup.LayoutParams.WRAP_CONTENT
+                                    )
+                                )
+                            }
+                            AlertDialog.Builder(activity)
+                                .setTitle("导入失败（完整错误信息）")
+                                .setView(scrollView, (8 * density).toInt(), 0, (8 * density).toInt(), 0)
+                                .setPositiveButton("知道了", null)
+                                .show()
+                        }
                     }
                 }
                 onFinished()
@@ -403,15 +465,63 @@ class ListHabitsScreen(
         )
     }
 
-    private fun onExportDB() {
+    private fun onExportDB(legacyCompatible: Boolean) {
         taskRunner.execute(
-            exportDBFactory.create { filename ->
+            exportDBFactory.create({ filename ->
                 if (filename != null) {
-                    activity.showSendFileScreen(filename)
+                    pendingBackupFilename = filename
+                    val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = "application/octet-stream"
+                        putExtra(Intent.EXTRA_TITLE, File(filename).name)
+                    }
+                    activity.startActivityForResult(intent, REQUEST_SAVE_BACKUP)
                 } else {
                     activity.showMessage(activity.resources.getString(R.string.could_not_export))
                 }
-            }
+            }, legacyCompatible)
         )
+    }
+
+    private fun onSaveCsvResult(resultCode: Int, data: Intent?) {
+        val sourcePath = pendingCsvFilename
+        pendingCsvFilename = null
+        if (sourcePath == null) return
+        val source = File(sourcePath)
+        if (resultCode != Activity.RESULT_OK || data?.data == null) {
+            source.delete()
+            return
+        }
+        try {
+            source.inputStream().use { input ->
+                activity.contentResolver.openOutputStream(data.data!!, "w")!!.use { output ->
+                    input.copyTo(output)
+                }
+            }
+            source.delete()
+            activity.showMessage(activity.getString(R.string.backup_saved))
+        } catch (e: Exception) {
+            activity.showMessage(activity.getString(R.string.could_not_export))
+            e.printStackTrace()
+        }
+    }
+
+    private fun onSaveBackupResult(resultCode: Int, data: Intent?) {
+        val sourcePath = pendingBackupFilename
+        pendingBackupFilename = null
+        if (resultCode != Activity.RESULT_OK || data?.data == null || sourcePath == null) return
+        try {
+            val source = File(sourcePath)
+            source.inputStream().use { input ->
+                activity.contentResolver.openOutputStream(data.data!!, "w")!!.use { output ->
+                    input.copyTo(output)
+                }
+            }
+            source.delete()
+            activity.showMessage(activity.getString(R.string.backup_saved))
+        } catch (e: Exception) {
+            activity.showMessage(activity.getString(R.string.could_not_export))
+            e.printStackTrace()
+        }
     }
 }

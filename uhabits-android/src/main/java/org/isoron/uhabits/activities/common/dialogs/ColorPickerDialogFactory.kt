@@ -8,7 +8,7 @@
  * Free Software Foundation, either version 3 of the License, or (at your
  * option) any later version.
  *
- * Loop Habit Tracker is distributed in the hope that it will be useful, but
+ * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
@@ -19,30 +19,19 @@
 package org.isoron.uhabits.activities.common.dialogs
 
 import android.content.Context
-import com.android.colorpicker.ColorPickerDialog.SIZE_SMALL
 import me.tatarka.inject.annotations.Inject
 import org.isoron.platform.gui.toInt
-import org.isoron.uhabits.R
 import org.isoron.uhabits.core.models.PaletteColor
 import org.isoron.uhabits.core.ui.views.Theme
 import org.isoron.uhabits.inject.ActivityContext
 import org.isoron.uhabits.inject.ActivityScope
-import org.isoron.uhabits.utils.StyledResources
 
 @Inject
 @ActivityScope
 class ColorPickerDialogFactory(@param:ActivityContext private val context: Context) {
     fun create(color: PaletteColor, theme: Theme): ColorPickerDialog {
-        val dialog = ColorPickerDialog()
-        val res = StyledResources(context)
-        val androidColor = theme.color(color).toInt()
-        dialog.initialize(
-            R.string.color_picker_default_title,
-            res.getPalette(),
-            androidColor,
-            4,
-            SIZE_SMALL
-        )
-        return dialog
+        return ColorPickerDialog().apply {
+            setInitialColor(theme.color(color).toInt())
+        }
     }
 }

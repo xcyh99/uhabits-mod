@@ -23,6 +23,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.os.Bundle
 import android.os.Looper
+import android.util.Log
 import android.widget.RemoteViews
 import org.isoron.uhabits.HabitsApplication
 import org.isoron.uhabits.R
@@ -130,13 +131,13 @@ abstract class BaseWidgetProvider : AppWidgetProvider() {
         e: RuntimeException
     ) {
         val errorView = RemoteViews(context.packageName, R.layout.widget_error)
-        if (e is HabitNotFoundException) {
-            errorView.setCharSequence(
-                R.id.label,
-                "setText",
-                context.getString(R.string.habit_not_found)
-            )
+        val detail = if (e is HabitNotFoundException) {
+            context.getString(R.string.habit_not_found)
+        } else {
+            e.javaClass.simpleName + ": " + (e.message ?: "no detail")
         }
+        Log.e("ShiziWidget", "Widget " + widgetId + " failed to render: " + detail, e)
+        errorView.setCharSequence(R.id.label, "setText", detail)
         manager.updateAppWidget(widgetId, errorView)
     }
 

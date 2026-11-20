@@ -27,18 +27,27 @@ import org.isoron.platform.io.UserFile
  */
 @Inject
 class GenericImporter(
-    loopDBImporter: LoopDBImporter,
+    private val loopDBImporter: LoopDBImporter,
     rewireDBImporter: RewireDBImporter,
     tickmateDBImporter: TickmateDBImporter,
-    habitBullCSVImporter: HabitBullCSVImporter
+    habitBullCSVImporter: HabitBullCSVImporter,
+    habitsCSVImporter: HabitsCSVImporter
 ) : AbstractImporter() {
 
     var importers: List<AbstractImporter> = listOf(
         loopDBImporter,
         rewireDBImporter,
         tickmateDBImporter,
-        habitBullCSVImporter
+        habitBullCSVImporter,
+        habitsCSVImporter
     )
+
+    val lastImportStage: String
+        get() = loopDBImporter.lastImportStage
+
+    fun reloadHabitListCache() {
+        loopDBImporter.reloadHabitListCache()
+    }
 
     override suspend fun canHandle(file: UserFile): Boolean {
         for (importer in importers) {
