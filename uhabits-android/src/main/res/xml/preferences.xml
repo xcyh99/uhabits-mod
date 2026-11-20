@@ -125,6 +125,12 @@
                 app:iconSpaceReserved="false" />
 
         <Preference
+                android:key="exportLegacyDB"
+                android:summary="@string/export_legacy_backup_summary"
+                android:title="@string/export_legacy_backup"
+                app:iconSpaceReserved="false" />
+
+        <Preference
                 android:key="exportCSV"
                 android:summary="@string/export_as_csv_summary"
                 android:title="@string/export_to_csv"
