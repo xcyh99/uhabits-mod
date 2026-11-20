@@ -85,6 +85,13 @@ class HabitsCSVImporter(
     }
 
     private suspend fun readArchive(file: UserFile): List<ZipEntry> {
+        // This importer is only for ZIP archives. Check the signature before
+        // reading the whole file, so ordinary SQLite backups and CSV files are
+        // not loaded into memory just to reject them.
+        val header = file.readBytes(2)
+        if (header.size < 2 || header[0] != 0x50.toByte() || header[1] != 0x4b.toByte()) {
+            return emptyList()
+        }
         return ZipReader(file.readBytes(Int.MAX_VALUE)).entries()
     }
 
