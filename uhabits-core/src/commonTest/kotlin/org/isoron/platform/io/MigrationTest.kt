@@ -2,13 +2,14 @@ package org.isoron.platform.io
 
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
+import org.isoron.uhabits.core.DATABASE_VERSION
 import kotlin.test.assertEquals
 
 class MigrationTest {
     @Test
     fun testMigrateFromScratch() = runTest {
         val db = TestDatabaseHelper.createEmptyDatabase()
-        assertEquals(26, db.getVersion())
+        assertEquals(DATABASE_VERSION, db.getVersion())
 
         db.run(
             """
