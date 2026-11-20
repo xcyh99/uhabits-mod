@@ -23,6 +23,8 @@ jobs:
           java-version: "17"
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+      - name: Run core JVM tests
+        run: ./gradlew :uhabits-core:jvmTest --no-daemon
       - name: Build debug APK
         run: ./gradlew :uhabits-android:assembleDebug --no-daemon
       - name: Upload APK
