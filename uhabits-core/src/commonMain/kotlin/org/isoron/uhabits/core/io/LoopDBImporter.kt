@@ -82,6 +82,7 @@ class LoopDBImporter(
         }
 
         val habitDataList = loadHabits(db)
+        restoreShiziCustomColors(db, habitDataList)
         for (habitData in habitDataList) {
             var habit = habitList.getByUUID(habitData.uuid)
 
@@ -116,6 +117,27 @@ class LoopDBImporter(
         }
         habitList.resort()
         db.close()
+    }
+
+    private fun restoreShiziCustomColors(db: Database, habits: List<HabitData>) {
+        val tableCount = db.querySingle(
+            "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='ShiziCustomColors'"
+        ) { it.getInt(0) } ?: 0
+        if (tableCount == 0) return
+
+        val byUuid = mutableMapOf<String, Int>()
+        val byId = mutableMapOf<Long, Int>()
+        db.query("SELECT habit_id, habit_uuid, argb FROM ShiziCustomColors") { stmt ->
+            val id = stmt.getLongOrNull(0)
+            val uuid = stmt.getTextOrNull(1)
+            val argb = stmt.getInt(2)
+            if (id != null) byId[id] = argb
+            if (uuid != null) byUuid[uuid] = argb
+        }
+        for (habit in habits) {
+            val color = habit.uuid?.let { byUuid[it] } ?: habit.id?.let { byId[it] }
+            if (color != null) habit.color = color
+        }
     }
 
     private fun loadHabits(db: Database): List<HabitData> {
