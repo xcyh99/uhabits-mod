@@ -243,4 +243,6 @@
     <string name="pref_animations_title">Disable animations</string>
     <string name="pref_animations_description">Disable confetti animation after adding a checkmark.</string>
     <string name="backup_saved">Backup saved</string>
+    <string name="webdav_sync">WebDAV network backup</string>
+    <string name="webdav_sync_summary">Configure a WebDAV server to test, upload, or download a backup.</string>
 </resources>
