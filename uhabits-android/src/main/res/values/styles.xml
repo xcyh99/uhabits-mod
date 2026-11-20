@@ -19,7 +19,7 @@
 
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="AppBaseTheme" parent="@style/Theme.MaterialComponents.Light.NoActionBar">
-        <item name="aboutScreenColor">#7E57C2</item>
+        <item name="aboutScreenColor">@color/shizi_purple</item>
         <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Light</item>
         <item name="actionModeBackground">@color/grey_700</item>
         <item name="android:alertDialogTheme">@style/Theme.AppCompat.Light.Dialog</item>
