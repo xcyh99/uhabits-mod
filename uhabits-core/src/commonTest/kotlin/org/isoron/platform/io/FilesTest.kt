@@ -41,6 +41,18 @@ class FilesTest {
     }
 
     @Test
+    fun testReadBytesWithVeryLargeLimitUsesActualFileSize() = runTest {
+        val file = fileOpener.openUserFile("test-read-large-limit")
+        val data = byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8)
+        file.writeBytes(data)
+
+        val read = file.readBytes(Int.MAX_VALUE)
+
+        assertTrue(data.contentEquals(read))
+        file.delete()
+    }
+
+    @Test
     fun testExists() = runTest {
         val file = fileOpener.openUserFile("test-exists")
         file.writeString("data")
