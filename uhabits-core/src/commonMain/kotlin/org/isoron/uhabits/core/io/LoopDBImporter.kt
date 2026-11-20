@@ -28,6 +28,7 @@ import org.isoron.platform.io.migrateTo
 import org.isoron.platform.io.query
 import org.isoron.platform.io.querySingle
 import org.isoron.platform.time.LocalDate
+import org.isoron.platform.time.getToday
 import org.isoron.uhabits.core.AppScope
 import org.isoron.uhabits.core.DATABASE_VERSION
 import org.isoron.uhabits.core.commands.CommandRunner
@@ -142,6 +143,20 @@ class LoopDBImporter(
                         )
                     }
                     val notes = stmt.getTextOrNull(3) ?: ""
+                    // A blank UNKNOWN row is not a repetition; do not import it or
+                    // let it become the oldest date used by history recomputation.
+                    if (value == Entry.UNKNOWN && notes.isEmpty()) return@query
+
+                    // LocalDate stores its day offset in a 32-bit Int. Reject corrupt or
+                    // unit-mismatched timestamps before conversion can wrap that offset.
+                    val earliestAllowed = LocalDate(1900, 1, 1).unixTime
+                    val latestAllowed = getToday().plus(30).unixTime
+                    if (timestamp < earliestAllowed || timestamp > latestAllowed) {
+                        throw IllegalStateException(
+                            "打卡日期超出合理范围：习惯 " + habitData.name +
+                                "，时间戳 " + timestamp + "（毫秒）"
+                        )
+                    }
                     val date = LocalDate.fromUnixTime(timestamp)
                     val (_, existingValue, existingNotes) = entries.get(date)
                     if (existingValue != value || existingNotes != notes) {
