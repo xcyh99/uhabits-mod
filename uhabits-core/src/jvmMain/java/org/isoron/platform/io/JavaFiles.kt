@@ -92,11 +92,21 @@ class JavaUserFile(val path: Path) : UserFile {
     }
 
     override suspend fun readBytes(limit: Int): ByteArray {
+        require(limit >= 0) { "limit must not be negative" }
         val file = path.toFile()
+        // Do not allocate the requested limit blindly. Callers may pass
+        // Int.MAX_VALUE to mean "read the whole file", but that must not
+        // reserve a 2 GiB array for a small backup.
+        val size = minOf(limit.toLong(), file.length()).toInt()
         file.inputStream().use { stream ->
-            val buf = ByteArray(limit)
-            val n = stream.read(buf)
-            return if (n <= 0) ByteArray(0) else buf.copyOf(n)
+            val buf = ByteArray(size)
+            var offset = 0
+            while (offset < size) {
+                val count = stream.read(buf, offset, size - offset)
+                if (count <= 0) break
+                offset += count
+            }
+            return if (offset == size) buf else buf.copyOf(offset)
         }
     }
 
