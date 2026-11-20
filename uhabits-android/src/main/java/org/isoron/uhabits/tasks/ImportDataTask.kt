@@ -41,8 +41,12 @@ class ImportDataTask(
             transactionStarted = false
         } catch (e: Throwable) {
             result = FAILED
-            val message = e.message?.take(180) ?: "没有提供错误详情"
-            diagnostic = "${stage}；${e.javaClass.simpleName}: ${message}"
+            val causes = generateSequence(e) { it.cause }
+                .take(8)
+                .joinToString("\\n") { cause ->
+                    "${cause.javaClass.simpleName}: ${cause.message ?: "没有提供错误详情"}"
+                }
+            diagnostic = "${stage}\\n${causes}"
             Log.e("ImportDataTask", "Import failed at: ${stage}", e)
             if (transactionStarted) {
                 try {
