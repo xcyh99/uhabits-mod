@@ -32,6 +32,10 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.graphics.Color
+import android.content.res.ColorStateList
+import android.view.Gravity
+import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.Toast
@@ -198,33 +202,75 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             setText(prefs.getString("webdav_password", ""))
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
+
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+        fun actionButton(label: String, color: String) = Button(requireContext()).apply {
+            text = label
+            isAllCaps = false
+            setTextColor(Color.WHITE)
+            textSize = 16f
+            gravity = Gravity.CENTER
+            backgroundTintList = ColorStateList.valueOf(Color.parseColor(color))
+            minHeight = dp(48)
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+        }
+
+        val testButton = actionButton(
+            getString(R.string.webdav_test_connection),
+            "#7E57C2"
+        )
+        val uploadButton = actionButton(
+            getString(R.string.webdav_upload),
+            "#D32F2F"
+        )
+        val downloadButton = actionButton(
+            getString(R.string.webdav_download),
+            "#2E7D32"
+        )
+
+        val actionRow = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(uploadButton, LinearLayout.LayoutParams(0, dp(52), 1f).apply {
+                marginEnd = dp(6)
+            })
+            addView(downloadButton, LinearLayout.LayoutParams(0, dp(52), 1f).apply {
+                marginStart = dp(6)
+            })
+        }
+
         val form = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
-            val pad = (20 * resources.displayMetrics.density).toInt()
-            setPadding(pad, pad / 2, pad, 0)
+            val pad = dp(20)
+            setPadding(pad, pad / 2, pad, pad)
             addView(server)
             addView(username)
             addView(password)
+            addView(testButton, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(48)
+            ).apply {
+                topMargin = dp(12)
+                bottomMargin = dp(10)
+            })
+            addView(actionRow, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(52)
+            ))
         }
+
         val dialog = AlertDialog.Builder(requireContext())
             .setTitle(R.string.webdav_sync)
             .setMessage(R.string.webdav_enter_details)
             .setView(form)
-            .setPositiveButton(R.string.webdav_upload, null)
-            .setNegativeButton(R.string.webdav_download, null)
-            .setNeutralButton(R.string.webdav_test_connection, null)
             .create()
 
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                runWebDavAction(server, username, password, prefs, 1)
-            }
-            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
-                runWebDavAction(server, username, password, prefs, 2)
-            }
-            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-                runWebDavAction(server, username, password, prefs, 0)
-            }
+        testButton.setOnClickListener {
+            runWebDavAction(server, username, password, prefs, 0)
+        }
+        uploadButton.setOnClickListener {
+            runWebDavAction(server, username, password, prefs, 1)
+        }
+        downloadButton.setOnClickListener {
+            runWebDavAction(server, username, password, prefs, 2)
         }
         dialog.show()
     }
