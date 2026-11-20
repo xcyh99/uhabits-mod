@@ -236,7 +236,7 @@ class HistoryChart(
         val hasNotes = if (offset >= notesIndicators.size) false else notesIndicators[offset]
         val squareColor: Color
         val circleColor: Color
-        val color = theme.color(paletteColor.paletteIndex)
+        val color = theme.color(paletteColor)
         squareColor = when (value) {
             Square.ON -> {
                 color
