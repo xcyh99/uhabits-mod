@@ -52,6 +52,15 @@ class ImportDataTask(
                     diagnostic = "${diagnostic}；回滚也失败：${rollbackError.javaClass.simpleName}"
                 }
             }
+
+            // The in-memory HabitList is not part of the SQLite transaction.
+            // Reload it after rollback so the UI cannot keep showing uncommitted habits.
+            try {
+                importer.reloadHabitListCache()
+            } catch (reloadError: Throwable) {
+                Log.e("ImportDataTask", "Failed to reload habit cache after import failure", reloadError)
+                diagnostic = "${diagnostic}；刷新缓存失败：${reloadError.javaClass.simpleName}"
+            }
         }
     }
 
