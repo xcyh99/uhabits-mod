@@ -18,7 +18,7 @@
  */
 package org.isoron.uhabits.activities.settings
 
-import android.app.AlertDialog
+import androidx.appcompat.app.AlertDialog
 import android.app.backup.BackupManager
 import android.content.Intent
 import android.content.SharedPreferences
@@ -190,11 +190,11 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
         }
         val username = EditText(requireContext()).apply {
-            hint = "Username"
+            hint = getString(R.string.webdav_username)
             setText(prefs.getString("webdav_username", ""))
         }
         val password = EditText(requireContext()).apply {
-            hint = "Password"
+            hint = getString(R.string.webdav_password)
             setText(prefs.getString("webdav_password", ""))
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
@@ -208,14 +208,14 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         }
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.webdav_sync)
-            .setMessage("Enter the WebDAV collection URL, username and password.")
+            .setMessage(R.string.webdav_enter_details)
             .setView(form)
-            .setPositiveButton("Save and continue") { _, _ ->
+            .setPositiveButton(R.string.webdav_save_continue) { _, _ ->
                 val url = server.text.toString().trim()
                 val user = username.text.toString().trim()
                 val pass = password.text.toString()
                 if (!url.startsWith("https://") || user.isBlank() || pass.isBlank()) {
-                    Toast.makeText(requireContext(), "Use an HTTPS WebDAV URL and enter username/password.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(requireContext(), R.string.webdav_https_required, Toast.LENGTH_LONG).show()
                     return@setPositiveButton
                 }
                 prefs.edit()
@@ -232,7 +232,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     private fun showWebDavActions() {
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.webdav_sync)
-            .setItems(arrayOf("Test connection", "Upload backup", "Download backup")) { _, which ->
+            .setItems(arrayOf(getString(R.string.webdav_test_connection), getString(R.string.webdav_upload), getString(R.string.webdav_download))) { _, which ->
                 val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
                 val config = WebDavSync.Config(
                     prefs.getString("webdav_server", "") ?: "",
@@ -244,13 +244,13 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     val result = runCatching {
                         val sync = WebDavSync(appContext)
                         when (which) {
-                            0 -> { sync.test(config); "Connection successful." }
-                            1 -> { sync.upload(config); "Backup uploaded successfully." }
-                            else -> { sync.download(config); "Backup downloaded to the selected local backup folder. Use Import data to restore it." }
+                            0 -> { sync.test(config); getString(R.string.webdav_connection_success) }
+                            1 -> { sync.upload(config); getString(R.string.webdav_upload_success) }
+                            else -> { sync.download(config); getString(R.string.webdav_download_success) }
                         }
                     }
                     activity?.runOnUiThread {
-                        val message = result.getOrElse { it.message ?: "WebDAV operation failed." }
+                        val message = result.getOrElse { it.message ?: getString(R.string.webdav_operation_failed) }
                         Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
                     }
                 }.start()
