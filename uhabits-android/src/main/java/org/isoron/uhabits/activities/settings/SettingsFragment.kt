@@ -185,7 +185,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     private fun showWebDavSettings() {
         val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
         val server = EditText(requireContext()).apply {
-            hint = "https://example.com/remote.php/dav/files/user/"
+            hint = getString(R.string.webdav_server_hint)
             setText(prefs.getString("webdav_server", ""))
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
         }
