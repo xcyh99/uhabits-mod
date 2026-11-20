@@ -30,14 +30,16 @@ class GenericImporter(
     loopDBImporter: LoopDBImporter,
     rewireDBImporter: RewireDBImporter,
     tickmateDBImporter: TickmateDBImporter,
-    habitBullCSVImporter: HabitBullCSVImporter
+    habitBullCSVImporter: HabitBullCSVImporter,
+    habitsCSVImporter: HabitsCSVImporter
 ) : AbstractImporter() {
 
     var importers: List<AbstractImporter> = listOf(
         loopDBImporter,
         rewireDBImporter,
         tickmateDBImporter,
-        habitBullCSVImporter
+        habitBullCSVImporter,
+        habitsCSVImporter
     )
 
     override suspend fun canHandle(file: UserFile): Boolean {
