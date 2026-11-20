@@ -245,4 +245,18 @@
     <string name="backup_saved">Backup saved</string>
     <string name="webdav_sync">WebDAV network backup</string>
     <string name="webdav_sync_summary">Configure a WebDAV server to test, upload, or download a backup.</string>
+
+    <string name="webdav_server_hint">https://服务器地址/WebDAV/目录/</string>
+    <string name="webdav_username">用户名</string>
+    <string name="webdav_password">密码</string>
+    <string name="webdav_enter_details">请输入 WebDAV 目录地址、用户名和密码。</string>
+    <string name="webdav_save_continue">保存并继续</string>
+    <string name="webdav_https_required">请使用 HTTPS 地址，并填写用户名和密码。</string>
+    <string name="webdav_test_connection">测试连接</string>
+    <string name="webdav_upload">上传备份</string>
+    <string name="webdav_download">下载备份</string>
+    <string name="webdav_connection_success">连接成功。</string>
+    <string name="webdav_upload_success">备份上传成功。</string>
+    <string name="webdav_download_success">备份已下载到所选的本地备份文件夹。需要恢复时，请使用“导入数据”。</string>
+    <string name="webdav_operation_failed">WebDAV 操作失败。</string>
 </resources>
