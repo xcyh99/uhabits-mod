@@ -30,16 +30,15 @@ class ImportDataTask(
             stage = "识别备份文件"
             if (!importer.canHandle(file)) {
                 result = NOT_RECOGNIZED
-                return
+            } else {
+                stage = "读取备份、迁移数据库并写入习惯数据"
+                importer.importHabitsFromFile(file)
+                result = SUCCESS
             }
-
-            stage = "读取备份、迁移数据库并写入习惯数据"
-            importer.importHabitsFromFile(file)
 
             stage = "提交导入数据"
             modelFactory.database.commit()
             transactionStarted = false
-            result = SUCCESS
         } catch (e: Throwable) {
             result = FAILED
             val message = e.message?.take(180) ?: "没有提供错误详情"
