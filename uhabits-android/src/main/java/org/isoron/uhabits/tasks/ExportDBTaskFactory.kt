@@ -26,7 +26,6 @@ import org.isoron.uhabits.inject.AppContext
 @Inject
 class ExportDBTaskFactory(
     @AppContext private val context: Context,
-    private val unused: Unit = Unit
 ) {
     fun create(listener: ExportDBTask.Listener, legacyCompatible: Boolean = false) =
         ExportDBTask(context, listener, legacyCompatible)
