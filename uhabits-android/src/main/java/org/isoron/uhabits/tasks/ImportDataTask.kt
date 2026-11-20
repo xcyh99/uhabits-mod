@@ -43,10 +43,10 @@ class ImportDataTask(
             result = FAILED
             val causes = generateSequence(e) { it.cause }
                 .take(8)
-                .joinToString("\\n") { cause ->
+                .joinToString("\n") { cause ->
                     "${cause.javaClass.simpleName}: ${cause.message ?: "没有提供错误详情"}"
                 }
-            diagnostic = "${stage}\\n${causes}"
+            diagnostic = "${stage}\n${causes}"
             Log.e("ImportDataTask", "Import failed at: ${stage}", e)
             if (transactionStarted) {
                 try {
