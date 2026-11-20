@@ -24,6 +24,11 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
+import android.view.ViewGroup
+import android.widget.ScrollView
+import android.widget.TextView
+import android.util.TypedValue
+import androidx.appcompat.app.AlertDialog
 import android.provider.OpenableColumns
 import androidx.appcompat.app.AppCompatActivity
 import me.tatarka.inject.annotations.Inject
@@ -422,13 +427,37 @@ class ListHabitsScreen(
 
                     else -> {
                         refresh()
-                        activity.showMessage(
-                            if (diagnostic.isNullOrBlank()) {
-                                activity.resources.getString(R.string.could_not_import)
-                            } else {
-                                "导入失败：$diagnostic"
+                        if (diagnostic.isNullOrBlank()) {
+                            activity.showMessage(activity.resources.getString(R.string.could_not_import))
+                        } else {
+                            val density = activity.resources.displayMetrics.density
+                            val messageView = TextView(activity).apply {
+                                text = "导入失败：\\n$diagnostic"
+                                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                                setTextIsSelectable(true)
+                                setPadding(
+                                    (16 * density).toInt(),
+                                    (12 * density).toInt(),
+                                    (16 * density).toInt(),
+                                    (12 * density).toInt()
+                                )
                             }
-                        )
+                            val scrollView = ScrollView(activity).apply {
+                                isFillViewport = true
+                                addView(
+                                    messageView,
+                                    ViewGroup.LayoutParams(
+                                        ViewGroup.LayoutParams.MATCH_PARENT,
+                                        ViewGroup.LayoutParams.WRAP_CONTENT
+                                    )
+                                )
+                            }
+                            AlertDialog.Builder(activity)
+                                .setTitle("导入失败（完整错误信息）")
+                                .setView(scrollView, (8 * density).toInt(), 0, (8 * density).toInt(), 0)
+                                .setPositiveButton("知道了", null)
+                                .show()
+                        }
                     }
                 }
                 onFinished()
