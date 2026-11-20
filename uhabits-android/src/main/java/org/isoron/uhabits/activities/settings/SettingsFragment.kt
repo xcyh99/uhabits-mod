@@ -43,6 +43,7 @@ import org.isoron.uhabits.R
 import org.isoron.uhabits.activities.habits.list.RESULT_BUG_REPORT
 import org.isoron.uhabits.activities.habits.list.RESULT_EXPORT_CSV
 import org.isoron.uhabits.activities.habits.list.RESULT_EXPORT_DB
+import org.isoron.uhabits.activities.habits.list.RESULT_EXPORT_LEGACY_DB
 import org.isoron.uhabits.activities.habits.list.RESULT_IMPORT_DATA
 import org.isoron.uhabits.activities.habits.list.RESULT_REPAIR_DB
 import org.isoron.uhabits.core.preferences.Preferences
@@ -93,6 +94,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         setResultOnPreferenceClick("importData", RESULT_IMPORT_DATA)
         setResultOnPreferenceClick("exportCSV", RESULT_EXPORT_CSV)
         setResultOnPreferenceClick("exportDB", RESULT_EXPORT_DB)
+        setResultOnPreferenceClick("exportLegacyDB", RESULT_EXPORT_LEGACY_DB)
         setResultOnPreferenceClick("repairDB", RESULT_REPAIR_DB)
         setResultOnPreferenceClick("bugReport", RESULT_BUG_REPORT)
     }
