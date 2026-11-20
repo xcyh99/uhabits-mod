@@ -1,21 +1,3 @@
-/*
- * Copyright (C) 2016-2025 Álinson Santos Xavier <git@axavier.org>
- *
- * This file is part of Loop Habit Tracker.
- *
- * Loop Habit Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by the
- * Free Software Foundation, either version 3 of the License, or (at your
- * option) any later version.
- *
- * Loop Habit Tracker is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 package org.isoron.uhabits.tasks
 
 import android.util.Log
@@ -35,41 +17,51 @@ class ImportDataTask(
     private val listener: Listener
 ) : Task {
     private var result = 0
+    private var diagnostic: String? = null
     private val modelFactory: SQLModelFactory = modelFactory as SQLModelFactory
+
     override suspend fun doInBackground() {
         var transactionStarted = false
+        var stage = "开始数据库事务"
         try {
             modelFactory.database.begin()
             transactionStarted = true
 
-            if (importer.canHandle(file)) {
-                importer.importHabitsFromFile(file)
-                result = SUCCESS
-            } else {
+            stage = "识别备份文件"
+            if (!importer.canHandle(file)) {
                 result = NOT_RECOGNIZED
+                return
             }
 
+            stage = "读取备份、迁移数据库并写入习惯数据"
+            importer.importHabitsFromFile(file)
+
+            stage = "提交导入数据"
             modelFactory.database.commit()
             transactionStarted = false
+            result = SUCCESS
         } catch (e: Throwable) {
             result = FAILED
-            Log.e("ImportDataTask", "Import failed", e)
+            val message = e.message?.take(180) ?: "没有提供错误详情"
+            diagnostic = "${stage}；${e.javaClass.simpleName}: ${message}"
+            Log.e("ImportDataTask", "Import failed at: ${stage}", e)
             if (transactionStarted) {
                 try {
                     modelFactory.database.run("ROLLBACK")
                 } catch (rollbackError: Throwable) {
                     Log.e("ImportDataTask", "Rollback failed", rollbackError)
+                    diagnostic = "${diagnostic}；回滚也失败：${rollbackError.javaClass.simpleName}"
                 }
             }
         }
     }
 
     override fun onPostExecute() {
-        listener.onImportDataFinished(result)
+        listener.onImportDataFinished(result, diagnostic)
     }
 
     fun interface Listener {
-        fun onImportDataFinished(result: Int)
+        fun onImportDataFinished(result: Int, diagnostic: String?)
     }
 
     companion object {
