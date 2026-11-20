@@ -149,11 +149,11 @@ class LoopDBImporter(
 
                     // LocalDate stores its day offset in a 32-bit Int. Reject corrupt or
                     // unit-mismatched timestamps before conversion can wrap that offset.
-                    val earliestAllowed = LocalDate(1900, 1, 1).unixTime
-                    // Imported backups may legitimately contain entries dated after the
-                    // test/device's current day. Keep a broad sanity bound instead of
-                    // rejecting valid future-dated history during migration.
-                    val latestAllowed = LocalDate(2100, 1, 1).unixTime
+                    // Accept the full supported civil-date range. Do not compare
+                    // against getToday(): historical backups and test fixtures can be
+                    // older or newer than the current device date.
+                    val earliestAllowed = LocalDate(1, 1, 1).unixTime
+                    val latestAllowed = LocalDate(9999, 12, 31).unixTime
                     if (timestamp < earliestAllowed || timestamp > latestAllowed) {
                         throw IllegalStateException(
                             "打卡日期超出合理范围：习惯 " + habitData.name +
