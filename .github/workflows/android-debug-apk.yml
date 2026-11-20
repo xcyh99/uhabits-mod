@@ -6,6 +6,7 @@ on:
       - feature/custom-colors
       - fix/import-redundant-resort
       - fix/empty-history-import-oom
+      - feature/webdav-backup-sync
   pull_request:
     branches:
       - dev
