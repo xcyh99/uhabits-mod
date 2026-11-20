@@ -9,7 +9,7 @@ import android.util.Xml
 import androidx.preference.PreferenceManager
 import androidx.documentfile.provider.DocumentFile
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.request.header
 import io.ktor.client.request.request
 import io.ktor.client.statement.HttpResponse
@@ -82,7 +82,7 @@ class WebDavSync(private val context: Context) {
     }
 
     private fun withClient(block: (HttpClient) -> Unit) {
-        val client = HttpClient(CIO)
+        val client = HttpClient(OkHttp)
         try {
             block(client)
         } finally {
