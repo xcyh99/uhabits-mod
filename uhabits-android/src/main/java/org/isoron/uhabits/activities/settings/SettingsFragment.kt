@@ -18,6 +18,7 @@
  */
 package org.isoron.uhabits.activities.settings
 
+import android.app.AlertDialog
 import android.app.backup.BackupManager
 import android.content.Intent
 import android.content.SharedPreferences
@@ -31,6 +32,10 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.Toast
+import android.text.InputType
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
@@ -47,6 +52,7 @@ import org.isoron.uhabits.activities.habits.list.RESULT_EXPORT_LEGACY_DB
 import org.isoron.uhabits.activities.habits.list.RESULT_IMPORT_DATA
 import org.isoron.uhabits.activities.habits.list.RESULT_REPAIR_DB
 import org.isoron.uhabits.core.preferences.Preferences
+import org.isoron.uhabits.database.WebDavSync
 import org.isoron.uhabits.core.ui.NotificationTray
 import org.isoron.uhabits.notifications.AndroidNotificationTray.Companion.createAndroidNotificationChannel
 import org.isoron.uhabits.notifications.RingtoneManager
@@ -143,6 +149,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 activity?.startActivitySafely(intent)
                 return true
             }
+            "webDavSync" -> {
+                showWebDavSettings()
+                return true
+            }
             "publicBackupFolder" -> {
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
                 intent.addFlags(
@@ -170,6 +180,82 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         updatePublicBackupFolderSummary()
 
         findPreference("reminderSound").isVisible = false
+    }
+
+    private fun showWebDavSettings() {
+        val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val server = EditText(requireContext()).apply {
+            hint = "https://example.com/remote.php/dav/files/user/"
+            setText(prefs.getString("webdav_server", ""))
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+        }
+        val username = EditText(requireContext()).apply {
+            hint = "Username"
+            setText(prefs.getString("webdav_username", ""))
+        }
+        val password = EditText(requireContext()).apply {
+            hint = "Password"
+            setText(prefs.getString("webdav_password", ""))
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        val form = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            val pad = (20 * resources.displayMetrics.density).toInt()
+            setPadding(pad, pad / 2, pad, 0)
+            addView(server)
+            addView(username)
+            addView(password)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.webdav_sync)
+            .setMessage("Enter the WebDAV collection URL, username and password.")
+            .setView(form)
+            .setPositiveButton("Save and continue") { _, _ ->
+                val url = server.text.toString().trim()
+                val user = username.text.toString().trim()
+                val pass = password.text.toString()
+                if (!url.startsWith("https://") || user.isBlank() || pass.isBlank()) {
+                    Toast.makeText(requireContext(), "Use an HTTPS WebDAV URL and enter username/password.", Toast.LENGTH_LONG).show()
+                    return@setPositiveButton
+                }
+                prefs.edit()
+                    .putString("webdav_server", url)
+                    .putString("webdav_username", user)
+                    .putString("webdav_password", pass)
+                    .apply()
+                showWebDavActions()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showWebDavActions() {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.webdav_sync)
+            .setItems(arrayOf("Test connection", "Upload backup", "Download backup")) { _, which ->
+                val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
+                val config = WebDavSync.Config(
+                    prefs.getString("webdav_server", "") ?: "",
+                    prefs.getString("webdav_username", "") ?: "",
+                    prefs.getString("webdav_password", "") ?: ""
+                )
+                Thread {
+                    val result = runCatching {
+                        val sync = WebDavSync(requireContext().applicationContext)
+                        when (which) {
+                            0 -> { sync.test(config); "Connection successful." }
+                            1 -> { sync.upload(config); "Backup uploaded successfully." }
+                            else -> { sync.download(config); "Backup downloaded to the selected local backup folder. Use Import data to restore it." }
+                        }
+                    }
+                    activity?.runOnUiThread {
+                        val message = result.getOrElse { it.message ?: "WebDAV operation failed." }
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                    }
+                }.start()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun updateWeekdayPreference() {
