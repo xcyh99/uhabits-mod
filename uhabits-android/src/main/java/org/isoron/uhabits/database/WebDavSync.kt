@@ -13,7 +13,10 @@ import org.xmlpull.v1.XmlPullParser
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import java.text.SimpleDateFormat
 import java.util.Base64
+import java.util.Date
+import java.util.Locale
 
 class WebDavSync(private val context: Context) {
     data class Config(val server: String, val username: String, val password: String)
@@ -75,7 +78,9 @@ class WebDavSync(private val context: Context) {
         }
         val path = DatabaseUtils.saveDatabaseCopy(context, dir)
         val file = File(path)
-        val c = connection(config, "PUT", "shizi-habits-backup.db")
+        val timestamp = SimpleDateFormat("yyyy-MM-dd_HHmmss", Locale.US).format(Date())
+        val remoteName = "WebDAV_Shizi_Habits_Backup_${timestamp}.db"
+        val c = connection(config, "PUT", remoteName)
         try {
             c.doOutput = true
             c.setRequestProperty("Content-Type", "application/octet-stream")
@@ -176,7 +181,7 @@ class WebDavSync(private val context: Context) {
             if (code != HttpURLConnection.HTTP_OK) {
                 throw IllegalStateException("备份下载失败，HTTP 状态码：$code")
             }
-            val localName = "WebDAV-${remoteFile.name}"
+            val localName = remoteFile.name
             val outputFile = folder.findFile(localName)
                 ?: folder.createFile("application/octet-stream", localName)
                 ?: throw IllegalStateException("无法在所选备份文件夹中创建文件")
