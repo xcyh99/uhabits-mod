@@ -148,7 +148,7 @@ class ExportDBTask(
             db.execSQL("ALTER TABLE Habits RENAME TO Habits_compat_backup")
             db.execSQL(originalCreateSql)
             val columnList = columns.joinToString(", ") {
-                "\"\${it.replace("\"", "\"\"")}\""
+                "\"" + it.replace("\"", "\"\"") + "\""
             }
             db.execSQL(
                 "INSERT INTO Habits ($columnList) " +
