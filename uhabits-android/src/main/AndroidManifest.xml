@@ -25,9 +25,9 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
-        android:name=".HabitsApplication"
+        android:name="org.isoron.uhabits.HabitsApplication"
         android:allowBackup="true"
-        android:backupAgent=".HabitsBackupAgent"
+        android:backupAgent="org.isoron.uhabits.HabitsBackupAgent"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/main_activity_title"
         android:localeConfig="@xml/locales_config"
@@ -35,11 +35,11 @@
         android:theme="@style/AppBaseTheme">
 
         <activity
-            android:name=".activities.habits.edit.EditHabitActivity"
+            android:name="org.isoron.uhabits.activities.habits.edit.EditHabitActivity"
             android:exported="true">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".activities.habits.list.ListHabitsActivity" />
+                android:value="org.isoron.uhabits.activities.habits.list.ListHabitsActivity" />
         </activity>
 
         <meta-data
@@ -47,17 +47,17 @@
             android:value="AEdPqrEAAAAI6aeWncbnMNo8E5GWeZ44dlc5cQ7tCROwFhOtiw" />
 
         <activity
-            android:name=".activities.habits.list.ListHabitsActivity"
+            android:name="org.isoron.uhabits.activities.habits.list.ListHabitsActivity"
             android:exported="true"
             android:label="@string/main_activity_title"
             android:launchMode="singleTop" />
 
         <activity-alias
-            android:name=".MainActivity"
+            android:name="org.isoron.uhabits.MainActivity"
             android:exported="true"
             android:label="@string/main_activity_title"
             android:launchMode="singleTop"
-            android:targetActivity=".activities.habits.list.ListHabitsActivity">
+            android:targetActivity="org.isoron.uhabits.activities.habits.list.ListHabitsActivity">
             <intent-filter android:label="@string/main_activity_title">
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -65,28 +65,28 @@
         </activity-alias>
 
         <activity
-            android:name=".activities.habits.show.ShowHabitActivity"
+            android:name="org.isoron.uhabits.activities.habits.show.ShowHabitActivity"
             android:label="@string/title_activity_show_habit">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".activities.habits.list.ListHabitsActivity" />
+                android:value="org.isoron.uhabits.activities.habits.list.ListHabitsActivity" />
         </activity>
 
         <activity
-            android:name=".activities.settings.SettingsActivity"
+            android:name="org.isoron.uhabits.activities.settings.SettingsActivity"
             android:label="@string/settings">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".activities.habits.list.ListHabitsActivity" />
+                android:value="org.isoron.uhabits.activities.habits.list.ListHabitsActivity" />
         </activity>
 
         <activity
-            android:name=".activities.intro.IntroActivity"
+            android:name="org.isoron.uhabits.activities.intro.IntroActivity"
             android:label=""
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
-            android:name=".widgets.activities.HabitPickerDialog"
+            android:name="org.isoron.uhabits.widgets.activities.HabitPickerDialog"
             android:exported="true"
             android:theme="@style/Theme.AppCompat.Light.Dialog.Alert">
             <intent-filter>
@@ -95,7 +95,7 @@
         </activity>
 
         <activity
-            android:name=".widgets.activities.BooleanHabitPickerDialog"
+            android:name="org.isoron.uhabits.widgets.activities.BooleanHabitPickerDialog"
             android:exported="true"
             android:theme="@style/Theme.AppCompat.Light.Dialog.Alert">
             <intent-filter>
@@ -104,7 +104,7 @@
         </activity>
 
         <activity
-            android:name=".widgets.activities.NumericalHabitPickerDialog"
+            android:name="org.isoron.uhabits.widgets.activities.NumericalHabitPickerDialog"
             android:exported="true"
             android:theme="@style/Theme.AppCompat.Light.Dialog.Alert">
             <intent-filter>
@@ -113,22 +113,22 @@
         </activity>
 
         <activity
-            android:name=".activities.about.AboutActivity"
+            android:name="org.isoron.uhabits.activities.about.AboutActivity"
             android:label="@string/about">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".activities.habits.list.ListHabitsActivity" />
+                android:value="org.isoron.uhabits.activities.habits.list.ListHabitsActivity" />
         </activity>
 
         <activity
-            android:name=".notifications.SnoozeDelayPickerActivity"
+            android:name="org.isoron.uhabits.notifications.SnoozeDelayPickerActivity"
             android:excludeFromRecents="true"
             android:launchMode="singleInstance"
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <receiver
-            android:name=".widgets.CheckmarkWidgetProvider"
+            android:name="org.isoron.uhabits.widgets.CheckmarkWidgetProvider"
             android:exported="true"
             android:label="@string/checkmark">
             <intent-filter>
@@ -141,12 +141,12 @@
         </receiver>
 
         <service
-            android:name=".widgets.StackWidgetService"
+            android:name="org.isoron.uhabits.widgets.StackWidgetService"
             android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
 
         <receiver
-            android:name=".widgets.HistoryWidgetProvider"
+            android:name="org.isoron.uhabits.widgets.HistoryWidgetProvider"
             android:exported="true"
             android:label="@string/history">
             <intent-filter>
@@ -159,7 +159,7 @@
         </receiver>
 
         <receiver
-            android:name=".widgets.ScoreWidgetProvider"
+            android:name="org.isoron.uhabits.widgets.ScoreWidgetProvider"
             android:exported="true"
             android:label="@string/score">
             <intent-filter>
@@ -172,7 +172,7 @@
         </receiver>
 
         <receiver
-            android:name=".widgets.StreakWidgetProvider"
+            android:name="org.isoron.uhabits.widgets.StreakWidgetProvider"
             android:exported="true"
             android:label="@string/streaks">
             <intent-filter>
@@ -185,7 +185,7 @@
         </receiver>
 
         <receiver
-            android:name=".widgets.FrequencyWidgetProvider"
+            android:name="org.isoron.uhabits.widgets.FrequencyWidgetProvider"
             android:exported="true"
             android:label="@string/frequency">
             <intent-filter>
@@ -198,7 +198,7 @@
         </receiver>
 
         <receiver
-            android:name=".widgets.TargetWidgetProvider"
+            android:name="org.isoron.uhabits.widgets.TargetWidgetProvider"
             android:exported="true"
             android:label="@string/target">
             <intent-filter>
@@ -211,14 +211,14 @@
         </receiver>
 
         <receiver
-            android:name=".receivers.ReminderReceiver"
+            android:name="org.isoron.uhabits.receivers.ReminderReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 
-        <receiver android:name=".receivers.WidgetReceiver"
+        <receiver android:name="org.isoron.uhabits.receivers.WidgetReceiver"
             android:exported="true"
             android:permission="false">
             <intent-filter>
@@ -259,7 +259,7 @@
 
         <!-- Locale/Tasker -->
         <activity
-            android:name=".automation.EditSettingActivity"
+            android:name="org.isoron.uhabits.automation.EditSettingActivity"
             android:exported="true"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name">
@@ -270,7 +270,7 @@
 
         <!-- Locale/Tasker -->
         <receiver
-            android:name=".automation.FireSettingReceiver"
+            android:name="org.isoron.uhabits.automation.FireSettingReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.twofortyfouram.locale.intent.action.FIRE_SETTING" />
