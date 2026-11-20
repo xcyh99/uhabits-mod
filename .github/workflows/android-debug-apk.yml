@@ -1,4 +1,4 @@
-name: Android debug APK
+name: Android APK
 
 on:
   workflow_dispatch:
@@ -27,12 +27,50 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Run core JVM tests
         run: ./gradlew :uhabits-core:jvmTest --no-daemon
-      - name: Build debug APK
+
+      # Pull requests use an ephemeral debug key. Installable release APKs
+      # are built only from trusted branch pushes/manual runs with the
+      # repository's long-lived signing key stored in GitHub Actions Secrets.
+      - name: Prepare stable release signing key
+        if: github.event_name != 'pull_request'
+        env:
+          SHIZI_KEYSTORE_BASE64: ${{ secrets.SHIZI_KEYSTORE_BASE64 }}
+          LOOP_STORE_PASSWORD: ${{ secrets.LOOP_STORE_PASSWORD }}
+          LOOP_KEY_ALIAS: ${{ secrets.LOOP_KEY_ALIAS }}
+          LOOP_KEY_PASSWORD: ${{ secrets.LOOP_KEY_PASSWORD }}
+        run: |
+          test -n "$SHIZI_KEYSTORE_BASE64" || (echo "Missing Actions secret: SHIZI_KEYSTORE_BASE64" && exit 1)
+          test -n "$LOOP_STORE_PASSWORD" || (echo "Missing Actions secret: LOOP_STORE_PASSWORD" && exit 1)
+          test -n "$LOOP_KEY_ALIAS" || (echo "Missing Actions secret: LOOP_KEY_ALIAS" && exit 1)
+          test -n "$LOOP_KEY_PASSWORD" || (echo "Missing Actions secret: LOOP_KEY_PASSWORD" && exit 1)
+          echo "$SHIZI_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/shizi-release.jks"
+          echo "LOOP_KEY_STORE=$RUNNER_TEMP/shizi-release.jks" >> "$GITHUB_ENV"
+          echo "LOOP_KEY_ALIAS=$LOOP_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "LOOP_KEY_PASSWORD=$LOOP_KEY_PASSWORD" >> "$GITHUB_ENV"
+          echo "LOOP_STORE_PASSWORD=$LOOP_STORE_PASSWORD" >> "$GITHUB_ENV"
+
+      - name: Build signed release APK
+        if: github.event_name != 'pull_request'
+        run: ./gradlew :uhabits-android:assembleRelease --no-daemon
+
+      - name: Build pull-request debug APK
+        if: github.event_name == 'pull_request'
         run: ./gradlew :uhabits-android:assembleDebug --no-daemon
-      - name: Upload APK
+
+      - name: Upload signed release APK
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: uhabits-custom-colors-debug
+          name: shizi-habits-release
+          path: uhabits-android/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload pull-request debug APK
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: shizi-habits-pr-debug
           path: uhabits-android/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
