@@ -421,6 +421,7 @@ class ListHabitsScreen(
                     }
 
                     else -> {
+                        refresh()
                         activity.showMessage(
                             if (diagnostic.isNullOrBlank()) {
                                 activity.resources.getString(R.string.could_not_import)
