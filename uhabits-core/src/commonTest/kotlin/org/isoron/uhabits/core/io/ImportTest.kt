@@ -185,7 +185,8 @@ class ImportTest : BaseUnitTest() {
             ),
             RewireDBImporter(habitList, modelFactory, dbOpener),
             TickmateDBImporter(habitList, modelFactory, dbOpener),
-            HabitBullCSVImporter(habitList, modelFactory, StandardLogging())
+            HabitBullCSVImporter(habitList, modelFactory, StandardLogging()),
+            HabitsCSVImporter(habitList, modelFactory)
         )
         assertTrue(importer.canHandle(userFile))
         importer.importHabitsFromFile(userFile)
