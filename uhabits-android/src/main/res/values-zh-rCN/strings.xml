@@ -116,7 +116,9 @@
     <string name="export_full_backup">导出完整备份</string>
     <string name="import_data_summary">支持本应用导出的完整备份文件，也支持 Tickmate、HabitBull 或 Rewire 的导出文件，请参阅常见问题以获取更多信息。</string>
     <string name="export_as_csv_summary">生成可以通过电子表格软件打开的文件，如 Microsoft Excel 或 OpenOffice Calc。该文件无法重新导入。</string>
-    <string name="export_full_backup_summary">生成一个包含所有数据的文件。该文件可以重新导入。</string>
+    <string name="export_full_backup_summary">生成十字习惯完整备份，保留所有自定义颜色，可重新导入十字习惯。</string>
+    <string name="export_legacy_backup">导出原版兼容备份</string>
+    <string name="export_legacy_backup_summary">生成可由原版 WF 习惯恢复的备份。自定义颜色会转换为原版支持的 20 种最接近颜色，不会改变十字习惯中的原始数据。</string>
     <string name="bug_report_failed">错误报告生成失败</string>
     <string name="generate_bug_report">生成错误报告</string>
     <string name="troubleshooting">故障排除</string>
