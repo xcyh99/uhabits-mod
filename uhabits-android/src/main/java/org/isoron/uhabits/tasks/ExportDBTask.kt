@@ -32,6 +32,10 @@ class ExportDBTask(
 ) : Task {
     private var filename: String? = null
 
+    companion object {
+        private const val ORIGINAL_DATABASE_VERSION = 25
+    }
+
     override suspend fun doInBackground() {
         filename = null
         filename = try {
@@ -95,8 +99,67 @@ class ExportDBTask(
             } finally {
                 db.endTransaction()
             }
+            // The original WF/Loop app uses database version 25. Version 26
+            // added category and version 27 changed color storage to ARGB.
+            // Rebuild the Habits table without the version-26 column and reset
+            // the SQLite user_version so the original app does not reject it.
+            if (db.version > ORIGINAL_DATABASE_VERSION) {
+                downgradeToOriginalSchema(db)
+            }
         } finally {
             db.close()
+        }
+    }
+
+    private fun downgradeToOriginalSchema(db: SQLiteDatabase) {
+        val createSql = db.rawQuery(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'Habits'",
+            null
+        ).use { cursor ->
+            if (!cursor.moveToFirst()) throw IOException("Habits table not found")
+            cursor.getString(0)
+        }
+        val originalCreateSql = Regex(
+            ",\\s*category\\s+text\\s+not\\s+null\\s+default\\s+''\\s*\\)",
+            RegexOption.IGNORE_CASE
+        ).replace(createSql, ")")
+        if (originalCreateSql == createSql) {
+            throw IOException("Unable to remove the newer category column")
+        }
+
+        val columns = mutableListOf<String>()
+        db.rawQuery("PRAGMA table_info(Habits)", null).use { cursor ->
+            while (cursor.moveToNext()) {
+                val name = cursor.getString(1)
+                if (name != "category") columns.add(name)
+            }
+        }
+        val schemaObjects = mutableListOf<String>()
+        db.rawQuery(
+            "SELECT sql FROM sqlite_master " +
+                "WHERE type IN ('index', 'trigger') AND tbl_name = 'Habits' AND sql IS NOT NULL",
+            null
+        ).use { cursor ->
+            while (cursor.moveToNext()) schemaObjects.add(cursor.getString(0))
+        }
+
+        db.beginTransaction()
+        try {
+            db.execSQL("ALTER TABLE Habits RENAME TO Habits_compat_backup")
+            db.execSQL(originalCreateSql)
+            val columnList = columns.joinToString(", ") {
+                "\"\${it.replace("\"", "\"\"")}\""
+            }
+            db.execSQL(
+                "INSERT INTO Habits ($columnList) " +
+                    "SELECT $columnList FROM Habits_compat_backup"
+            )
+            db.execSQL("DROP TABLE Habits_compat_backup")
+            schemaObjects.forEach { db.execSQL(it) }
+            db.version = ORIGINAL_DATABASE_VERSION
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
         }
     }
 
