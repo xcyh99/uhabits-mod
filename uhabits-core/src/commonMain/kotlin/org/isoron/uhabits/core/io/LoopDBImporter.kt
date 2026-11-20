@@ -76,19 +76,30 @@ class LoopDBImporter(
         }
     }
 
+    fun reloadHabitListCache() {
+        (habitList as? SQLiteHabitList)?.reload()
+    }
+
     override suspend fun importHabitsFromFile(file: UserFile) {
         val db = opener.open(file.pathString)
+        var stage = "打开备份数据库"
+        var currentHabit = ""
         try {
+            stage = "迁移备份数据库"
             db.migrateTo(DATABASE_VERSION) { version ->
                 val filename = org.isoron.platform.io.format("%02d.sql", version)
                 fileOpener.openResourceFile("migrations/$filename").lines().joinToString("\n")
             }
-    
+
+            stage = "读取习惯列表"
             val habitDataList = loadHabits(db)
+            stage = "恢复自定义颜色"
             restoreShiziCustomColors(db, habitDataList)
-            for (habitData in habitDataList) {
+            for ((index, habitData) in habitDataList.withIndex()) {
+                currentHabit = "${index + 1}/${habitDataList.size} ${habitData.name}"
+                stage = "创建或更新习惯"
                 var habit = habitList.getByUUID(habitData.uuid)
-    
+
                 if (habit == null) {
                     habit = modelFactory.buildHabit()
                     val imported = habitData.copy(id = null)
@@ -99,10 +110,11 @@ class LoopDBImporter(
                     SQLiteHabitList.copyTo(habitData.copy(id = habit.id), modified)
                     EditHabitCommand(habitList, habit.id!!, modified).run()
                 }
-    
+
                 habit = habitList.getByUUID(habitData.uuid)!!
                 val entries = habit.originalEntries
-    
+
+                stage = "读取历史打卡记录"
                 db.query(
                     "SELECT timestamp, value, notes FROM Repetitions WHERE habit = ? ORDER BY timestamp DESC",
                     habitData.id.toString()
@@ -116,9 +128,14 @@ class LoopDBImporter(
                         entries.add(Entry(date, value, notes))
                     }
                 }
+                stage = "重新计算习惯数据"
                 habit.recompute()
             }
+            stage = "整理习惯顺序"
             habitList.resort()
+        } catch (e: Throwable) {
+            logger.error("Import failed at stage: $stage; habit: $currentHabit", e)
+            throw IllegalStateException("导入阶段：$stage；习惯：$currentHabit", e)
         } finally {
             db.close()
         }
