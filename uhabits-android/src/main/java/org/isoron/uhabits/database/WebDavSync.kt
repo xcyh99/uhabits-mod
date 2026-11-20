@@ -5,6 +5,7 @@ package org.isoron.uhabits.database
 
 import android.content.Context
 import android.net.Uri
+import androidx.preference.PreferenceManager
 import androidx.documentfile.provider.DocumentFile
 import org.isoron.uhabits.utils.DatabaseUtils
 import java.io.File
@@ -66,7 +67,7 @@ class WebDavSync(private val context: Context) {
     }
 
     fun download(config: Config) {
-        val folderUri = context.getSharedPreferences("org.isoron.uhabits_preferences", Context.MODE_PRIVATE)
+        val folderUri = PreferenceManager.getDefaultSharedPreferences(context)
             .getString("publicBackupFolder", null)
             ?: throw IllegalStateException("Please select a local backup folder in Settings first")
         val folder = DocumentFile.fromTreeUri(context, Uri.parse(folderUri))
