@@ -113,7 +113,7 @@ dependencies {
     implementation(libs.guava)
     implementation(libs.ktor.client.android)
     implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.jackson)
     implementation(libs.ktor.client.json)
     implementation(libs.kotlin.stdlib.jdk8)
