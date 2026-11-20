@@ -58,65 +58,71 @@ class LoopDBImporter(
     override suspend fun canHandle(file: UserFile): Boolean {
         if (!isSQLite3File(file)) return false
         val db = opener.open(file.pathString)
-        var canHandle = true
-        val count = db.querySingle(
-            "select count(*) from SQLITE_MASTER where name='Habits' or name='Repetitions'"
-        ) { it.getInt(0) }
-        if (count == null || count != 2) {
-            logger.error("Cannot handle file: tables not found")
-            canHandle = false
+        return try {
+            val count = db.querySingle(
+                "select count(*) from SQLITE_MASTER where name='Habits' or name='Repetitions'"
+            ) { it.getInt(0) }
+            if (count == null || count != 2) {
+                logger.error("Cannot handle file: tables not found")
+                false
+            } else if (db.getVersion() > DATABASE_VERSION) {
+                logger.error("Cannot handle file: incompatible version: ${db.getVersion()} > $DATABASE_VERSION")
+                false
+            } else {
+                true
+            }
+        } finally {
+            db.close()
         }
-        if (db.getVersion() > DATABASE_VERSION) {
-            logger.error("Cannot handle file: incompatible version: ${db.getVersion()} > $DATABASE_VERSION")
-            canHandle = false
-        }
-        db.close()
-        return canHandle
     }
 
     override suspend fun importHabitsFromFile(file: UserFile) {
         val db = opener.open(file.pathString)
-        db.migrateTo(DATABASE_VERSION) { version ->
-            val filename = org.isoron.platform.io.format("%02d.sql", version)
-            fileOpener.openResourceFile("migrations/$filename").lines().joinToString("\n")
-        }
-
-        val habitDataList = loadHabits(db)
-        restoreShiziCustomColors(db, habitDataList)
-        for (habitData in habitDataList) {
-            var habit = habitList.getByUUID(habitData.uuid)
-
-            if (habit == null) {
-                habit = modelFactory.buildHabit()
-                val imported = habitData.copy(id = null)
-                SQLiteHabitList.copyTo(imported, habit)
-                CreateHabitCommand(modelFactory, habitList, habit).run()
-            } else {
-                val modified = modelFactory.buildHabit()
-                SQLiteHabitList.copyTo(habitData.copy(id = habit.id), modified)
-                EditHabitCommand(habitList, habit.id!!, modified).run()
+        try {
+            db.migrateTo(DATABASE_VERSION) { version ->
+                val filename = org.isoron.platform.io.format("%02d.sql", version)
+                fileOpener.openResourceFile("migrations/$filename").lines().joinToString("\n")
             }
-
-            habit = habitList.getByUUID(habitData.uuid)!!
-            val entries = habit.originalEntries
-
-            db.query(
-                "SELECT timestamp, value, notes FROM Repetitions WHERE habit = ? ORDER BY timestamp DESC",
-                habitData.id.toString()
-            ) { stmt ->
-                val timestamp = stmt.getLongOrNull(0) ?: return@query
-                val value = stmt.getIntOrNull(1) ?: return@query
-                val notes = stmt.getTextOrNull(2) ?: ""
-                val date = LocalDate.fromUnixTime(timestamp)
-                val (_, existingValue, existingNotes) = entries.get(date)
-                if (existingValue != value || existingNotes != notes) {
-                    entries.add(Entry(date, value, notes))
+    
+            val habitDataList = loadHabits(db)
+            restoreShiziCustomColors(db, habitDataList)
+            for (habitData in habitDataList) {
+                var habit = habitList.getByUUID(habitData.uuid)
+    
+                if (habit == null) {
+                    habit = modelFactory.buildHabit()
+                    val imported = habitData.copy(id = null)
+                    SQLiteHabitList.copyTo(imported, habit)
+                    CreateHabitCommand(modelFactory, habitList, habit).run()
+                } else {
+                    val modified = modelFactory.buildHabit()
+                    SQLiteHabitList.copyTo(habitData.copy(id = habit.id), modified)
+                    EditHabitCommand(habitList, habit.id!!, modified).run()
                 }
+    
+                habit = habitList.getByUUID(habitData.uuid)!!
+                val entries = habit.originalEntries
+    
+                db.query(
+                    "SELECT timestamp, value, notes FROM Repetitions WHERE habit = ? ORDER BY timestamp DESC",
+                    habitData.id.toString()
+                ) { stmt ->
+                    val timestamp = stmt.getLongOrNull(0) ?: return@query
+                    val value = stmt.getIntOrNull(1) ?: return@query
+                    val notes = stmt.getTextOrNull(2) ?: ""
+                    val date = LocalDate.fromUnixTime(timestamp)
+                    val (_, existingValue, existingNotes) = entries.get(date)
+                    if (existingValue != value || existingNotes != notes) {
+                        entries.add(Entry(date, value, notes))
+                    }
+                }
+                habit.recompute()
             }
-            habit.recompute()
+            habitList.resort()
+            db.close()
+        } finally {
+            db.close()
         }
-        habitList.resort()
-        db.close()
     }
 
     private fun restoreShiziCustomColors(db: Database, habits: List<HabitData>) {
