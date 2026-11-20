@@ -90,6 +90,7 @@ import java.util.concurrent.TimeUnit
 const val RESULT_IMPORT_DATA = 101
 const val RESULT_EXPORT_CSV = 102
 const val RESULT_EXPORT_DB = 103
+const val RESULT_EXPORT_LEGACY_DB = 109
 const val RESULT_BUG_REPORT = 104
 const val RESULT_REPAIR_DB = 105
 const val REQUEST_OPEN_DOCUMENT = 106
@@ -182,7 +183,8 @@ class ListHabitsScreen(
         when (resultCode) {
             RESULT_IMPORT_DATA -> showImportScreen()
             RESULT_EXPORT_CSV -> behavior.value.onExportCSV()
-            RESULT_EXPORT_DB -> onExportDB()
+            RESULT_EXPORT_DB -> onExportDB(legacyCompatible = false)
+            RESULT_EXPORT_LEGACY_DB -> onExportDB(legacyCompatible = true)
             RESULT_BUG_REPORT -> behavior.value.onSendBugReport()
             RESULT_REPAIR_DB -> behavior.value.onRepairDB()
         }
@@ -407,9 +409,9 @@ class ListHabitsScreen(
         )
     }
 
-    private fun onExportDB() {
+    private fun onExportDB(legacyCompatible: Boolean) {
         taskRunner.execute(
-            exportDBFactory.create { filename ->
+            exportDBFactory.create({ filename ->
                 if (filename != null) {
                     pendingBackupFilename = filename
                     val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
@@ -421,7 +423,7 @@ class ListHabitsScreen(
                 } else {
                     activity.showMessage(activity.resources.getString(R.string.could_not_export))
                 }
-            }
+            }, legacyCompatible)
         )
     }
 
