@@ -97,7 +97,11 @@ open class EntryList {
         isNumerical: Boolean
     ) {
         clear()
-        val original = originalEntries.getKnown()
+        // Empty UNKNOWN rows carry no user data. Keeping them here can make a
+        // numerical habit expand years of blank history into daily placeholder rows.
+        val original = originalEntries.getKnown().filter {
+            it.value != UNKNOWN || it.notes.isNotEmpty()
+        }
         if (isNumerical) {
             original.forEach { add(it) }
             densifyWithUnknownPlaceholders(original)
