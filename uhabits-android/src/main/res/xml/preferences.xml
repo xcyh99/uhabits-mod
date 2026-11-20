@@ -143,6 +143,12 @@
                 app:iconSpaceReserved="false" />
 
         <Preference
+                android:key="webDavSync"
+                android:title="@string/webdav_sync"
+                android:summary="@string/webdav_sync_summary"
+                app:iconSpaceReserved="false" />
+
+        <Preference
                 android:key="publicBackupFolder"
                 android:title="@string/select_public_backup_folder"
                 android:summary="@string/no_public_backup_folder_selected"
