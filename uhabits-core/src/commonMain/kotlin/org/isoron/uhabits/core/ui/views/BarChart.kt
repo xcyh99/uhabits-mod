@@ -101,7 +101,7 @@ class BarChart(
             // Use the shared theme-aware outline rule used by Android charts.
             if (theme.shouldUseLightOutline(colors[s])) {
                 canvas.setColor(Color.WHITE)
-                canvas.setStrokeWidth(1.0)
+                canvas.setStrokeWidth(theme.lightOutlineWidth)
                 canvas.drawRect(x, y, barWidth, barHeight)
             }
             canvas.setFontSize(theme.smallTextSize)
@@ -113,7 +113,7 @@ class BarChart(
                 // Draw a subtle white halo around the value, using the same
                 // threshold as the bar outline so both remain readable together.
                 canvas.setColor(Color.WHITE)
-                val outlineOffset = 0.7
+                val outlineOffset = 0.55
                 for (dx in listOf(-outlineOffset, 0.0, outlineOffset)) {
                     for (dy in listOf(-outlineOffset, 0.0, outlineOffset)) {
                         if (dx != 0.0 || dy != 0.0) {
