@@ -62,6 +62,12 @@ import org.isoron.uhabits.activities.habits.list.RESULT_REPAIR_DB
 import org.isoron.uhabits.core.preferences.Preferences
 import org.isoron.uhabits.database.WebDavSync
 import org.isoron.uhabits.database.TwoWaySyncPreview
+import org.isoron.uhabits.database.DatabaseSyncMergeWriter
+import org.isoron.uhabits.database.DatabaseSyncSafetyBackup
+import org.isoron.uhabits.core.sync.SyncConflictSide
+import org.isoron.uhabits.core.sync.SyncEntryConflictChoice
+import org.isoron.uhabits.core.sync.SyncHabitSettingsConflictChoice
+import org.isoron.uhabits.core.sync.TwoWaySyncResolution
 import org.isoron.uhabits.core.ui.NotificationTray
 import org.isoron.uhabits.notifications.AndroidNotificationTray.Companion.createAndroidNotificationChannel
 import org.isoron.uhabits.notifications.RingtoneManager
@@ -344,16 +350,17 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         showRemoteFilePicker(
             files,
             "选择用于双向同步的远端数据库",
-            "生成只读预览"
+            "分析并同步"
         ) { selected ->
             Thread {
                 val result = runCatching {
-                    TwoWaySyncPreview(WebDavSync(appContext)).createPlan(config, selected)
+                    TwoWaySyncPreview(WebDavSync(appContext)).createSession(config, selected)
                 }
                 activity?.runOnUiThread {
                     if (!isAdded) return@runOnUiThread
                     result.fold(
-                        { plan ->
+                        { session ->
+                            val plan = session.plan
                             val summary = buildString {
                                 append("本机新增：${plan.totalLocalAdditions} 项\n")
                                 append("服务器新增：${plan.totalRemoteAdditions} 项\n")
@@ -361,13 +368,19 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                                 append("打卡冲突：${plan.conflictingEntries.size} 条\n")
                                 append("习惯设置冲突：${plan.conflictingHabitSettings.size} 项\n")
                                 append("可能需要人工配对的旧习惯：${plan.possibleLegacyMatches.size} 项\n\n")
-                                append("这是只读预览，尚未修改本机或服务器数据。")
+                                append("继续后会先创建本机安全备份，再合并数据并上传合并结果。")
                             }
-                            AlertDialog.Builder(requireContext())
-                                .setTitle("双向同步预览")
-                                .setMessage(summary)
-                                .setPositiveButton("关闭", null)
-                                .show()
+                            if (plan.possibleLegacyMatches.isNotEmpty()) {
+                                AlertDialog.Builder(requireContext())
+                                    .setTitle("暂不能安全合并")
+                                    .setMessage(
+                                        summary + "\n\n发现 UUID 不一致的旧习惯。当前版本不会猜测它们是否相同，因此本次只显示结果，不修改任何数据。"
+                                    )
+                                    .setPositiveButton("知道了", null)
+                                    .show()
+                            } else {
+                                showTwoWaySyncConfirmation(session, config, appContext, summary)
+                            }
                         },
                         { error ->
                             AlertDialog.Builder(requireContext())
@@ -380,6 +393,109 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 }
             }.start()
         }
+    }
+
+    private fun showTwoWaySyncConfirmation(
+        session: TwoWaySyncPreview.Session,
+        config: WebDavSync.Config,
+        appContext: android.content.Context,
+        summary: String
+    ) {
+        val plan = session.plan
+        val hasConflicts = plan.hasConflicts
+        val choices = arrayOf("冲突时保留本机版本", "冲突时保留服务器版本")
+        var selectedChoice = 0
+        val builder = AlertDialog.Builder(requireContext())
+            .setTitle("双向同步确认")
+            .setMessage(summary)
+        if (hasConflicts) {
+            builder.setSingleChoiceItems(choices, selectedChoice) { _, which ->
+                selectedChoice = which
+            }
+        } else {
+            builder.setMessage(summary + "\n\n没有发现冲突，将自动合并双方新增数据。")
+        }
+        builder.setNegativeButton("取消", null)
+        builder.setPositiveButton("确认合并并上传", null)
+        val dialog = builder.create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val keep = if (selectedChoice == 0) SyncConflictSide.LOCAL else SyncConflictSide.REMOTE
+                val resolution = runCatching {
+                    TwoWaySyncResolution.validate(
+                        plan = plan,
+                        entryChoices = plan.conflictingEntries.map {
+                            SyncEntryConflictChoice(it.habitUuid, it.dayKey, keep)
+                        },
+                        settingsChoices = plan.conflictingHabitSettings.map {
+                            SyncHabitSettingsConflictChoice(it.habitUuid, keep)
+                        },
+                        legacyPairs = emptyList()
+                    )
+                }
+                if (resolution.isFailure) {
+                    Toast.makeText(
+                        requireContext(),
+                        resolution.exceptionOrNull()?.message ?: "冲突选择无效",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@setOnClickListener
+                }
+                dialog.dismiss()
+                runTwoWaySyncMerge(session, config, appContext, resolution.getOrThrow())
+            }
+        }
+        dialog.show()
+    }
+
+    private fun runTwoWaySyncMerge(
+        session: TwoWaySyncPreview.Session,
+        config: WebDavSync.Config,
+        appContext: android.content.Context,
+        resolution: TwoWaySyncResolution
+    ) {
+        Thread {
+            var localMerge: DatabaseSyncMergeWriter.Result? = null
+            val result = runCatching {
+                DatabaseSyncSafetyBackup(appContext).create()
+                localMerge = DatabaseSyncMergeWriter().apply(
+                    remote = session.remote,
+                    expectedPlan = session.plan,
+                    resolution = resolution
+                )
+                WebDavSync(appContext).upload(config)
+                localMerge!!
+            }
+            activity?.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+                if (result.isSuccess) {
+                    val merged = result.getOrThrow()
+                    AlertDialog.Builder(requireContext())
+                        .setTitle("双向同步完成")
+                        .setMessage(
+                            "本机已创建同步前安全备份。\n" +
+                                "新增习惯：${merged.habitsInserted}\n" +
+                                "更新习惯设置：${merged.habitSettingsUpdated}\n" +
+                                "新增打卡：${merged.entriesInserted}\n" +
+                                "更新冲突打卡：${merged.entriesUpdated}\n\n" +
+                                "合并后的数据库已上传到服务器。"
+                        )
+                        .setPositiveButton("完成", null)
+                        .show()
+                } else {
+                    val message = if (localMerge != null) {
+                        "本机数据已完成合并，但上传服务器失败。你的本机数据和同步前安全备份都保留着；请检查网络后重新上传本机备份。\n\n错误：${result.exceptionOrNull()?.message ?: "未知错误"}"
+                    } else {
+                        result.exceptionOrNull()?.message ?: "同步失败，未完成数据合并。"
+                    }
+                    AlertDialog.Builder(requireContext())
+                        .setTitle("双向同步未完全完成")
+                        .setMessage(message)
+                        .setPositiveButton("知道了", null)
+                        .show()
+                }
+            }
+        }.start()
     }
 
     private fun runWebDavAction(
