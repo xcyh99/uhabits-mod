@@ -271,10 +271,11 @@ class HistoryChart(
             }
         }
 
-        val textColor = if (theme.cardBackgroundColor == Color.TRANSPARENT) {
-            // Widgets draw over a transparent chart background. Choose the date
-            // label color against each actual square instead of always using
-            // the theme's fixed foreground (which can disappear on light colors).
+        val textColor = if (
+            value == Square.ON && theme.cardBackgroundColor == Color.TRANSPARENT
+        ) {
+            // Only completed, habit-colored squares need adaptive text.
+            // Keep the original foreground for uncompleted and other states.
             val lightText = Color(0xFFFFFF)
             val darkText = Color(0x202020)
             if (squareColor.contrast(lightText) >= squareColor.contrast(darkText)) {
@@ -282,6 +283,8 @@ class HistoryChart(
             } else {
                 darkText
             }
+        } else if (theme.cardBackgroundColor == Color.TRANSPARENT) {
+            theme.highContrastTextColor
         } else {
             val c1 = squareColor.contrast(theme.cardBackgroundColor)
             val c2 = squareColor.contrast(theme.mediumContrastTextColor)
@@ -294,7 +297,15 @@ class HistoryChart(
 
         if (hasNotes) {
             circleColor = when (value) {
-                Square.ON, Square.GREY -> theme.lowContrastTextColor
+                Square.ON, Square.GREY -> {
+                    val lightDot = Color(0xFFFFFF)
+                    val darkDot = Color(0x202020)
+                    if (squareColor.contrast(lightDot) >= squareColor.contrast(darkDot)) {
+                        lightDot
+                    } else {
+                        darkDot
+                    }
+                }
                 else -> color
             }
             canvas.setColor(circleColor)
