@@ -39,6 +39,8 @@ class NotesCardView(context: Context, attrs: AttributeSet) : LinearLayout(contex
         val hasHistoryNotes = state.historyNotes.isNotEmpty()
         visibility = if (hasDescription || hasHistoryNotes) VISIBLE else GONE
 
+        binding.descriptionTitle.visibility = if (hasDescription) VISIBLE else GONE
+        binding.descriptionTitle.setTextColor(state.habitColor)
         binding.habitNotes.visibility = if (hasDescription) VISIBLE else GONE
         binding.habitNotes.text = state.description
         binding.historyNotesTitle.visibility =
