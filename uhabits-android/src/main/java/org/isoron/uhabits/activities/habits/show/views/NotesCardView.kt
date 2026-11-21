@@ -103,8 +103,13 @@ class NotesCardView(context: Context, attrs: AttributeSet) : LinearLayout(contex
             }
             row.addView(dateView, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
             row.addView(noteView, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-            binding.historyNotesList.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+            binding.historyNotesList.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, dp(18)))
         }
+        // Grow with the number of rows, but stop at 112dp and scroll beyond that.
+        binding.historyNotesScroll.layoutParams = binding.historyNotesScroll.layoutParams.apply {
+            height = minOf(state.historyNotes.size * dp(18), dp(112))
+        }
+        requestLayout()
         invalidate()
     }
 
