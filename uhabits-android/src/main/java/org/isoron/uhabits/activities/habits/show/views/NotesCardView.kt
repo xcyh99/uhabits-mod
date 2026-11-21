@@ -25,6 +25,7 @@ import android.view.LayoutInflater
 import android.graphics.Typeface
 import android.view.Gravity
 import android.widget.LinearLayout
+import androidx.appcompat.app.AlertDialog
 import android.widget.TextView
 import org.isoron.uhabits.R
 import org.isoron.uhabits.core.ui.screens.habits.show.views.NotesCardState
@@ -48,22 +49,39 @@ class NotesCardView(context: Context, attrs: AttributeSet) : LinearLayout(contex
             if (hasHistoryNotes) VISIBLE else GONE
 
         state.historyNotes.forEach { note ->
+            val row = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                isClickable = true
+                isFocusable = true
+                setPadding(0, dp(1), 0, dp(1))
+                setOnClickListener {
+                    AlertDialog.Builder(context)
+                        .setTitle(note.date)
+                        .setMessage(note.text)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                }
+            }
             val dateView = TextView(context).apply {
                 text = note.date
-                textSize = 13f
+                textSize = 11f
                 setTypeface(typeface, Typeface.BOLD)
                 setTextColor(binding.habitNotes.currentTextColor)
-                setPadding(0, dp(4), 0, dp(1))
+                maxLines = 1
             }
             val noteView = TextView(context).apply {
                 text = note.text
-                textSize = 14f
+                textSize = 12f
                 setTextColor(binding.habitNotes.currentTextColor)
-                setPadding(0, 0, 0, dp(3))
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
                 gravity = Gravity.START
+                setPadding(dp(6), 0, 0, 0)
             }
-            binding.historyNotesList.addView(dateView)
-            binding.historyNotesList.addView(noteView)
+            row.addView(dateView, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
+            row.addView(noteView, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+            binding.historyNotesList.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         }
         invalidate()
     }
