@@ -52,6 +52,7 @@ class ScoreWidget(
         widgetView.setBackgroundAlpha(preferedBackgroundAlpha)
         if (preferedBackgroundAlpha >= 255) widgetView.setShadowAlpha(0x4f)
         (widgetView.dataView as ScoreChart).apply {
+            setWidgetMode(true)
             setIsTransparencyEnabled(true)
             setBucketSize(viewModel.bucketSize)
             setColor(WidgetTheme(isDarkWidgetTheme).color(habit.color).toInt())
