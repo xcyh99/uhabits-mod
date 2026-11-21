@@ -53,9 +53,9 @@ class TargetWidget(
         val data = TargetCardPresenter.buildState(
             habit = habit,
             firstWeekday = prefs.firstWeekdayInt,
-            theme = WidgetTheme()
+            theme = WidgetTheme(isDarkWidgetTheme)
         )
-        chart.setColor(WidgetTheme().color(habit.color).toInt())
+        chart.setColor(WidgetTheme(isDarkWidgetTheme).color(habit.color).toInt())
         chart.setTargets(data.targets)
         chart.setLabels(data.intervals.map { intervalToLabel(context.resources, it) })
         chart.setValues(data.values)
@@ -64,6 +64,7 @@ class TargetWidget(
     override fun buildView(): View {
         return GraphWidgetView(context, TargetChart(context)).apply {
             setTitle(habit.name)
+            applyWidgetTitleColor(this)
             layoutParams = LayoutParams(MATCH_PARENT, MATCH_PARENT)
         }
     }
