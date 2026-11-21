@@ -263,4 +263,6 @@
     <string name="clear_local_habit_data_second_title">再次确认永久删除</string>
     <string name="clear_local_habit_data_second_message">此操作无法撤销。确定继续清空本机全部习惯和打卡记录吗？</string>
     <string name="clear_local_habit_data_done">本机习惯和打卡记录已清空。</string>
+    <string name="next_step">下一步</string>
+    <string name="confirm_clear">确认清空</string>
 </resources>
