@@ -42,6 +42,9 @@ abstract class HabitWidgetView : FrameLayout {
     private var res: StyledResources? = null
     private var backgroundAlpha = 0
 
+    protected val widgetBackgroundAlpha: Int
+        get() = backgroundAlpha
+
     constructor(context: Context?) : super(context!!) {
         init()
     }
@@ -61,6 +64,12 @@ abstract class HabitWidgetView : FrameLayout {
     fun setBackgroundAlpha(backgroundAlpha: Int) {
         this.backgroundAlpha = backgroundAlpha
         rebuildBackground()
+    }
+
+    protected fun setWidgetBackgroundColor(color: Int) {
+        backgroundPaint?.color = color
+        backgroundPaint?.alpha = backgroundAlpha
+        if (frame != null) frame!!.background = background
     }
 
     protected abstract val innerLayoutId: Int
