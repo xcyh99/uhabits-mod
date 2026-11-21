@@ -21,14 +21,23 @@ package org.isoron.uhabits.core.ui.screens.habits.show.views
 
 import org.isoron.uhabits.core.models.Habit
 
+data class HistoryNote(
+    val date: String,
+    val text: String
+)
+
 data class NotesCardState(
-    val description: String
+    val description: String,
+    val historyNotes: List<HistoryNote>
 )
 
 class NotesCardPresenter {
     companion object {
         fun buildState(habit: Habit) = NotesCardState(
-            description = habit.description
+            description = habit.description,
+            historyNotes = habit.originalEntries.getKnown()
+                .filter { it.notes.isNotBlank() }
+                .map { HistoryNote(it.date.toString(), it.notes) }
         )
     }
 }
