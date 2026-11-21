@@ -55,7 +55,7 @@ object ColorUtils {
         // The slightly higher dark-theme threshold preserves the user's
         // preferred white text on medium-bright habit colors.
         return if (isDarkTheme) {
-            if (luminance >= 0.82) Color.BLACK else Color.WHITE
+            if (luminance >= 0.70) Color.BLACK else Color.WHITE
         } else {
             if (luminance <= 0.18) Color.WHITE else Color.BLACK
         }
