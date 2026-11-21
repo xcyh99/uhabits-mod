@@ -53,6 +53,7 @@ open class CheckmarkWidget(
             setBackgroundAlpha(preferedBackgroundAlpha)
             activeColor = WidgetTheme().color(habit.color).toInt()
             name = habit.name
+            notes = habit.computedEntries.get(today).notes
             entryValue = habit.computedEntries.get(today).value
             if (habit.isNumerical) {
                 isNumerical = true
