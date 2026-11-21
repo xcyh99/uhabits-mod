@@ -31,6 +31,7 @@ import org.isoron.uhabits.core.ui.views.DarkTheme
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
 import kotlin.math.round
 
 interface OnDateClickedListener {
@@ -279,7 +280,7 @@ class HistoryChart(
             // The completed square uses the same opaque habit color as the widget.
             val luminance = fun(channel: Double): Double {
                 return if (channel <= 0.04045) channel / 12.92
-                else kotlin.math.pow((channel + 0.055) / 1.055, 2.4)
+                else ((channel + 0.055) / 1.055).pow(2.4)
             }
             val backgroundLuminance =
                 0.2126 * luminance(squareColor.red) +
