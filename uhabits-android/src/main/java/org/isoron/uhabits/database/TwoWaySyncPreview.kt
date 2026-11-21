@@ -13,6 +13,7 @@ class TwoWaySyncPreview(
 ) {
     data class Session(
         val plan: TwoWaySyncPlan,
+        val local: DatabaseSyncSnapshotReader.Snapshot,
         val remote: DatabaseSyncSnapshotReader.Snapshot
     )
 
@@ -30,7 +31,7 @@ class TwoWaySyncPreview(
                 localEntries = local.entries,
                 remoteEntries = remote.entries
             )
-            return Session(plan, remote)
+            return Session(plan, local, remote)
         } finally {
             stagedFile.delete()
         }
