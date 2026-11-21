@@ -272,7 +272,16 @@ class HistoryChart(
         }
 
         val textColor = if (theme.cardBackgroundColor == Color.TRANSPARENT) {
-            theme.highContrastTextColor
+            // Widgets draw over a transparent chart background. Choose the date
+            // label color against each actual square instead of always using
+            // the theme's fixed foreground (which can disappear on light colors).
+            val lightText = Color(0xFFFFFF)
+            val darkText = Color(0x202020)
+            if (squareColor.contrast(lightText) >= squareColor.contrast(darkText)) {
+                lightText
+            } else {
+                darkText
+            }
         } else {
             val c1 = squareColor.contrast(theme.cardBackgroundColor)
             val c2 = squareColor.contrast(theme.mediumContrastTextColor)
