@@ -3,6 +3,7 @@ package org.isoron.uhabits.database
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import org.isoron.uhabits.core.DATABASE_VERSION
+import org.isoron.uhabits.utils.BackupFileName
 import org.isoron.uhabits.utils.DatabaseUtils
 import java.io.File
 import java.io.FileInputStream
@@ -24,11 +25,13 @@ class DatabaseSyncSafetyBackup(private val context: Context) {
         if (!backupDirectory.exists() && !backupDirectory.mkdirs()) {
             throw IOException("无法创建同步安全备份目录")
         }
-        val backup = File.createTempFile(
-            "two-way-sync-before-",
-            ".db",
-            backupDirectory
+        val backup = File(
+            backupDirectory,
+            "SH_WEB_${BackupFileName.deviceId()}_SAF_${BackupFileName.timestamp()}.db"
         )
+        if (!backup.createNewFile()) {
+            throw IOException("无法创建唯一的同步安全备份文件")
+        }
         var transactionStarted = false
         try {
             db.beginTransaction()
