@@ -272,4 +272,6 @@
     <string name="clear_local_habit_data_second_title">Confirm permanent deletion</string>
     <string name="clear_local_habit_data_second_message">This action cannot be undone. Continue clearing all local habits and check-in records?</string>
     <string name="clear_local_habit_data_done">Local habits and check-in records have been cleared.</string>
+    <string name="next_step">Next</string>
+    <string name="confirm_clear">Clear data</string>
 </resources>
