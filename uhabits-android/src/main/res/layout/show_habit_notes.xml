@@ -29,5 +29,22 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textColor="?attr/contrast100"
-        tools:text="This is some example text for the notes" />
+        tools:text="This is some example text for the habit description" />
+
+    <TextView
+        android:id="@+id/historyNotesTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textColor="?attr/contrast100"
+        android:textStyle="bold"
+        android:visibility="gone"
+        tools:text="历史备注" />
+
+    <LinearLayout
+        android:id="@+id/historyNotesList"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone" />
 </merge>
