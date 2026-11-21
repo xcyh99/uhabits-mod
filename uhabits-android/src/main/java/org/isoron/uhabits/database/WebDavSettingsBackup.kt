@@ -113,13 +113,13 @@ class WebDavSettingsBackup(private val context: Context) {
                 .build()
             client.newCall(request).execute().use { response ->
                 if (response.code != 207 && response.code != 200) {
-                    throw IllegalStateException("读取软件设置备份列表失败，HTTP：\${response.code}")
+                    throw IllegalStateException("读取软件设置备份列表失败，HTTP：${response.code}")
                 }
                 val bytes = response.body?.bytes()
                     ?: throw IllegalStateException("服务器返回了空备份列表")
                 val parser = Xml.newPullParser()
                 parser.setInput(ByteArrayInputStream(bytes), "UTF-8")
-                val prefix = "WEB_\${BackupFileName.deviceId()}_SET_"
+                val prefix = "WEB_${BackupFileName.deviceId()}_SET_"
                 val pattern = Regex(Regex.escape(prefix) + "\\d{8}_\\d{6}_\\d{3}\\.json")
                 val candidates = mutableListOf<String>()
                 var inResponse = false
