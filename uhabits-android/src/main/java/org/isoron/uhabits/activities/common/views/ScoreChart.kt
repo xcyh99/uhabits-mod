@@ -187,7 +187,7 @@ class ScoreChart : ScrollableChart {
         columnWidth = width.toFloat() / nColumns
         setScrollerBucketSize(columnWidth.toInt())
         columnHeight = 8 * baseSize
-        val minStrokeWidth = dpToPixels(context, if (isWidget) 0.6f else 0.8f)
+        val minStrokeWidth = dpToPixels(context, 1f)
         pGraph!!.textSize = baseSize * 0.5f
         pGraph!!.strokeWidth = baseSize * 0.1f
         pGrid!!.strokeWidth = min(minStrokeWidth, baseSize * 0.05f)
@@ -269,7 +269,7 @@ class ScoreChart : ScrollableChart {
         val originalWidth = pGraph!!.strokeWidth
         if (ColorUtils.shouldUseLightOutline(context, primaryColor)) {
             pGraph!!.color = Color.WHITE
-            pGraph!!.strokeWidth = originalWidth + dpToPixels(context, 1f)
+            pGraph!!.strokeWidth = originalWidth + dpToPixels(context, if (isWidget) 0.6f else 0.8f)
             canvas!!.drawLine(x1, y1, x2, y2, pGraph!!)
         }
         pGraph!!.color = primaryColor
@@ -286,7 +286,7 @@ class ScoreChart : ScrollableChart {
         canvas.drawOval(rect, pGraph!!)
         if (ColorUtils.shouldUseLightOutline(context, primaryColor)) {
             pGraph!!.style = Paint.Style.STROKE
-            pGraph!!.strokeWidth = dpToPixels(context, 1f)
+            pGraph!!.strokeWidth = dpToPixels(context, if (isWidget) 0.6f else 0.8f)
             pGraph!!.color = Color.WHITE
             canvas.drawOval(rect, pGraph!!)
             pGraph!!.style = Paint.Style.FILL
