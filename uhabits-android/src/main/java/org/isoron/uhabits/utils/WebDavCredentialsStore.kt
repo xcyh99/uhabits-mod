@@ -86,8 +86,10 @@ class WebDavCredentialsStore(context: Context) {
         val buffer = ByteBuffer.wrap(Base64.decode(encoded, Base64.NO_WRAP))
         val ivLength = buffer.int
         require(ivLength in 12..16 && buffer.remaining() > ivLength) { "WebDAV 加密凭据格式无效" }
-        val iv = ByteArray(ivLength).also(buffer::get)
-        val encrypted = ByteArray(buffer.remaining()).also(buffer::get)
+        val iv = ByteArray(ivLength)
+        buffer.get(iv)
+        val encrypted = ByteArray(buffer.remaining())
+        buffer.get(encrypted)
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.DECRYPT_MODE, getOrCreateKey(), GCMParameterSpec(128, iv))
         return String(cipher.doFinal(encrypted), Charsets.UTF_8)
