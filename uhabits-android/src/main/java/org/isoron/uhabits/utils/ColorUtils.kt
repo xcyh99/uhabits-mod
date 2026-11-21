@@ -23,8 +23,8 @@ import kotlin.math.max
 
 object ColorUtils {
     /**
-     * Returns whichever of black or white has the stronger WCAG contrast
-     * against the supplied background color.
+     * Keeps white as the default widget text color and switches to black only
+     * when the visible background is very light.
      */
     @JvmStatic
     fun getContrastingTextColor(
@@ -49,9 +49,9 @@ object ColorUtils {
         val luminance = 0.2126 * linearize(Color.red(visibleBackground)) +
             0.7152 * linearize(Color.green(visibleBackground)) +
             0.0722 * linearize(Color.blue(visibleBackground))
-        val whiteContrast = 1.05 / (luminance + 0.05)
-        val blackContrast = (luminance + 0.05) / 0.05
-        return if (whiteContrast >= blackContrast) Color.WHITE else Color.BLACK
+        // Prefer white in the dark theme. Only switch to black for genuinely
+        // pale backgrounds, avoiding frequent color flips on medium-bright colors.
+        return if (luminance >= 0.62) Color.BLACK else Color.WHITE
     }
 
     private const val ALPHA_CHANNEL = 24
