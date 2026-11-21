@@ -19,6 +19,8 @@
 package org.isoron.uhabits.widgets.views
 
 import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.View
@@ -36,6 +38,7 @@ import org.isoron.uhabits.core.preferences.Preferences
 import org.isoron.uhabits.inject.HabitsApplicationComponent
 import org.isoron.uhabits.utils.InterfaceUtils.getDimension
 import org.isoron.uhabits.utils.ColorUtils.getContrastingTextColor
+import org.isoron.uhabits.utils.drawNotesIndicator
 import org.isoron.uhabits.utils.PaletteUtils.getAndroidTestColor
 import org.isoron.uhabits.utils.StyledResources
 import kotlin.math.max
@@ -47,6 +50,9 @@ class CheckmarkWidgetView : HabitWidgetView {
 
     var percentage = 0f
     var name: String? = null
+    var notes: String = ""
+    private val notesIndicatorPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private var notesIndicatorColor: Int = 0
     private lateinit var ring: RingView
     private lateinit var label: TextView
     var entryValue = 0
@@ -84,6 +90,7 @@ class CheckmarkWidgetView : HabitWidgetView {
                 fgColor = res.getColor(R.attr.contrast60)
             }
         }
+        notesIndicatorColor = fgColor
         ring.setPercentage(percentage)
         ring.setColor(fgColor)
         ring.setBackgroundColor(bgColor)
@@ -93,6 +100,17 @@ class CheckmarkWidgetView : HabitWidgetView {
         label.setTextColor(fgColor)
         requestLayout()
         postInvalidate()
+    }
+
+    override fun dispatchDraw(canvas: Canvas) {
+        super.dispatchDraw(canvas)
+        drawNotesIndicator(
+            pNotesIndicator = notesIndicatorPaint,
+            canvas = canvas,
+            color = notesIndicatorColor,
+            size = label.textSize,
+            notes = notes
+        )
     }
 
     private val strokedTextEnabled: Boolean
