@@ -69,14 +69,14 @@ class NotesCardView(context: Context, attrs: AttributeSet) : LinearLayout(contex
                 setPadding(0, dp(1), 0, dp(1))
                 setOnClickListener {
                     AlertDialog.Builder(context)
-                        .setTitle(note.date)
+                        .setTitle(formatHistoryDate(note.date))
                         .setMessage(note.text)
                         .setPositiveButton(android.R.string.ok, null)
                         .show()
                 }
             }
             val dateView = TextView(context).apply {
-                text = note.date
+                text = formatHistoryDate(note.date)
                 textSize = 11f
                 setTypeface(typeface, Typeface.BOLD)
                 setTextColor(binding.habitNotes.currentTextColor)
@@ -97,6 +97,9 @@ class NotesCardView(context: Context, attrs: AttributeSet) : LinearLayout(contex
         }
         invalidate()
     }
+
+    private fun formatHistoryDate(date: String): String =
+        date.removePrefix("LocalDate(").removeSuffix(")")
 
     private fun dp(value: Int): Int =
         (value * resources.displayMetrics.density).toInt()
