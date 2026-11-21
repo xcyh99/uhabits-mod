@@ -77,17 +77,18 @@ class CheckmarkWidgetView : HabitWidgetView {
         when (entryState) {
             YES_MANUAL, SKIP, YES_AUTO -> {
                 bgColor = activeColor
-                fgColor = getContrastingTextColor(bgColor)
-                backgroundPaint!!.color = bgColor
-                frame!!.setBackgroundDrawable(background)
+                fgColor = getContrastingTextColor(bgColor, widgetBackgroundAlpha)
+                setWidgetBackgroundColor(bgColor)
             }
             NO, UNKNOWN -> {
                 bgColor = res.getColor(R.attr.cardBgColor)
-                fgColor = getContrastingTextColor(bgColor)
+                fgColor = getContrastingTextColor(bgColor, widgetBackgroundAlpha)
+                setWidgetBackgroundColor(bgColor)
             }
             else -> {
                 bgColor = res.getColor(R.attr.cardBgColor)
-                fgColor = getContrastingTextColor(bgColor)
+                fgColor = getContrastingTextColor(bgColor, widgetBackgroundAlpha)
+                setWidgetBackgroundColor(bgColor)
             }
         }
         notesIndicatorColor = fgColor
