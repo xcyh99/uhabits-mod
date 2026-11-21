@@ -43,6 +43,7 @@
         android:id="@+id/historyNotesTitle"
         style="@style/CardHeader"
         android:layout_marginTop="6dp"
+        android:layout_marginBottom="4dp"
         android:visibility="gone"
         tools:text="历史备注" />
 

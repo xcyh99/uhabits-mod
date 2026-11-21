@@ -61,12 +61,12 @@
             <org.isoron.uhabits.activities.habits.show.views.OverviewCardView
                 android:id="@+id/overviewCard"
                 style="@style/Card"
-                android:paddingTop="12dp" />
+                />
 
             <org.isoron.uhabits.activities.habits.show.views.TargetCardView
                 android:id="@+id/targetCard"
                 style="@style/Card"
-                android:paddingTop="12dp" />
+                />
 
             <org.isoron.uhabits.activities.habits.show.views.ScoreCardView
                 android:id="@+id/scoreCard"
