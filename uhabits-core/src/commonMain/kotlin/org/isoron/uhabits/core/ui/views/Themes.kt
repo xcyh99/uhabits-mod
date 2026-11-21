@@ -21,6 +21,7 @@ package org.isoron.uhabits.core.ui.views
 
 import org.isoron.platform.gui.Color
 import org.isoron.uhabits.core.models.PaletteColor
+import kotlin.math.pow
 
 abstract class Theme {
     open val appBackgroundColor = Color(0xf4f4f4)
@@ -37,9 +38,21 @@ abstract class Theme {
     open val toolbarColor = Color(0xffffff)
 
     fun shouldUseLightOutline(color: Color): Boolean {
+        // Match Android's Color.luminance() calculation. The old raw-channel
+        // weighted average made near-black custom colors miss the outline
+        // threshold in core charts, even when Android charts outlined them.
+        fun linearize(channel: Double): Double {
+            return if (channel <= 0.04045) channel / 12.92
+            else ((channel + 0.055) / 1.055).pow(2.4)
+        }
+        fun luminance(value: Color): Double {
+            return 0.2126 * linearize(value.red) +
+                0.7152 * linearize(value.green) +
+                0.0722 * linearize(value.blue)
+        }
         return ColorOutline.shouldUseLightOutline(
-            cardBackgroundColor.luminosity,
-            color.luminosity
+            luminance(cardBackgroundColor),
+            luminance(color)
         )
     }
 
