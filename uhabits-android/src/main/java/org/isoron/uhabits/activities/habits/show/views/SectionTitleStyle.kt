@@ -28,7 +28,7 @@ internal fun applySectionTitleStyle(title: TextView, color: Int) {
 
 internal fun applyColorTextOutline(title: TextView, color: Int) {
     if (ColorUtils.shouldUseLightOutline(title.context, color)) {
-        title.setShadowLayer(title.resources.displayMetrics.density * 0.8f, 0f, 0f, Color.WHITE)
+        title.setShadowLayer(title.resources.displayMetrics.density * 0.7f, 0f, 0f, Color.WHITE)
     } else {
         title.setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
     }
