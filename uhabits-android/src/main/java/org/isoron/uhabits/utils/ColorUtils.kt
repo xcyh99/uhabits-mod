@@ -27,16 +27,28 @@ object ColorUtils {
      * against the supplied background color.
      */
     @JvmStatic
-    fun getContrastingTextColor(backgroundColor: Int): Int {
+    fun getContrastingTextColor(
+        backgroundColor: Int,
+        backgroundAlpha: Int = Color.alpha(backgroundColor)
+    ): Int {
+        // Widget backgrounds can be translucent. The launcher wallpaper shows through,
+        // so estimate the visible color over a light surface before choosing text color.
+        val alpha = backgroundAlpha.coerceIn(0, 255) / 255.0
+        val visibleBackground = Color.rgb(
+            (Color.red(backgroundColor) * alpha + 255 * (1.0 - alpha)).toInt(),
+            (Color.green(backgroundColor) * alpha + 255 * (1.0 - alpha)).toInt(),
+            (Color.blue(backgroundColor) * alpha + 255 * (1.0 - alpha)).toInt()
+        )
+
         fun linearize(channel: Int): Double {
             val value = channel / 255.0
             return if (value <= 0.04045) value / 12.92
             else Math.pow((value + 0.055) / 1.055, 2.4)
         }
 
-        val luminance = 0.2126 * linearize(Color.red(backgroundColor)) +
-            0.7152 * linearize(Color.green(backgroundColor)) +
-            0.0722 * linearize(Color.blue(backgroundColor))
+        val luminance = 0.2126 * linearize(Color.red(visibleBackground)) +
+            0.7152 * linearize(Color.green(visibleBackground)) +
+            0.0722 * linearize(Color.blue(visibleBackground))
         val whiteContrast = 1.05 / (luminance + 0.05)
         val blackContrast = (luminance + 0.05) / 0.05
         return if (whiteContrast >= blackContrast) Color.WHITE else Color.BLACK
