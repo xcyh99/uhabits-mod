@@ -485,6 +485,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             divider = android.graphics.drawable.ColorDrawable(Color.rgb(218, 224, 232))
             dividerHeight = dp(1)
             setPadding(0, dp(4), 0, dp(4))
+            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(360))
             clipToPadding = false
             adapter = object : BaseAdapter() {
                 override fun getCount() = files.size
@@ -535,10 +536,6 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     textColumn.addView(name)
                     textColumn.addView(details)
                     row.addView(textColumn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-                    row.setOnClickListener {
-                        selectedIndex = position
-                        (list.adapter as BaseAdapter).notifyDataSetChanged()
-                    }
                     return row
                 }
             }
