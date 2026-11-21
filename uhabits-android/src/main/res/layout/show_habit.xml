@@ -47,16 +47,16 @@
                 android:id="@+id/subtitleCard"
                 style="@style/ShowHabit.Subtitle" />
 
-            <org.isoron.uhabits.activities.habits.show.views.NotesCardView
-                android:id="@+id/notesCard"
-                style="@style/Card"
-                android:gravity="center" />
-
             <org.isoron.uhabits.activities.habits.show.views.HistoryCardView
                 android:id="@+id/historyCard"
                 style="@style/Card"
                 android:gravity="center"
                 android:paddingBottom="0dp" />
+
+            <org.isoron.uhabits.activities.habits.show.views.NotesCardView
+                android:id="@+id/notesCard"
+                style="@style/Card"
+                android:gravity="center" />
 
             <org.isoron.uhabits.activities.habits.show.views.OverviewCardView
                 android:id="@+id/overviewCard"
