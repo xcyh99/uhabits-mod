@@ -120,14 +120,14 @@ class PureBlackTheme : DarkTheme() {
     override val lowContrastTextColor = Color(0x212121)
 }
 
-class WidgetTheme(private val isDark: Boolean = false) : LightTheme() {
+class WidgetTheme(private val isDark: Boolean? = null) : LightTheme() {
     override val cardBackgroundColor = Color.TRANSPARENT
-    override val highContrastTextColor = if (isDark) Color.WHITE else Color(0x202020)
-    override val mediumContrastTextColor = (if (isDark) Color.WHITE else Color(0x202020)).withAlpha(0.50)
-    override val lowContrastTextColor = (if (isDark) Color.WHITE else Color(0x202020)).withAlpha(0.10)
+    override val highContrastTextColor = if (isDark != false) Color.WHITE else Color(0x202020)
+    override val mediumContrastTextColor = (if (isDark != false) Color.WHITE else Color(0x202020)).withAlpha(0.50)
+    override val lowContrastTextColor = (if (isDark != false) Color.WHITE else Color(0x202020)).withAlpha(0.10)
 
     override fun color(paletteIndex: Int): Color {
-        if (isDark) return DarkTheme().color(paletteIndex)
+        if (isDark == true) return DarkTheme().color(paletteIndex)
         return when (paletteIndex) {
             0 -> Color(0xD32F2F)
             1 -> Color(0xE64A19)
