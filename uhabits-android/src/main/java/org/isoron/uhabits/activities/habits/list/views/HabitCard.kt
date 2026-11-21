@@ -304,21 +304,35 @@ private class HabitNameTextView(context: Context) : TextView(context) {
             return
         }
 
-        val originalColor = paint.color
-        val originalStyle = paint.style
-        val originalStrokeWidth = paint.strokeWidth
+        // Draw only the text layout in stroke mode. Calling super twice also
+        // redraws compound drawables and lets TextView reset its paint state.
+        val textLayout = layout
+        if (textLayout != null) {
+            val originalColor = paint.color
+            val originalStyle = paint.style
+            val originalStrokeWidth = paint.strokeWidth
+            val originalStrokeJoin = paint.strokeJoin
+            val originalAntiAlias = paint.isAntiAlias
 
-        paint.color = Color.WHITE
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = dp(0.3f)
+            paint.color = Color.WHITE
+            paint.style = Paint.Style.STROKE
+            paint.strokeJoin = Paint.Join.ROUND
+            paint.isAntiAlias = true
+            paint.strokeWidth = dp(0.3f)
+            canvas.save()
+            canvas.translate(
+                compoundPaddingLeft - scrollX.toFloat(),
+                extendedPaddingTop - scrollY.toFloat()
+            )
+            textLayout.draw(canvas)
+            canvas.restore()
+
+            paint.color = originalColor
+            paint.style = originalStyle
+            paint.strokeWidth = originalStrokeWidth
+            paint.strokeJoin = originalStrokeJoin
+            paint.isAntiAlias = originalAntiAlias
+        }
         super.onDraw(canvas)
-
-        paint.color = originalColor
-        paint.style = Paint.Style.FILL
-        super.onDraw(canvas)
-
-        paint.color = originalColor
-        paint.style = originalStyle
-        paint.strokeWidth = originalStrokeWidth
     }
 }
