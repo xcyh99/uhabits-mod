@@ -1,6 +1,5 @@
 package org.isoron.uhabits.core.sync
 
-import org.isoron.platform.time.LocalDate
 import org.isoron.uhabits.core.database.EntryData
 import org.isoron.uhabits.core.database.HabitData
 import org.isoron.uhabits.core.models.Entry
@@ -67,7 +66,7 @@ object TwoWaySyncSnapshotMapper {
             } else {
                 SyncEntryIdentity(
                     habitUuid = habitUuid,
-                    dayKey = LocalDate.fromUnixTime(row.timestamp).toCSVString(),
+                    dayKey = SyncDayKey.fromTimestamp(row.timestamp),
                     value = row.value,
                     notes = row.notes
                 )
