@@ -23,21 +23,21 @@ import kotlin.math.max
 
 object ColorUtils {
     /**
-     * Keeps white as the default widget text color and switches to black only
-     * when the visible background is very light.
+     * Chooses widget text contrast using the selected app theme. Translucent
+     * widget backgrounds are composited over the matching theme surface.
      */
     @JvmStatic
     fun getContrastingTextColor(
         backgroundColor: Int,
-        backgroundAlpha: Int = Color.alpha(backgroundColor)
+        backgroundAlpha: Int = Color.alpha(backgroundColor),
+        isDarkTheme: Boolean = true
     ): Int {
-        // Widget backgrounds can be translucent. The launcher wallpaper shows through,
-        // so estimate the visible color over a light surface before choosing text color.
         val alpha = backgroundAlpha.coerceIn(0, 255) / 255.0
+        val surface = if (isDarkTheme) 0xFF212121.toInt() else Color.WHITE
         val visibleBackground = Color.rgb(
-            (Color.red(backgroundColor) * alpha + 255 * (1.0 - alpha)).toInt(),
-            (Color.green(backgroundColor) * alpha + 255 * (1.0 - alpha)).toInt(),
-            (Color.blue(backgroundColor) * alpha + 255 * (1.0 - alpha)).toInt()
+            (Color.red(backgroundColor) * alpha + Color.red(surface) * (1.0 - alpha)).toInt(),
+            (Color.green(backgroundColor) * alpha + Color.green(surface) * (1.0 - alpha)).toInt(),
+            (Color.blue(backgroundColor) * alpha + Color.blue(surface) * (1.0 - alpha)).toInt()
         )
 
         fun linearize(channel: Int): Double {
@@ -49,9 +49,13 @@ object ColorUtils {
         val luminance = 0.2126 * linearize(Color.red(visibleBackground)) +
             0.7152 * linearize(Color.green(visibleBackground)) +
             0.0722 * linearize(Color.blue(visibleBackground))
-        // Prefer white in the dark theme. Only switch to black for genuinely
-        // pale backgrounds, avoiding frequent color flips on medium-bright colors.
-        return if (luminance >= 0.62) Color.BLACK else Color.WHITE
+
+        // Dark mode strongly prefers white; light mode strongly prefers black.
+        return if (isDarkTheme) {
+            if (luminance >= 0.78) Color.BLACK else Color.WHITE
+        } else {
+            if (luminance <= 0.22) Color.WHITE else Color.BLACK
+        }
     }
 
     private const val ALPHA_CHANNEL = 24
