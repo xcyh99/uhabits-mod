@@ -34,6 +34,7 @@ import org.isoron.uhabits.utils.InterfaceUtils.dpToPixels
 import org.isoron.uhabits.utils.InterfaceUtils.getDimension
 import org.isoron.uhabits.utils.StyledResources
 import org.isoron.uhabits.utils.ColorUtils.getContrastingTextColor
+import org.isoron.uhabits.utils.ColorUtils.shouldUseLightOutline
 import java.util.LinkedList
 import java.util.Locale
 import java.util.Random
@@ -171,6 +172,15 @@ class StreakChart : View {
         paint!!.style = Paint.Style.FILL
         paint!!.color = barColor
         canvas.drawRoundRect(left, top, right, bottom, round, round, paint!!)
+        // Only the longest streak uses the habit color; outline it when the
+        // shared dark-surface / near-black-color threshold is met.
+        if (percentage >= 1.0f && shouldUseLightOutline(context, barColor)) {
+            paint!!.style = Paint.Style.STROKE
+            paint!!.strokeWidth = dpToPixels(context, 1f)
+            paint!!.color = Color.WHITE
+            canvas.drawRoundRect(left, top, right, bottom, round, round, paint!!)
+            paint!!.style = Paint.Style.FILL
+        }
         val yOffset = rect.centerY() + 0.3f * em
         paint!!.color = percentageToTextColor(percentage)
         paint!!.textAlign = Paint.Align.CENTER
