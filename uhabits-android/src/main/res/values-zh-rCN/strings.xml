@@ -250,4 +250,17 @@
     <string name="skip_day">跳过</string>
     <string name="pref_animations_title">关闭动画效果</string>
     <string name="pref_animations_description">添加打卡标记后不显示彩纸动画。</string>
+    <string name="settings_backup_restore">软件设置备份与恢复</string>
+    <string name="settings_backup_restore_summary">通过 WebDAV 上传或恢复普通软件设置，不包含服务器账号和密码。</string>
+    <string name="settings_backup_upload">上传设置备份</string>
+    <string name="settings_backup_download">恢复设置备份</string>
+    <string name="settings_backup_success_upload">软件设置备份已上传。</string>
+    <string name="settings_backup_success_download">软件设置已恢复，部分更改可能需要重新打开应用后生效。</string>
+    <string name="clear_local_habit_data">清空本机习惯和打卡数据</string>
+    <string name="clear_local_habit_data_summary">删除本机全部习惯及打卡记录，保留软件设置和备份文件。</string>
+    <string name="clear_local_habit_data_first_title">要清空本机习惯数据吗？</string>
+    <string name="clear_local_habit_data_first_message">这将删除本机保存的全部习惯和打卡记录。软件设置和备份文件不会改变。</string>
+    <string name="clear_local_habit_data_second_title">再次确认永久删除</string>
+    <string name="clear_local_habit_data_second_message">此操作无法撤销。确定继续清空本机全部习惯和打卡记录吗？</string>
+    <string name="clear_local_habit_data_done">本机习惯和打卡记录已清空。</string>
 </resources>
