@@ -35,7 +35,7 @@ class TargetCardView(context: Context, attrs: AttributeSet) : LinearLayout(conte
         binding.targetChart.setValues(state.values)
         binding.targetChart.setTargets(state.targets)
         binding.targetChart.setLabels(state.intervals.map { intervalToLabel(resources, it) })
-        binding.title.setTextColor(androidColor)
+        binding.title.setTextColor(getThemeTextColor(context))
         applySectionTitleStyle(binding.title, androidColor)
         binding.targetChart.setColor(androidColor)
         postInvalidate()
