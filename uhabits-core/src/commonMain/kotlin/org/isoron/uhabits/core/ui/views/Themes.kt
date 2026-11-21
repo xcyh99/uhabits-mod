@@ -36,6 +36,13 @@ abstract class Theme {
     open val toolbarBackgroundColor = Color(0xf4f4f4)
     open val toolbarColor = Color(0xffffff)
 
+    fun shouldUseLightOutline(color: Color): Boolean {
+        return ColorOutline.shouldUseLightOutline(
+            cardBackgroundColor.luminosity,
+            color.luminosity
+        )
+    }
+
     fun color(paletteColor: PaletteColor): Color {
         return if (paletteColor.isCustom) Color(paletteColor.argb and 0x00FFFFFF) else color(paletteColor.paletteIndex)
     }
