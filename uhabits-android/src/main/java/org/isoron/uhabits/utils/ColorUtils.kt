@@ -29,7 +29,8 @@ object ColorUtils {
     fun shouldUseLightOutline(context: Context, color: Int): Boolean {
         val themeTextColor = StyledResources(context).getColor(R.attr.contrast100)
         val isDarkTheme = Color.luminance(themeTextColor) > 0.5f
-        // Only add a white edge when the habit color is almost indistinguishable from the dark surface.\n        return isDarkTheme && Color.luminance(color) < 0.08f
+        // Only add a white edge when the habit color is almost indistinguishable from the dark surface.
+        return isDarkTheme && Color.luminance(color) < 0.08f
     }
 
     /**
