@@ -66,4 +66,11 @@ class ShowHabitView(context: Context) : FrameLayout(context) {
         binding.historyCard.setListener(presenter.historyCardPresenter)
         binding.barCard.setListener(presenter.barCardPresenter)
     }
+
+    fun setNoteEditListeners(
+        onDescriptionClick: () -> Unit,
+        onHistoryNoteClick: (org.isoron.uhabits.core.ui.screens.habits.show.views.HistoryNote) -> Unit
+    ) {
+        binding.notesCard.setEditListeners(onDescriptionClick, onHistoryNoteClick)
+    }
 }

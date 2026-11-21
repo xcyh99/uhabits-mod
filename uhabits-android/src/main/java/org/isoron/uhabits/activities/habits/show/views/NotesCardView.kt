@@ -26,13 +26,27 @@ import android.view.MotionEvent
 import android.graphics.Typeface
 import android.view.Gravity
 import android.widget.LinearLayout
-import androidx.appcompat.app.AlertDialog
 import android.widget.TextView
 import org.isoron.uhabits.R
 import org.isoron.uhabits.core.ui.screens.habits.show.views.NotesCardState
+import org.isoron.uhabits.core.ui.screens.habits.show.views.HistoryNote
 import org.isoron.uhabits.databinding.ShowHabitNotesBinding
 
 class NotesCardView(context: Context, attrs: AttributeSet) : LinearLayout(context, attrs) {
+    private var onDescriptionClickListener: (() -> Unit)? = null
+    private var onHistoryNoteClickListener: ((HistoryNote) -> Unit)? = null
+
+    fun setEditListeners(
+        onDescriptionClick: () -> Unit,
+        onHistoryNoteClick: (HistoryNote) -> Unit
+    ) {
+        onDescriptionClickListener = onDescriptionClick
+        onHistoryNoteClickListener = onHistoryNoteClick
+        binding.habitNotes.setOnClickListener { onDescriptionClickListener?.invoke() }
+        binding.habitNotes.isClickable = true
+        binding.habitNotes.isFocusable = true
+    }
+
     private val binding = ShowHabitNotesBinding.inflate(LayoutInflater.from(context), this)
     fun setState(state: NotesCardState) {
         val hasDescription = state.description.isNotBlank()
@@ -68,11 +82,7 @@ class NotesCardView(context: Context, attrs: AttributeSet) : LinearLayout(contex
                 isFocusable = true
                 setPadding(0, dp(1), 0, dp(1))
                 setOnClickListener {
-                    AlertDialog.Builder(context)
-                        .setTitle(formatHistoryDate(note.date))
-                        .setMessage(note.text)
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show()
+                    onHistoryNoteClickListener?.invoke(note)
                 }
             }
             val dateView = TextView(context).apply {
