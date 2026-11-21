@@ -25,6 +25,11 @@
     <PreferenceCategory
             android:key="databaseCategory"
             android:title="@string/database">
+<Preference
+                android:key="webDavSync"
+                android:title="@string/webdav_sync"
+                android:summary="@string/webdav_sync_summary"
+                app:iconSpaceReserved="false" />
 
         <Preference
                 android:key="exportDB"
@@ -50,11 +55,6 @@
                 android:title="@string/import_data"
                 app:iconSpaceReserved="false" />
 
-<Preference
-                android:key="webDavSync"
-                android:title="@string/webdav_sync"
-                android:summary="@string/webdav_sync_summary"
-                app:iconSpaceReserved="false" />
 
         <Preference
                 android:key="publicBackupFolder"
