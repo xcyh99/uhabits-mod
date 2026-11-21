@@ -50,12 +50,12 @@ object ColorUtils {
             0.7152 * linearize(Color.green(visibleBackground)) +
             0.0722 * linearize(Color.blue(visibleBackground))
 
-        // Dark mode strongly prefers white; light mode strongly prefers black.
-        return if (isDarkTheme) {
-            if (luminance >= 0.78) Color.BLACK else Color.WHITE
-        } else {
-            if (luminance <= 0.22) Color.WHITE else Color.BLACK
-        }
+        // Pick the text color with the stronger actual contrast against the
+        // composited background. This also keeps note indicators visible on
+        // pale habit colors while preserving white text on dark surfaces.
+        val whiteContrast = 1.05 / (luminance + 0.05)
+        val blackContrast = (luminance + 0.05) / 0.05
+        return if (whiteContrast >= blackContrast) Color.WHITE else Color.BLACK
     }
 
     private const val ALPHA_CHANNEL = 24
