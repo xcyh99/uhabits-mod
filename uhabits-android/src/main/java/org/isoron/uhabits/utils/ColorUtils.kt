@@ -50,12 +50,15 @@ object ColorUtils {
             0.7152 * linearize(Color.green(visibleBackground)) +
             0.0722 * linearize(Color.blue(visibleBackground))
 
-        // Pick the text color with the stronger actual contrast against the
-        // composited background. This also keeps note indicators visible on
-        // pale habit colors while preserving white text on dark surfaces.
-        val whiteContrast = 1.05 / (luminance + 0.05)
-        val blackContrast = (luminance + 0.05) / 0.05
-        return if (whiteContrast >= blackContrast) Color.WHITE else Color.BLACK
+        // Dark theme deliberately favors white text. Switch to black only
+        // when the visible background is very light. Light theme is reversed.
+        // The slightly higher dark-theme threshold preserves the user's
+        // preferred white text on medium-bright habit colors.
+        return if (isDarkTheme) {
+            if (luminance >= 0.82) Color.BLACK else Color.WHITE
+        } else {
+            if (luminance <= 0.18) Color.WHITE else Color.BLACK
+        }
     }
 
     private const val ALPHA_CHANNEL = 24
