@@ -42,6 +42,7 @@ class NotesCardView(context: Context, attrs: AttributeSet) : LinearLayout(contex
         binding.historyNotesTitle.visibility =
             if (hasHistoryNotes) VISIBLE else GONE
         binding.historyNotesTitle.text = context.getString(R.string.history_notes)
+        binding.historyNotesTitle.setTextColor(state.habitColor)
         binding.historyNotesList.removeAllViews()
         binding.historyNotesList.visibility =
             if (hasHistoryNotes) VISIBLE else GONE
@@ -52,13 +53,13 @@ class NotesCardView(context: Context, attrs: AttributeSet) : LinearLayout(contex
                 textSize = 13f
                 setTypeface(typeface, Typeface.BOLD)
                 setTextColor(binding.habitNotes.currentTextColor)
-                setPadding(0, dp(10), 0, dp(2))
+                setPadding(0, dp(4), 0, dp(1))
             }
             val noteView = TextView(context).apply {
                 text = note.text
                 textSize = 14f
                 setTextColor(binding.habitNotes.currentTextColor)
-                setPadding(0, 0, 0, dp(6))
+                setPadding(0, 0, 0, dp(3))
                 gravity = Gravity.START
             }
             binding.historyNotesList.addView(dateView)
