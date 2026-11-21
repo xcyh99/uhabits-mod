@@ -24,8 +24,8 @@ import org.isoron.uhabits.core.models.PaletteColor
 import kotlin.math.pow
 
 abstract class Theme {
-    open val lightOutlineWidth = 0.8
-    open val calendarOutlineWidth = 0.4
+    open val lightOutlineWidth = 0.3
+    open val calendarOutlineWidth = 0.3
     open val appBackgroundColor = Color(0xf4f4f4)
     open val cardBackgroundColor = Color(0xFAFAFA)
     open val headerBackgroundColor = Color(0xeeeeee)
@@ -159,8 +159,8 @@ class PureBlackTheme : DarkTheme() {
 }
 
 class WidgetTheme(private val isDark: Boolean? = null) : LightTheme() {
-    override val lightOutlineWidth = 0.6
-    override val calendarOutlineWidth = 0.3
+    override val lightOutlineWidth = 0.2
+    override val calendarOutlineWidth = 0.2
     override val cardBackgroundColor = Color.TRANSPARENT
     override val highContrastTextColor = if (isDark != false) Color.WHITE else Color(0x202020)
     override val mediumContrastTextColor = (if (isDark != false) Color.WHITE else Color(0x202020)).withAlpha(0.50)
