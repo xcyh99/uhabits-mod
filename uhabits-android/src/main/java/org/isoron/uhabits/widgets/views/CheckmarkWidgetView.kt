@@ -128,12 +128,9 @@ class CheckmarkWidgetView : HabitWidgetView {
         ring.setBackgroundColor(bgColor)
         ring.setText(text)
         ring.setIsStrokedTextEnabled(strokedTextEnabled)
-        ring.setTextOutlineEnabled(
-            ColorOutline.shouldUseLightOutline(
-                Color.luminance(bgColor).toDouble(),
-                Color.luminance(fgColor).toDouble()
-            )
-        )
+        // The checkmark glyph itself should not receive an outline.
+        // The conditional white outline belongs to the outer card only.
+        ring.setTextOutlineEnabled(false)
         label.text = name
         label.setTextColor(fgColor)
         requestLayout()
