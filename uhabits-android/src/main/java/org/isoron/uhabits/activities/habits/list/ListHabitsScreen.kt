@@ -20,6 +20,7 @@
 package org.isoron.uhabits.activities.habits.list
 
 import android.app.Activity
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -31,6 +32,7 @@ import android.util.TypedValue
 import androidx.appcompat.app.AlertDialog
 import android.provider.OpenableColumns
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import me.tatarka.inject.annotations.Inject
 import nl.dionsegijn.konfetti.core.Party
 import nl.dionsegijn.konfetti.core.Position
@@ -100,7 +102,6 @@ const val RESULT_BUG_REPORT = 104
 const val RESULT_REPAIR_DB = 105
 const val REQUEST_OPEN_DOCUMENT = 106
 const val REQUEST_SETTINGS = 107
-const val REQUEST_SAVE_BACKUP = 108
 const val REQUEST_SAVE_CSV = 110
 
 @Inject
@@ -127,7 +128,6 @@ class ListHabitsScreen(
     ListHabitsSelectionMenuBehavior.Screen {
 
     val activity = (context as AppCompatActivity)
-    private var pendingBackupFilename: String? = null
     private var pendingCsvFilename: String? = null
 
     fun onAttached() {
@@ -167,7 +167,6 @@ class ListHabitsScreen(
         when (requestCode) {
             REQUEST_OPEN_DOCUMENT -> onOpenDocumentResult(resultCode, data)
             REQUEST_SETTINGS -> onSettingsResult(resultCode)
-            REQUEST_SAVE_BACKUP -> onSaveBackupResult(resultCode, data)
             REQUEST_SAVE_CSV -> onSaveCsvResult(resultCode, data)
         }
     }
@@ -469,13 +468,7 @@ class ListHabitsScreen(
         taskRunner.execute(
             exportDBFactory.create({ filename ->
                 if (filename != null) {
-                    pendingBackupFilename = filename
-                    val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-                        addCategory(Intent.CATEGORY_OPENABLE)
-                        type = "application/octet-stream"
-                        putExtra(Intent.EXTRA_TITLE, File(filename).name)
-                    }
-                    activity.startActivityForResult(intent, REQUEST_SAVE_BACKUP)
+                    shareExportedBackup(filename)
                 } else {
                     activity.showMessage(activity.resources.getString(R.string.could_not_export))
                 }
@@ -506,19 +499,23 @@ class ListHabitsScreen(
         }
     }
 
-    private fun onSaveBackupResult(resultCode: Int, data: Intent?) {
-        val sourcePath = pendingBackupFilename
-        pendingBackupFilename = null
-        if (resultCode != Activity.RESULT_OK || data?.data == null || sourcePath == null) return
+    private fun shareExportedBackup(filename: String) {
         try {
-            val source = File(sourcePath)
-            source.inputStream().use { input ->
-                activity.contentResolver.openOutputStream(data.data!!, "w")!!.use { output ->
-                    input.copyTo(output)
-                }
+            val file = File(filename)
+            val uri = FileProvider.getUriForFile(
+                activity,
+                "${activity.packageName}",
+                file
+            )
+            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/octet-stream"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                clipData = ClipData.newUri(activity.contentResolver, file.name, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            source.delete()
-            activity.showMessage(activity.getString(R.string.backup_saved))
+            activity.startActivity(
+                Intent.createChooser(sendIntent, activity.getString(R.string.export))
+            )
         } catch (e: Exception) {
             activity.showMessage(activity.getString(R.string.could_not_export))
             e.printStackTrace()
