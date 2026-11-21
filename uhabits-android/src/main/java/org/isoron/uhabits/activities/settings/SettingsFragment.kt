@@ -464,6 +464,8 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
      * Shared, compact file picker for download and two-way sync.
      * Each file gets its own padded row, readable filename and muted metadata.
      */
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
     private fun showRemoteFilePicker(
         files: List<WebDavSync.RemoteFile>,
         title: String,
@@ -490,7 +492,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             adapter = object : BaseAdapter() {
                 override fun getCount() = files.size
                 override fun getItem(position: Int) = files[position]
-                override fun getItemId(position: Int) = position
+                override fun getItemId(position: Int): Long = position.toLong()
 
                 override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
                     val file = files[position]
