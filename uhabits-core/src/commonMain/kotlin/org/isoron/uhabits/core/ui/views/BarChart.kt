@@ -98,9 +98,8 @@ class BarChart(
             } else {
                 canvas.fillRect(x, y, barWidth, barHeight)
             }
-            // Match the Android near-black outline rule: only outline bars
-            // in dark themes when their color is almost indistinguishable from black.
-            if (theme is DarkTheme && colors[s].luminosity < 0.02) {
+            // Use the shared theme-aware outline rule used by Android charts.
+            if (theme.shouldUseLightOutline(colors[s])) {
                 canvas.setColor(Color.WHITE)
                 canvas.setStrokeWidth(1.0)
                 canvas.drawRect(x, y, barWidth, barHeight)
