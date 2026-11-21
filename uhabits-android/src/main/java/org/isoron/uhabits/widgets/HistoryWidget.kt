@@ -21,8 +21,6 @@ package org.isoron.uhabits.widgets
 
 import android.app.PendingIntent
 import android.content.Context
-import android.content.res.Configuration
-import android.graphics.Color
 import android.view.View
 import org.isoron.platform.gui.AndroidDataView
 import org.isoron.platform.time.JavaLocalDateFormatter
@@ -30,7 +28,6 @@ import org.isoron.platform.time.getToday
 import org.isoron.uhabits.core.models.Habit
 import org.isoron.uhabits.core.ui.screens.habits.show.views.HistoryCardPresenter
 import org.isoron.uhabits.core.ui.views.HistoryChart
-import org.isoron.uhabits.core.ui.ThemeSwitcher
 import org.isoron.uhabits.core.ui.views.WidgetTheme
 import org.isoron.uhabits.widgets.views.GraphWidgetView
 import java.util.Locale
@@ -88,6 +85,6 @@ class HistoryWidget(
             }
         ).apply {
             setTitle(habit.name)
-            setTitleColor(if (widgetTheme().highContrastTextColor.red > 0.5) Color.WHITE else Color.BLACK)
+            applyWidgetTitleColor(this)
         }
 }
