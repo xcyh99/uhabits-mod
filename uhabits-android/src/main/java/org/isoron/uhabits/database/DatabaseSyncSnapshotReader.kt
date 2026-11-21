@@ -20,7 +20,9 @@ import java.io.File
 class DatabaseSyncSnapshotReader {
     data class Snapshot(
         val habits: List<SyncHabitIdentity>,
-        val entries: List<SyncEntryIdentity>
+        val entries: List<SyncEntryIdentity>,
+        val habitRows: List<HabitData>,
+        val entryRows: List<EntryData>
     )
 
     fun readLocal(): Snapshot = read(DatabaseUtils.openDatabase())
@@ -56,7 +58,9 @@ class DatabaseSyncSnapshotReader {
         val entryRows = readEntries(db)
         return Snapshot(
             habits = TwoWaySyncSnapshotMapper.habits(habitRows),
-            entries = TwoWaySyncSnapshotMapper.entries(habitRows, entryRows)
+            entries = TwoWaySyncSnapshotMapper.entries(habitRows, entryRows),
+            habitRows = habitRows,
+            entryRows = entryRows
         )
     }
 
