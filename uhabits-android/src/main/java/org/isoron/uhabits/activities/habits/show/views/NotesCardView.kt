@@ -27,6 +27,7 @@ import android.graphics.Typeface
 import android.view.Gravity
 import android.widget.LinearLayout
 import android.widget.TextView
+import org.isoron.platform.gui.toInt
 import org.isoron.uhabits.R
 import org.isoron.uhabits.core.ui.screens.habits.show.views.NotesCardState
 import org.isoron.uhabits.core.ui.screens.habits.show.views.HistoryNote
@@ -54,13 +55,14 @@ class NotesCardView(context: Context, attrs: AttributeSet) : LinearLayout(contex
         visibility = if (hasDescription || hasHistoryNotes) VISIBLE else GONE
 
         binding.descriptionTitle.visibility = if (hasDescription) VISIBLE else GONE
-        binding.descriptionTitle.setTextColor(state.habitColor)
+        val titleColor = state.theme.color(state.color).toInt()
+        binding.descriptionTitle.setTextColor(titleColor)
         binding.habitNotes.visibility = if (hasDescription) VISIBLE else GONE
         binding.habitNotes.text = state.description
         binding.historyNotesTitle.visibility =
             if (hasHistoryNotes) VISIBLE else GONE
         binding.historyNotesTitle.text = context.getString(R.string.history_notes)
-        binding.historyNotesTitle.setTextColor(state.habitColor)
+        binding.historyNotesTitle.setTextColor(titleColor)
         binding.historyNotesList.removeAllViews()
         binding.historyNotesScroll.visibility =
             if (hasHistoryNotes) VISIBLE else GONE
@@ -105,7 +107,7 @@ class NotesCardView(context: Context, attrs: AttributeSet) : LinearLayout(contex
             row.addView(noteView, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
             binding.historyNotesList.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, dp(18)))
         }
-        // Grow with the number of rows, but stop at 112dp and scroll beyond that.
+        // Fit the content when short; cap the viewport at 100dp and scroll beyond it.
         binding.historyNotesScroll.layoutParams = binding.historyNotesScroll.layoutParams.apply {
             height = minOf(state.historyNotes.size * dp(18), dp(100))
         }

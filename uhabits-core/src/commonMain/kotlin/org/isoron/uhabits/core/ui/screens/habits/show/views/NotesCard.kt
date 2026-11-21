@@ -20,6 +20,8 @@
 package org.isoron.uhabits.core.ui.screens.habits.show.views
 
 import org.isoron.uhabits.core.models.Habit
+import org.isoron.uhabits.core.models.PaletteColor
+import org.isoron.uhabits.core.ui.views.Theme
 
 data class HistoryNote(
     val date: String,
@@ -29,14 +31,16 @@ data class HistoryNote(
 data class NotesCardState(
     val description: String,
     val historyNotes: List<HistoryNote>,
-    val habitColor: Int
+    val color: PaletteColor,
+    val theme: Theme
 )
 
 class NotesCardPresenter {
     companion object {
-        fun buildState(habit: Habit) = NotesCardState(
+        fun buildState(habit: Habit, theme: Theme) = NotesCardState(
             description = habit.description,
-            habitColor = habit.color.argb,
+            color = habit.color,
+            theme = theme,
             historyNotes = habit.originalEntries.getKnown()
                 .filter { it.notes.isNotBlank() }
                 .map { HistoryNote(it.date.toString(), it.notes) }
