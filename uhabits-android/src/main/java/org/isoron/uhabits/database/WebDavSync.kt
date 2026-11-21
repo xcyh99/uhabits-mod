@@ -114,7 +114,7 @@ class WebDavSync(private val context: Context) {
             .replace(Regex("[^A-Za-z0-9._-]+"), "_")
             .trim('_')
             .ifBlank { "Android_Device" }
-        val remoteName = "ShiziHabits_${deviceName}_${kind.fileLabel}_${timestamp}.db"
+        val remoteName = "ShiziHabits_WebDAV_${deviceName}_${kind.fileLabel}_${timestamp}.db"
 
         try {
             withClient { client ->
