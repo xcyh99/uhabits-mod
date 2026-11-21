@@ -168,7 +168,7 @@ class StreakChart : View {
         val top = rect.top + paddingTopBottom
         val right = rect.right - gap
         val bottom = rect.bottom - paddingTopBottom
-        if (isDarkTheme && android.graphics.Color.luminance(barColor) < 0.35f) {
+        if (org.isoron.uhabits.utils.ColorUtils.shouldUseLightOutline(context, barColor)) {
             paint!!.style = Paint.Style.STROKE
             paint!!.strokeWidth = dpToPixels(context, 1f)
             paint!!.color = android.graphics.Color.WHITE
