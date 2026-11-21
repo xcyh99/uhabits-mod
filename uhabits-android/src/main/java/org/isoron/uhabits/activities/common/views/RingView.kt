@@ -59,6 +59,7 @@ class RingView : View {
     private var text: String?
     private var textSize: Float
     private var isStrokedTextEnabled: Boolean = false
+    private var isTextOutlineEnabled: Boolean = false
     private var enableFontAwesome = false
     private var internalDrawingCache: Bitmap? = null
     private var cacheCanvas: Canvas? = null
@@ -134,6 +135,12 @@ class RingView : View {
 
     fun setIsStrokedTextEnabled(isStroked: Boolean) {
         this.isStrokedTextEnabled = isStroked
+        invalidate()
+    }
+
+    fun setTextOutlineEnabled(enabled: Boolean) {
+        isTextOutlineEnabled = enabled
+        invalidate()
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -165,18 +172,35 @@ class RingView : View {
             pRing!!.color = color
             pRing!!.textSize = textSize
 
-            if (isStrokedTextEnabled) {
+            if (enableFontAwesome) pRing!!.typeface = getFontAwesome(context)
+            val drawX = rect!!.centerX()
+            val drawY = rect!!.centerY() + 0.4f * em
+            val originalColor = pRing!!.color
+            val originalStyle = pRing!!.style
+            val originalStrokeWidth = pRing!!.strokeWidth
+            val originalStrokeJoin = pRing!!.strokeJoin
+
+            if (isTextOutlineEnabled) {
+                pRing!!.color = Color.WHITE
                 pRing!!.style = Paint.Style.STROKE
-                pRing!!.strokeWidth = textSize / 15f
+                pRing!!.strokeJoin = Paint.Join.ROUND
+                pRing!!.strokeWidth = dpToPixels(context, 0.2f)
+                activeCanvas.drawText(text!!, drawX, drawY, pRing!!)
             }
 
-            if (enableFontAwesome) pRing!!.typeface = getFontAwesome(context)
-            activeCanvas.drawText(
-                text!!,
-                rect!!.centerX(),
-                rect!!.centerY() + 0.4f * em,
-                pRing!!
-            )
+            pRing!!.color = originalColor
+            pRing!!.style = if (isStrokedTextEnabled) Paint.Style.STROKE else Paint.Style.FILL
+            if (isStrokedTextEnabled) {
+                pRing!!.strokeWidth = textSize / 15f
+            } else {
+                pRing!!.strokeWidth = originalStrokeWidth
+            }
+            activeCanvas.drawText(text!!, drawX, drawY, pRing!!)
+
+            pRing!!.color = originalColor
+            pRing!!.style = originalStyle
+            pRing!!.strokeWidth = originalStrokeWidth
+            pRing!!.strokeJoin = originalStrokeJoin
         }
         if (activeCanvas !== canvas) canvas.drawBitmap(internalDrawingCache!!, 0f, 0f, null)
     }
