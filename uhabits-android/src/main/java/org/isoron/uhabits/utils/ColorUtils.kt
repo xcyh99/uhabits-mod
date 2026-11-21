@@ -27,7 +27,7 @@ import kotlin.math.max
 object ColorUtils {
     @JvmStatic
     fun shouldUseLightOutline(context: Context, color: Int): Boolean {
-        val cardBackground = StyledResources(context).getColor(R.attr.cardBackground)
+        val cardBackground = StyledResources(context).getColor(R.attr.cardBgColor)
         return org.isoron.uhabits.core.ui.views.ColorOutline.shouldUseLightOutline(
             Color.luminance(cardBackground).toDouble(),
             Color.luminance(color).toDouble()
