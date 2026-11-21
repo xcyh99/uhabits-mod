@@ -20,6 +20,7 @@ package org.isoron.uhabits.widgets
 
 import android.app.PendingIntent
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.view.LayoutInflater
@@ -31,6 +32,8 @@ import org.isoron.uhabits.R
 import org.isoron.uhabits.core.commands.CommandRunner
 import org.isoron.uhabits.core.preferences.Preferences
 import org.isoron.uhabits.core.preferences.WidgetPreferences
+import org.isoron.uhabits.core.ui.ThemeSwitcher
+import org.isoron.uhabits.widgets.views.GraphWidgetView
 import org.isoron.uhabits.intents.PendingIntentFactory
 import kotlin.math.max
 
@@ -39,6 +42,19 @@ abstract class BaseWidget(val context: Context, val id: Int, val stacked: Boolea
     protected val prefs: Preferences
     protected val pendingIntentFactory: PendingIntentFactory
     protected val commandRunner: CommandRunner
+
+    /** Resolve the widget theme from the app preference, falling back to the system theme. */
+    protected val isDarkWidgetTheme: Boolean
+        get() = when (prefs.theme) {
+            ThemeSwitcher.THEME_DARK -> true
+            ThemeSwitcher.THEME_LIGHT -> false
+            else -> (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                Configuration.UI_MODE_NIGHT_YES
+        }
+
+    protected fun applyWidgetTitleColor(view: GraphWidgetView) {
+        view.setTitleColor(if (isDarkWidgetTheme) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+    }
     private var dimensions: WidgetDimensions
 
     fun delete() {
