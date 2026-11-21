@@ -67,7 +67,7 @@ object TwoWaySyncSnapshotMapper {
             } else {
                 SyncEntryIdentity(
                     habitUuid = habitUuid,
-                    dayKey = LocalDate.fromUnixTime(row.timestamp).toString(),
+                    dayKey = LocalDate.fromUnixTime(row.timestamp).toCSVString(),
                     value = row.value,
                     notes = row.notes
                 )
