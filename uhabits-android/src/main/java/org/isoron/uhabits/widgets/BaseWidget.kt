@@ -35,6 +35,8 @@ import org.isoron.uhabits.core.preferences.WidgetPreferences
 import org.isoron.uhabits.core.ui.ThemeSwitcher
 import org.isoron.uhabits.widgets.views.GraphWidgetView
 import org.isoron.uhabits.intents.PendingIntentFactory
+import org.isoron.uhabits.utils.ColorUtils.getContrastingTextColor
+import org.isoron.uhabits.utils.StyledResources
 import kotlin.math.max
 
 abstract class BaseWidget(val context: Context, val id: Int, val stacked: Boolean) {
@@ -53,7 +55,8 @@ abstract class BaseWidget(val context: Context, val id: Int, val stacked: Boolea
         }
 
     protected fun applyWidgetTitleColor(view: GraphWidgetView) {
-        view.setTitleColor(if (isDarkWidgetTheme) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+        val cardBackground = StyledResources(context).getColor(R.attr.cardBgColor)
+        view.setTitleColor(getContrastingTextColor(cardBackground, preferedBackgroundAlpha, isDarkWidgetTheme))
     }
     private var dimensions: WidgetDimensions
 
