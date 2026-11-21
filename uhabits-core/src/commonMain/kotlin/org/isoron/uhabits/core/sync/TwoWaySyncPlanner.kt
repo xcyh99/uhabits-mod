@@ -145,7 +145,8 @@ object TwoWaySyncPlanner {
             localEntriesForNewHabits = localEntries.filter { it.habitUuid in localNewHabitUuids },
             remoteEntriesForNewHabits = remoteEntries.filter { it.habitUuid in remoteNewHabitUuids },
             identicalEntries = identical,
-            conflictingEntries = conflicts
+            conflictingEntries = conflicts,
+            conflictingHabitSettings = conflictingHabitSettings
         )
     }
 
