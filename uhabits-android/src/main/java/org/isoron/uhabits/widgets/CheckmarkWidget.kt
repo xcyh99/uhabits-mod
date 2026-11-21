@@ -53,8 +53,9 @@ open class CheckmarkWidget(
             setBackgroundAlpha(preferedBackgroundAlpha)
             activeColor = WidgetTheme().color(habit.color).toInt()
             name = habit.name
-            // Match the habit list: note indicators use computed entries regardless of checkmark state.
-            notes = habit.computedEntries.get(today).notes
+            // Notes are user-authored data; read the original entry so they remain
+            // visible even when the computed entry is regenerated for completion.
+            notes = habit.originalEntries.get(today).notes
             entryValue = habit.computedEntries.get(today).value
             if (habit.isNumerical) {
                 isNumerical = true
