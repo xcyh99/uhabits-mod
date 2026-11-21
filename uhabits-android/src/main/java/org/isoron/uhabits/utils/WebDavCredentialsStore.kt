@@ -20,11 +20,24 @@ class WebDavCredentialsStore(context: Context) {
     @Synchronized
     fun load(): Credentials {
         migrateLegacyValues()
-        return Credentials(
-            decrypt(prefs.getString(KEY_SERVER, null)),
-            decrypt(prefs.getString(KEY_USERNAME, null)),
-            decrypt(prefs.getString(KEY_PASSWORD, null))
-        )
+        return try {
+            Credentials(
+                decrypt(prefs.getString(KEY_SERVER, null)),
+                decrypt(prefs.getString(KEY_USERNAME, null)),
+                decrypt(prefs.getString(KEY_PASSWORD, null))
+            )
+        } catch (_: Exception) {
+            // A Keystore key may be unavailable after an OS restore or device migration.
+            // Ciphertext cannot be recovered without the original device key.
+            check(
+                prefs.edit()
+                    .remove(KEY_SERVER)
+                    .remove(KEY_USERNAME)
+                    .remove(KEY_PASSWORD)
+                    .commit()
+            ) { "无法清理失效的 WebDAV 加密凭据" }
+            Credentials("", "", "")
+        }
     }
 
     @Synchronized
