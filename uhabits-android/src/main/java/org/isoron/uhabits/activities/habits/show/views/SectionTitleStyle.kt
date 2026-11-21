@@ -6,9 +6,18 @@
  */
 package org.isoron.uhabits.activities.habits.show.views
 
+import android.content.Context
 import android.graphics.Color
+import org.isoron.uhabits.R
+import org.isoron.uhabits.utils.StyledResources
 import android.graphics.drawable.GradientDrawable
 import android.widget.TextView
+
+/**
+ * Returns the theme's primary readable text color, independent of the habit palette.
+ */
+internal fun getThemeTextColor(context: Context): Int =
+    StyledResources(context).getColor(R.attr.contrast100)
 
 /**
  * Gives section headings a subtle outline in the habit's check-in color.
