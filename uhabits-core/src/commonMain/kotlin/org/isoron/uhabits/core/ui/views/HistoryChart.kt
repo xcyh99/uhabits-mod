@@ -260,7 +260,7 @@ class HistoryChart(
         // the shared dark-surface / near-black threshold used by other charts.
         if (value == Square.ON && theme.shouldUseLightOutline(squareColor)) {
             canvas.setColor(Color.WHITE)
-            canvas.setStrokeWidth(1.0)
+            canvas.setStrokeWidth(theme.lightOutlineWidth)
             canvas.drawRect(x + 0.5, y + 0.5, width - 1.0, height - 1.0)
         }
 
