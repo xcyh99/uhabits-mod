@@ -234,4 +234,20 @@
     <string name="webdav_upload_success">备份上传成功。</string>
     <string name="webdav_download_success">备份已下载到所选的本地备份文件夹。需要恢复时，请使用“导入数据”。</string>
     <string name="webdav_operation_failed">WebDAV 操作失败。</string>
+
+    <string name="categorize">设置分类</string>
+    <string-array name="hints">
+        <item>@string/hint_drag</item>
+        <item>@string/hint_landscape</item>
+    </string-array>
+    <string name="checkmark_stack_widget">打卡记录堆叠微件</string>
+    <string name="frequency_stack_widget">打卡频率堆叠微件</string>
+    <string name="score_stack_widget">习惯得分堆叠微件</string>
+    <string name="history_stack_widget">习惯历史堆叠微件</string>
+    <string name="streaks_stack_widget">连续记录堆叠微件</string>
+    <string name="search">搜索</string>
+    <string name="category">分类</string>
+    <string name="skip_day">跳过</string>
+    <string name="pref_animations_title">关闭动画效果</string>
+    <string name="pref_animations_description">添加打卡标记后不显示彩纸动画。</string>
 </resources>
