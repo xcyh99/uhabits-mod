@@ -61,6 +61,7 @@ import org.isoron.uhabits.activities.habits.list.RESULT_IMPORT_DATA
 import org.isoron.uhabits.activities.habits.list.RESULT_REPAIR_DB
 import org.isoron.uhabits.core.preferences.Preferences
 import org.isoron.uhabits.database.WebDavSync
+import org.isoron.uhabits.database.WebDavSettingsBackup
 import org.isoron.uhabits.database.TwoWaySyncPreview
 import org.isoron.uhabits.database.DatabaseSyncMergeWriter
 import org.isoron.uhabits.database.DatabaseSyncSafetyBackup
@@ -171,6 +172,14 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 showWebDavSettings()
                 return true
             }
+            "settingsBackupRestore" -> {
+                showSettingsBackupRestore()
+                return true
+            }
+            "clearLocalHabitData" -> {
+                confirmClearLocalHabitData()
+                return true
+            }
             "publicBackupFolder" -> {
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
                 intent.addFlags(
@@ -198,6 +207,106 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         updatePublicBackupFolderSummary()
 
         findPreference("reminderSound").isVisible = false
+    }
+
+    private fun showSettingsBackupRestore() {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.settings_backup_restore)
+            .setItems(arrayOf(
+                getString(R.string.settings_backup_upload),
+                getString(R.string.settings_backup_download)
+            )) { _, which ->
+                runSettingsBackupAction(which == 0)
+            }
+            .setNegativeButton(R.string.clear_label, null)
+            .show()
+    }
+
+    private fun runSettingsBackupAction(upload: Boolean) {
+        val preferences = androidx.preference.PreferenceManager
+            .getDefaultSharedPreferences(requireContext())
+        val server = preferences.getString("webdav_server", "").orEmpty().trim()
+        val username = preferences.getString("webdav_username", "").orEmpty().trim()
+        val password = preferences.getString("webdav_password", "").orEmpty()
+        if (!server.startsWith("https://") || username.isBlank() || password.isBlank()) {
+            Toast.makeText(
+                requireContext(),
+                R.string.webdav_https_required,
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+        val config = WebDavSync.Config(server, username, password)
+        val appContext = requireContext().applicationContext
+        Thread {
+            val result = runCatching {
+                val backup = WebDavSettingsBackup(appContext)
+                if (upload) backup.upload(config) else backup.download(config)
+            }
+            activity?.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+                result.fold(
+                    {
+                        Toast.makeText(
+                            requireContext(),
+                            if (upload) R.string.settings_backup_success_upload
+                            else R.string.settings_backup_success_download,
+                            Toast.LENGTH_LONG
+                        ).show()
+                        if (!upload) {
+                            updateWeekdayPreference()
+                            widgetUpdater?.updateWidgets()
+                            requireActivity().recreate()
+                        }
+                    },
+                    { error ->
+                        Toast.makeText(
+                            requireContext(),
+                            error.message ?: getString(R.string.webdav_operation_failed),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                )
+            }
+        }.start()
+    }
+
+    private fun confirmClearLocalHabitData() {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.clear_local_habit_data_first_title)
+            .setMessage(R.string.clear_local_habit_data_first_message)
+            .setNegativeButton(R.string.clear_label, null)
+            .setPositiveButton("下一步") { _, _ ->
+                AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.clear_local_habit_data_second_title)
+                    .setMessage(R.string.clear_local_habit_data_second_message)
+                    .setNegativeButton(R.string.clear_label, null)
+                    .setPositiveButton("确认清空") { _, _ ->
+                        val result = runCatching {
+                            val app = requireContext().applicationContext as HabitsApplication
+                            app.component.habitList.removeAll()
+                            widgetUpdater?.updateWidgets()
+                        }
+                        result.fold(
+                            {
+                                Toast.makeText(
+                                    requireContext(),
+                                    R.string.clear_local_habit_data_done,
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            },
+                            { error ->
+                                Toast.makeText(
+                                    requireContext(),
+                                    error.message ?: "清空失败，数据未确认清理完成",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        )
+                    }
+                    .show()
+            }
+            .show()
     }
 
     private fun showWebDavSettings() {
