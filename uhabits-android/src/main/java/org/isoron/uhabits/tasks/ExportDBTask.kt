@@ -40,8 +40,8 @@ class ExportDBTask(
     override suspend fun doInBackground() {
         filename = null
         filename = try {
-            // Always stage the backup in the app cache. The user chooses the final
-            // destination through ACTION_CREATE_DOCUMENT after this task completes.
+            // Stage the backup in the app cache before handing it to the user's
+            // selected file manager or cloud-storage app.
             val backupDir = File(context.cacheDir, "backup-export").apply {
                 if (!exists() && !mkdirs()) throw IOException("Unable to create backup staging directory")
             }
@@ -50,7 +50,21 @@ class ExportDBTask(
             if (legacyCompatible) convertColorsForLegacyApp(stagedFile)
             val type = if (legacyCompatible) "ORG" else "FULL"
             val prefix = "SH_EXP_${BackupFileName.deviceId()}_${type}_${BackupFileName.date()}"
-            val finalFile = File(backupDir, "$prefix.db")
+            var finalFile = File(backupDir, "$prefix.db")
+            if (finalFile.exists()) {
+                finalFile = File(
+                    backupDir,
+                    "${prefix}_${BackupFileName.timestamp()}.db"
+                )
+                var suffix = 2
+                while (finalFile.exists()) {
+                    finalFile = File(
+                        backupDir,
+                        "${prefix}_${BackupFileName.timestamp()}_$suffix.db"
+                    )
+                    suffix++
+                }
+            }
             if (stagedFile != finalFile && !stagedFile.renameTo(finalFile)) {
                 throw IOException("Unable to rename backup file")
             }
