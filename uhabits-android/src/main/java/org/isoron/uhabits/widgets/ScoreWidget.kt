@@ -46,7 +46,7 @@ class ScoreWidget(
             habit = habit,
             firstWeekday = prefs.firstWeekdayInt,
             spinnerPosition = prefs.scoreCardSpinnerPosition,
-            theme = WidgetTheme()
+            theme = WidgetTheme(isDarkWidgetTheme)
         )
         val widgetView = view as GraphWidgetView
         widgetView.setBackgroundAlpha(preferedBackgroundAlpha)
@@ -54,7 +54,7 @@ class ScoreWidget(
         (widgetView.dataView as ScoreChart).apply {
             setIsTransparencyEnabled(true)
             setBucketSize(viewModel.bucketSize)
-            setColor(WidgetTheme().color(habit.color).toInt())
+            setColor(WidgetTheme(isDarkWidgetTheme).color(habit.color).toInt())
             setScores(viewModel.scores)
         }
     }
@@ -62,5 +62,6 @@ class ScoreWidget(
     override fun buildView() =
         GraphWidgetView(context, ScoreChart(context)).apply {
             setTitle(habit.name)
+            applyWidgetTitleColor(this)
         }
 }
