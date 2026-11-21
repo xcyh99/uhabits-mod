@@ -8,6 +8,7 @@ on:
       - fix/import-redundant-resort
       - fix/empty-history-import-oom
       - feature/webdav-backup-sync
+      - feature/two-way-sync
   pull_request:
     branches:
       - dev
