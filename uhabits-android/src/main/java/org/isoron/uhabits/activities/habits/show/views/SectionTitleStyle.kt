@@ -6,11 +6,18 @@
  */
 package org.isoron.uhabits.activities.habits.show.views
 
+import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.ViewGroup
 import android.widget.TextView
+import org.isoron.uhabits.R
 import org.isoron.uhabits.utils.ColorUtils
+import org.isoron.uhabits.utils.StyledResources
+
+/** Keeps the calendar title's original theme-derived text color. */
+internal fun getThemeTextColor(context: Context): Int =
+    StyledResources(context).getColor(R.attr.contrast100)
 
 internal fun applySectionTitleStyle(title: TextView, color: Int) {
     val density = title.resources.displayMetrics.density
@@ -33,6 +40,6 @@ internal fun applyColorTextOutline(title: TextView, color: Int) {
     if (ColorUtils.shouldUseLightOutline(title.context, color)) {
         title.setShadowLayer(title.resources.displayMetrics.density * 0.8f, 0f, 0f, Color.WHITE)
     } else {
-        title.clearShadowLayer()
+        title.setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
     }
 }
