@@ -32,6 +32,7 @@ import org.isoron.platform.time.getToday
 import org.isoron.platform.time.getWeekdaySequence
 import org.isoron.uhabits.R
 import org.isoron.uhabits.utils.ColorUtils
+import org.isoron.uhabits.utils.InterfaceUtils.dpToPixels
 import org.isoron.uhabits.utils.ColorUtils.mixColors
 import org.isoron.uhabits.utils.StyledResources
 import java.util.Locale
@@ -245,7 +246,7 @@ class FrequencyChart : ScrollableChart {
         val markerColor = colors[colorIndex]
         if (ColorUtils.shouldUseLightOutline(context, markerColor)) {
             pGraph!!.style = Paint.Style.STROKE
-            pGraph!!.strokeWidth = max(1f, baseSize * 0.07f)
+            pGraph!!.strokeWidth = dpToPixels(context, 1f)
             pGraph!!.color = Color.WHITE
             canvas.drawCircle(rect.centerX(), rect.centerY(), radius, pGraph!!)
         }
