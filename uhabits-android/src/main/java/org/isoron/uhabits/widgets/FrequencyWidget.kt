@@ -49,12 +49,12 @@ class FrequencyWidget(
         if (preferedBackgroundAlpha >= 255) widgetView.setShadowAlpha(0x4f)
         (widgetView.dataView as FrequencyChart).apply {
             setFirstWeekday(firstWeekday)
-            setColor(WidgetTheme().color(habit.color).toInt())
+            setColor(WidgetTheme(isDarkWidgetTheme).color(habit.color).toInt())
             setIsNumerical(habit.isNumerical)
             setFrequency(habit.originalEntries.computeWeekdayFrequency(habit.isNumerical))
         }
     }
 
     override fun buildView() =
-        GraphWidgetView(context, FrequencyChart(context))
+        GraphWidgetView(context, FrequencyChart(context)).apply { applyWidgetTitleColor(this) }
 }
