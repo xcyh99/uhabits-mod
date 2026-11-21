@@ -57,6 +57,7 @@ import org.isoron.uhabits.activities.habits.list.RESULT_IMPORT_DATA
 import org.isoron.uhabits.activities.habits.list.RESULT_REPAIR_DB
 import org.isoron.uhabits.core.preferences.Preferences
 import org.isoron.uhabits.database.WebDavSync
+import org.isoron.uhabits.database.TwoWaySyncPreview
 import org.isoron.uhabits.core.ui.NotificationTray
 import org.isoron.uhabits.notifications.AndroidNotificationTray.Companion.createAndroidNotificationChannel
 import org.isoron.uhabits.notifications.RingtoneManager
@@ -229,6 +230,11 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             "#2E7D32"
         )
 
+        val previewButton = actionButton(
+            "双向同步预览（只读）",
+            "#1565C0"
+        )
+
         val actionRow = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.HORIZONTAL
             addView(uploadButton, LinearLayout.LayoutParams(0, dp(52), 1f).apply {
@@ -255,6 +261,9 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             addView(actionRow, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(52)
             ))
+            addView(previewButton, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(48)
+            ).apply { topMargin = dp(10) })
         }
 
         val dialog = AlertDialog.Builder(requireContext())
@@ -272,7 +281,109 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         downloadButton.setOnClickListener {
             runWebDavAction(server, username, password, prefs, 2)
         }
+        previewButton.setOnClickListener {
+            runTwoWaySyncPreview(server, username, password, prefs)
+        }
         dialog.show()
+    }
+
+
+    private fun runTwoWaySyncPreview(
+        server: EditText,
+        username: EditText,
+        password: EditText,
+        prefs: SharedPreferences
+    ) {
+        val url = server.text.toString().trim()
+        val user = username.text.toString().trim()
+        val pass = password.text.toString()
+        if (!url.startsWith("https://") || user.isBlank() || pass.isBlank()) {
+            Toast.makeText(requireContext(), R.string.webdav_https_required, Toast.LENGTH_LONG).show()
+            return
+        }
+        prefs.edit()
+            .putString("webdav_server", url)
+            .putString("webdav_username", user)
+            .putString("webdav_password", pass)
+            .apply()
+        val appContext = requireContext().applicationContext
+        val config = WebDavSync.Config(url, user, pass)
+        Thread {
+            val result = runCatching { WebDavSync(appContext).listBackupFiles(config) }
+            activity?.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+                result.fold(
+                    { files ->
+                        if (files.isEmpty()) {
+                            Toast.makeText(requireContext(), "服务器目录中没有可用于同步的数据库备份", Toast.LENGTH_LONG).show()
+                        } else {
+                            showTwoWaySyncRemotePicker(files, config, appContext)
+                        }
+                    },
+                    { error ->
+                        Toast.makeText(
+                            requireContext(),
+                            error.message ?: getString(R.string.webdav_operation_failed),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                )
+            }
+        }.start()
+    }
+
+    private fun showTwoWaySyncRemotePicker(
+        files: List<WebDavSync.RemoteFile>,
+        config: WebDavSync.Config,
+        appContext: android.content.Context
+    ) {
+        val labels = files.map { it.name }.toTypedArray()
+        var selectedIndex = -1
+        AlertDialog.Builder(requireContext())
+            .setTitle("选择用于双向同步的远端数据库")
+            .setSingleChoiceItems(labels, -1) { _, which -> selectedIndex = which }
+            .setNegativeButton("取消", null)
+            .setPositiveButton("生成只读预览") { _, _ ->
+                if (selectedIndex !in files.indices) {
+                    Toast.makeText(requireContext(), "请先选择一个数据库文件", Toast.LENGTH_SHORT).show()
+                } else {
+                    val selected = files[selectedIndex]
+                    Thread {
+                        val result = runCatching {
+                            TwoWaySyncPreview(WebDavSync(appContext)).createPlan(config, selected)
+                        }
+                        activity?.runOnUiThread {
+                            if (!isAdded) return@runOnUiThread
+                            result.fold(
+                                { plan ->
+                                    val summary = buildString {
+                                        append("本机新增：${plan.totalLocalAdditions} 项\\n")
+                                        append("服务器新增：${plan.totalRemoteAdditions} 项\\n")
+                                        append("完全相同、已去重的打卡：${plan.identicalEntries} 条\\n")
+                                        append("打卡冲突：${plan.conflictingEntries.size} 条\\n")
+                                        append("习惯设置冲突：${plan.conflictingHabitSettings.size} 项\\n")
+                                        append("可能需要人工配对的旧习惯：${plan.possibleLegacyMatches.size} 项\\n\\n")
+                                        append("这是只读预览，尚未修改本机或服务器数据。")
+                                    }
+                                    AlertDialog.Builder(requireContext())
+                                        .setTitle("双向同步预览")
+                                        .setMessage(summary)
+                                        .setPositiveButton("关闭", null)
+                                        .show()
+                                },
+                                { error ->
+                                    AlertDialog.Builder(requireContext())
+                                        .setTitle("无法生成同步预览")
+                                        .setMessage(error.message ?: "读取数据库失败，数据未修改。")
+                                        .setPositiveButton("知道了", null)
+                                        .show()
+                                }
+                            )
+                        }
+                    }.start()
+                }
+            }
+            .show()
     }
 
     private fun runWebDavAction(
