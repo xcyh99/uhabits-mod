@@ -27,10 +27,11 @@ import kotlin.math.max
 object ColorUtils {
     @JvmStatic
     fun shouldUseLightOutline(context: Context, color: Int): Boolean {
-        val themeTextColor = StyledResources(context).getColor(R.attr.contrast100)
-        val isDarkTheme = Color.luminance(themeTextColor) > 0.5f
-        // Add a white edge only for colors that are nearly indistinguishable from black.
-        return isDarkTheme && Color.luminance(color) < 0.02f
+        val cardBackground = StyledResources(context).getColor(R.attr.cardBackground)
+        return org.isoron.uhabits.core.ui.views.ColorOutline.shouldUseLightOutline(
+            Color.luminance(cardBackground).toDouble(),
+            Color.luminance(color).toDouble()
+        )
     }
 
     /**
