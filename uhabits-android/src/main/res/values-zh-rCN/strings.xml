@@ -18,7 +18,7 @@
   ~ with this program. If not, see <http://www.gnu.org/licenses/>.
   -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
-    <string name="app_name">Loop 习惯记录</string>
+    <string name="app_name">十字习惯</string>
     <string name="main_activity_title">十字习惯</string>
     <string name="action_settings">设置</string>
     <string name="edit">编辑</string>
@@ -56,7 +56,7 @@
     <string name="check">打卡</string>
     <string name="snooze">稍后提醒</string>
     <string name="intro_title_1">欢迎</string>
-    <string name="intro_description_1">Loop 习惯记录能帮你养成和保持好习惯。</string>
+    <string name="intro_description_1">十字习惯帮助你养成并保持良好的习惯。</string>
     <string name="intro_title_2">养成一些新习惯</string>
     <string name="intro_description_2">每当你完成一项习惯后，就在应用上做一个标记</string>
     <string name="intro_title_4">记录你的进步</string>
@@ -115,7 +115,7 @@
     <string name="import_data">导入数据</string>
     <string name="export_full_backup">导出完整备份</string>
     <string name="import_data_summary">支持十字习惯完整备份、原版「习惯」导出的数据库备份，以及本应用导出的 CSV 压缩包；也支持 Tickmate、HabitBull 或 Rewire 的导出文件。</string>
-    <string name="export_as_csv_summary">生成可通过 Microsoft Excel 或 OpenOffice Calc 打开的 CSV 压缩包，也可以重新导入十字习惯。</string>
+    <string name="export_as_csv_summary">生成可通过 Microsoft Excel 或 OpenOffice Calc 打开的 CSV 文件。此文件不能重新导入。</string>
     <string name="export_full_backup_summary">生成十字习惯完整备份，保留所有自定义颜色，可重新导入十字习惯。</string>
     <string name="export_legacy_backup">导出原版兼容备份</string>
     <string name="export_legacy_backup_summary">生成可由原版「习惯」恢复的备份。自定义颜色会转换为原版支持的 20 种最接近颜色，不会改变十字习惯中的原始数据。</string>
@@ -240,11 +240,11 @@
         <item>@string/hint_drag</item>
         <item>@string/hint_landscape</item>
     </string-array>
-    <string name="checkmark_stack_widget">打卡记录堆叠微件</string>
-    <string name="frequency_stack_widget">打卡频率堆叠微件</string>
-    <string name="score_stack_widget">习惯得分堆叠微件</string>
-    <string name="history_stack_widget">习惯历史堆叠微件</string>
-    <string name="streaks_stack_widget">连续记录堆叠微件</string>
+    <string name="checkmark_stack_widget">打卡记录小部件</string>
+    <string name="frequency_stack_widget">打卡频率小部件</string>
+    <string name="score_stack_widget">习惯得分小部件</string>
+    <string name="history_stack_widget">习惯历史小部件</string>
+    <string name="streaks_stack_widget">连续记录小部件</string>
     <string name="search">搜索</string>
     <string name="category">分类</string>
     <string name="skip_day">跳过</string>
