@@ -85,7 +85,7 @@ class WebDavSettingsBackup(private val context: Context) {
                 val parser = Xml.newPullParser()
                 parser.setInput(ByteArrayInputStream(bytes), "UTF-8")
                 // Accept backups from every device, not only this device's model.
-                val pattern = Regex("WEB_.+_SET_\\\\d{8}_\\\\d{6}_\\\\d{3}\\\\.json")
+                val pattern = Regex("WEB_.+_SET_\\d{8}_\\d{6}_\\d{3}\\.json")
                 val candidates = linkedSetOf<String>()
                 var inResponse = false
                 var href: String? = null
@@ -124,7 +124,7 @@ class WebDavSettingsBackup(private val context: Context) {
     }
 
     fun download(config: WebDavSync.Config, remoteFileName: String) {
-        require(Regex("WEB_.+_SET_\\\\d{8}_\\\\d{6}_\\\\d{3}\\\\.json").matches(remoteFileName)) {
+        require(Regex("WEB_.+_SET_\\d{8}_\\d{6}_\\d{3}\\.json").matches(remoteFileName)) {
             "所选设置备份文件名无效"
         }
         val content = execute(config, "GET", remoteFileName = remoteFileName)
