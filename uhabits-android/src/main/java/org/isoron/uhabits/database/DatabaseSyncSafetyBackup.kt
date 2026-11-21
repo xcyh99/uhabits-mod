@@ -20,10 +20,14 @@ class DatabaseSyncSafetyBackup(private val context: Context) {
 
     fun create(): File {
         val db = DatabaseUtils.openDatabase()
+        val backupDirectory = File(context.filesDir, "two-way-sync-backups")
+        if (!backupDirectory.exists() && !backupDirectory.mkdirs()) {
+            throw IOException("无法创建同步安全备份目录")
+        }
         val backup = File.createTempFile(
             "two-way-sync-before-",
             ".db",
-            context.cacheDir
+            backupDirectory
         )
         var transactionStarted = false
         try {
