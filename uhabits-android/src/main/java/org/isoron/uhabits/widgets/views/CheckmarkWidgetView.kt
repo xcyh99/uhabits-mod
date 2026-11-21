@@ -23,6 +23,7 @@ import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.RectF
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.View
@@ -41,6 +42,7 @@ import org.isoron.uhabits.core.ui.ThemeSwitcher
 import org.isoron.uhabits.core.ui.views.ColorOutline
 import org.isoron.uhabits.inject.HabitsApplicationComponent
 import org.isoron.uhabits.utils.InterfaceUtils.getDimension
+import org.isoron.uhabits.utils.InterfaceUtils.dpToPixels
 import org.isoron.uhabits.utils.ColorUtils.getContrastingTextColor
 import org.isoron.uhabits.utils.drawNotesIndicator
 import org.isoron.uhabits.utils.PaletteUtils.getAndroidTestColor
@@ -57,6 +59,12 @@ class CheckmarkWidgetView : HabitWidgetView {
     var notes: String = ""
     private val notesIndicatorPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var notesIndicatorColor: Int = 0
+    private var cardOutlineEnabled = false
+    private val cardOutlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+    }
+    private val cardOutlineRect = RectF()
     private lateinit var ring: RingView
     private lateinit var label: TextView
     var entryValue = 0
@@ -110,6 +118,11 @@ class CheckmarkWidgetView : HabitWidgetView {
             }
         }
         notesIndicatorColor = fgColor
+        val isCompleted = entryState == YES_MANUAL || entryState == YES_AUTO
+        cardOutlineEnabled = isCompleted && ColorOutline.shouldUseLightOutline(
+            Color.luminance(res.getColor(R.attr.cardBgColor)).toDouble(),
+            Color.luminance(activeColor).toDouble()
+        )
         ring.setPercentage(percentage)
         ring.setColor(fgColor)
         ring.setBackgroundColor(bgColor)
@@ -129,6 +142,22 @@ class CheckmarkWidgetView : HabitWidgetView {
 
     override fun dispatchDraw(canvas: Canvas) {
         super.dispatchDraw(canvas)
+        if (cardOutlineEnabled && frame != null) {
+            val halfStroke = dpToPixels(context, 0.1f)
+            cardOutlineRect.set(
+                frame!!.left + halfStroke,
+                frame!!.top + halfStroke,
+                frame!!.right - halfStroke,
+                frame!!.bottom - halfStroke
+            )
+            cardOutlinePaint.strokeWidth = dpToPixels(context, 0.2f)
+            canvas.drawRoundRect(
+                cardOutlineRect,
+                dpToPixels(context, 18f),
+                dpToPixels(context, 18f),
+                cardOutlinePaint
+            )
+        }
         drawNotesIndicator(
             pNotesIndicator = notesIndicatorPaint,
             canvas = canvas,
