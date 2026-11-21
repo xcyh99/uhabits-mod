@@ -208,16 +208,8 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         updateWeekdayPreference()
         updatePublicBackupFolderSummary()
 
-        findPreference("webDavSync").title = android.text.SpannableString(
-            getString(R.string.webdav_sync)
-        ).apply {
-            setSpan(
-                android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
-                0,
-                length,
-                android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
-        }
+        findPreference("webDavSync").title =
+            "☆ " + getString(R.string.webdav_sync)
         findPreference("reminderSound").isVisible = false
     }
 
