@@ -71,4 +71,63 @@ class TwoWaySyncPlannerTest {
 
         assertTrue(plan.possibleLegacyMatches.isEmpty())
     }
+
+    @Test
+    fun reportsLocalOnlyAdditionsSymmetrically() {
+        val plan = TwoWaySyncPlanner.build(
+            localHabits = listOf(habit("shared")),
+            remoteHabits = listOf(habit("shared")),
+            localEntries = listOf(
+                entry("shared", "2026-11-20", 2),
+                entry("shared", "2026-11-21", 0)
+            ),
+            remoteEntries = listOf(entry("shared", "2026-11-20", 2))
+        )
+        assertEquals(1, plan.localOnlyEntries.size)
+        assertEquals(0, plan.remoteOnlyEntries.size)
+        assertEquals(1, plan.totalLocalAdditions)
+        assertEquals(0, plan.totalRemoteAdditions)
+    }
+
+    @Test
+    fun rejectsDuplicateHabitDayKeysInsteadOfSilentlyDroppingRecords() {
+        val error = runCatching {
+            TwoWaySyncPlanner.build(
+                localHabits = listOf(habit("shared")),
+                remoteHabits = listOf(habit("shared")),
+                localEntries = listOf(
+                    entry("shared", "2026-11-20", 2),
+                    entry("shared", "2026-11-20", 0)
+                ),
+                remoteEntries = emptyList()
+            )
+        }.exceptionOrNull()
+        assertTrue(error is IllegalArgumentException)
+        assertTrue(error?.message?.contains("duplicate habit/day keys") == true)
+    }
+
+    @Test
+    fun reportsHabitSettingsDifferencesAsConflicts() {
+        val local = SyncHabitIdentity(
+            uuid = "shared",
+            matchKey = "walk",
+            displayName = "Walk",
+            settingsFingerprint = "daily|yes-no|target-1"
+        )
+        val remote = SyncHabitIdentity(
+            uuid = "shared",
+            matchKey = "walk",
+            displayName = "Walk",
+            settingsFingerprint = "weekly|yes-no|target-1"
+        )
+        val plan = TwoWaySyncPlanner.build(
+            localHabits = listOf(local),
+            remoteHabits = listOf(remote),
+            localEntries = emptyList(),
+            remoteEntries = emptyList()
+        )
+        assertTrue(plan.hasConflicts)
+        assertEquals(1, plan.conflictingHabitSettings.size)
+    }
+
 }
