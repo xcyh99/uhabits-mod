@@ -48,6 +48,7 @@ class FrequencyWidget(
         widgetView.setBackgroundAlpha(preferedBackgroundAlpha)
         if (preferedBackgroundAlpha >= 255) widgetView.setShadowAlpha(0x4f)
         (widgetView.dataView as FrequencyChart).apply {
+            setWidgetMode(true)
             setFirstWeekday(firstWeekday)
             setColor(WidgetTheme(isDarkWidgetTheme).color(habit.color).toInt())
             setIsNumerical(habit.isNumerical)
