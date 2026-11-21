@@ -33,6 +33,7 @@ import org.isoron.uhabits.core.models.Streak
 import org.isoron.uhabits.utils.InterfaceUtils.dpToPixels
 import org.isoron.uhabits.utils.InterfaceUtils.getDimension
 import org.isoron.uhabits.utils.StyledResources
+import org.isoron.uhabits.utils.ColorUtils.getContrastingTextColor
 import java.util.LinkedList
 import java.util.Locale
 import java.util.Random
@@ -49,6 +50,7 @@ class StreakChart : View {
     private var rect: RectF? = null
     private var baseSize = 0
     private var primaryColor = 0
+    private var isDarkTheme = true
     private var streaks: List<Streak>? = null
     private var isBackgroundTransparent = false
     private var dateFormatter: JavaLocalDateFormatter? = null
@@ -86,6 +88,11 @@ class StreakChart : View {
             start = end.plus(1)
         }
         setStreaks(streaks)
+    }
+
+    fun setDarkTheme(isDarkTheme: Boolean) {
+        this.isDarkTheme = isDarkTheme
+        postInvalidate()
     }
 
     fun setColor(color: Int) {
@@ -225,7 +232,8 @@ class StreakChart : View {
     }
 
     private fun percentageToTextColor(percentage: Float): Int {
-        return if (percentage >= 0.5f) textColors[2] else textColors[1]
+        val barColor = percentageToColor(percentage)
+        return getContrastingTextColor(barColor, android.graphics.Color.alpha(barColor), isDarkTheme)
     }
 
     private fun updateMaxMinLengths() {
