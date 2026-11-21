@@ -21,6 +21,7 @@ import android.database.sqlite.SQLiteDatabase
 import org.isoron.uhabits.core.models.PaletteColor
 import org.isoron.uhabits.core.tasks.Task
 import org.isoron.uhabits.inject.AppContext
+import org.isoron.uhabits.utils.BackupFileName
 import org.isoron.uhabits.utils.DatabaseUtils.saveDatabaseCopy
 import java.io.File
 import java.io.IOException
@@ -47,12 +48,9 @@ class ExportDBTask(
             val stagedPath = saveDatabaseCopy(context, backupDir)
             val stagedFile = File(stagedPath)
             if (legacyCompatible) convertColorsForLegacyApp(stagedFile)
-            val prefix = if (legacyCompatible) {
-                "Shizi Habits Original-Compatible Backup"
-            } else {
-                "Shizi Habits Full Backup"
-            }
-            val finalFile = File(backupDir, stagedFile.name.replace("Loop Habits Backup", prefix))
+            val type = if (legacyCompatible) "ORG" else "FULL"
+            val prefix = "SH_EXP_${BackupFileName.deviceId()}_${type}_${BackupFileName.date()}"
+            val finalFile = File(backupDir, "$prefix.db")
             if (stagedFile != finalFile && !stagedFile.renameTo(finalFile)) {
                 throw IOException("Unable to rename backup file")
             }
