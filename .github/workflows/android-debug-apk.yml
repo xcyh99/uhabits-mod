@@ -8,9 +8,16 @@ on:
       - fix/import-redundant-resort
       - fix/empty-history-import-oom
       - feature/webdav-backup-sync
+      - feature/two-way-sync
   pull_request:
     branches:
       - dev
+
+# Keep only the newest validation run for a branch; rapid iterative pushes
+# should not queue many redundant Gradle builds.
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:

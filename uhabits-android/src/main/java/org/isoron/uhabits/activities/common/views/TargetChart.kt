@@ -31,6 +31,7 @@ import org.isoron.uhabits.activities.habits.list.views.toShortString
 import org.isoron.uhabits.utils.InterfaceUtils.dpToPixels
 import org.isoron.uhabits.utils.InterfaceUtils.getDimension
 import org.isoron.uhabits.utils.StyledResources
+import org.isoron.uhabits.utils.ColorUtils.getContrastingTextColor
 import kotlin.math.max
 import kotlin.math.min
 
@@ -38,6 +39,8 @@ class TargetChart : View {
     private var paint: Paint? = null
     private var baseSize = 0
     private var primaryColor = 0
+    private var isDarkTheme = true
+    private var isWidget = false
     private var mediumContrastTextColor = 0
     private var highContrastReverseTextColor = 0
     private var lowContrastTextColor = 0
@@ -59,6 +62,18 @@ class TargetChart : View {
 
     fun setColor(color: Int) {
         primaryColor = color
+        highContrastReverseTextColor = getContrastingTextColor(primaryColor, 255, isDarkTheme)
+        postInvalidate()
+    }
+
+    fun setWidgetMode(isWidget: Boolean) {
+        this.isWidget = isWidget
+        postInvalidate()
+    }
+
+    fun setDarkTheme(isDarkTheme: Boolean) {
+        this.isDarkTheme = isDarkTheme
+        highContrastReverseTextColor = getContrastingTextColor(primaryColor, 255, isDarkTheme)
         postInvalidate()
     }
 
@@ -133,6 +148,14 @@ class TargetChart : View {
         paint!!.color = primaryColor
         barRect[barRect.left, barRect.top, barRect.left + completedWidth] = barRect.bottom
         canvas.drawRoundRect(barRect, round, round, paint!!)
+        if (isDarkTheme && Color.luminance(primaryColor) < 0.35f) {
+            paint!!.style = Paint.Style.STROKE
+            paint!!.strokeWidth = dpToPixels(context, if (isWidget) 0.6f else 0.8f)
+            paint!!.color = Color.WHITE
+            canvas.drawRoundRect(barRect, round, round, paint!!)
+            paint!!.style = Paint.Style.FILL
+            paint!!.color = primaryColor
+        }
 
         // Draw values
         paint!!.color = Color.WHITE

@@ -30,6 +30,10 @@ class GraphWidgetView(context: Context?, val dataView: View) : HabitWidgetView(c
         title.text = text
     }
 
+    fun setTitleColor(color: Int) {
+        title.setTextColor(color)
+    }
+
     override val innerLayoutId: Int
         get() = R.layout.widget_graph
 

@@ -53,6 +53,9 @@ open class CheckmarkWidget(
             setBackgroundAlpha(preferedBackgroundAlpha)
             activeColor = WidgetTheme().color(habit.color).toInt()
             name = habit.name
+            // Notes are user-authored data; read the original entry so they remain
+            // visible even when the computed entry is regenerated for completion.
+            notes = habit.originalEntries.get(today).notes
             entryValue = habit.computedEntries.get(today).value
             if (habit.isNumerical) {
                 isNumerical = true

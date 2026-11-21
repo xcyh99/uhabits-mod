@@ -32,6 +32,7 @@ import org.isoron.platform.time.LocalDate
 import org.isoron.platform.time.getToday
 import org.isoron.uhabits.R
 import org.isoron.uhabits.core.models.Score
+import org.isoron.uhabits.utils.ColorUtils
 import org.isoron.uhabits.utils.InterfaceUtils.dpToPixels
 import org.isoron.uhabits.utils.InterfaceUtils.getDimension
 import org.isoron.uhabits.utils.StyledResources
@@ -261,14 +262,19 @@ class ScoreChart : ScrollableChart {
     }
 
     private fun drawLine(canvas: Canvas?, rectFrom: RectF?, rectTo: RectF?) {
+        val x1 = rectFrom!!.centerX()
+        val y1 = rectFrom.centerY()
+        val x2 = rectTo!!.centerX()
+        val y2 = rectTo.centerY()
+        val originalWidth = pGraph!!.strokeWidth
+        if (ColorUtils.shouldUseLightOutline(context, primaryColor)) {
+            pGraph!!.color = Color.WHITE
+            pGraph!!.strokeWidth = originalWidth + dpToPixels(context, if (isWidget) 0.6f else 0.8f)
+            canvas!!.drawLine(x1, y1, x2, y2, pGraph!!)
+        }
         pGraph!!.color = primaryColor
-        canvas!!.drawLine(
-            rectFrom!!.centerX(),
-            rectFrom.centerY(),
-            rectTo!!.centerX(),
-            rectTo.centerY(),
-            pGraph!!
-        )
+        pGraph!!.strokeWidth = originalWidth
+        canvas!!.drawLine(x1, y1, x2, y2, pGraph!!)
     }
 
     private fun drawMarker(canvas: Canvas?, rect: RectF?) {
@@ -278,6 +284,14 @@ class ScoreChart : ScrollableChart {
         rect.inset(baseSize * 0.1f, baseSize * 0.1f)
         setModeOrColor(pGraph, XFERMODE_SRC, primaryColor)
         canvas.drawOval(rect, pGraph!!)
+        if (ColorUtils.shouldUseLightOutline(context, primaryColor)) {
+            pGraph!!.style = Paint.Style.STROKE
+            pGraph!!.strokeWidth = dpToPixels(context, if (isWidget) 0.6f else 0.8f)
+            pGraph!!.color = Color.WHITE
+            canvas.drawOval(rect, pGraph!!)
+            pGraph!!.style = Paint.Style.FILL
+            pGraph!!.color = primaryColor
+        }
 
 //        rect.inset(baseSize * 0.1f, baseSize * 0.1f);
 //        setModeOrColor(pGraph, XFERMODE_CLEAR, backgroundColor);

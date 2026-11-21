@@ -20,6 +20,7 @@ package org.isoron.uhabits.activities.common.views
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
@@ -30,6 +31,8 @@ import org.isoron.platform.time.countWeekdayOccurrencesInMonth
 import org.isoron.platform.time.getToday
 import org.isoron.platform.time.getWeekdaySequence
 import org.isoron.uhabits.R
+import org.isoron.uhabits.utils.ColorUtils
+import org.isoron.uhabits.utils.InterfaceUtils.dpToPixels
 import org.isoron.uhabits.utils.ColorUtils.mixColors
 import org.isoron.uhabits.utils.StyledResources
 import java.util.Locale
@@ -240,7 +243,15 @@ class FrequencyChart : ScrollableChart {
         val scale = 1.0f / scalingFactor * valueCopy!!
         val radius = maxRadius * scale
         val colorIndex = min((colors.size - 1), ((colors.size - 1) * scale).roundToInt())
-        pGraph!!.color = colors[colorIndex]
+        val markerColor = colors[colorIndex]
+        if (ColorUtils.shouldUseLightOutline(context, markerColor)) {
+            pGraph!!.style = Paint.Style.STROKE
+            pGraph!!.strokeWidth = dpToPixels(context, if (isWidget) 0.6f else 0.8f)
+            pGraph!!.color = Color.WHITE
+            canvas.drawCircle(rect.centerX(), rect.centerY(), radius, pGraph!!)
+        }
+        pGraph!!.style = Paint.Style.FILL
+        pGraph!!.color = markerColor
         canvas.drawCircle(rect.centerX(), rect.centerY(), radius, pGraph!!)
     }
 

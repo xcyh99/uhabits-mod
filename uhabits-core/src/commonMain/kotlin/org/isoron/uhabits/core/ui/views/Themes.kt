@@ -21,8 +21,11 @@ package org.isoron.uhabits.core.ui.views
 
 import org.isoron.platform.gui.Color
 import org.isoron.uhabits.core.models.PaletteColor
+import kotlin.math.pow
 
 abstract class Theme {
+    open val lightOutlineWidth = 0.3
+    open val calendarOutlineWidth = 0.3
     open val appBackgroundColor = Color(0xf4f4f4)
     open val cardBackgroundColor = Color(0xFAFAFA)
     open val headerBackgroundColor = Color(0xeeeeee)
@@ -35,6 +38,41 @@ abstract class Theme {
     open val statusBarBackgroundColor = Color(0x333333)
     open val toolbarBackgroundColor = Color(0xf4f4f4)
     open val toolbarColor = Color(0xffffff)
+
+    fun shouldUseLightOutline(color: Color): Boolean {
+        // Match Android's Color.luminance() calculation. The old raw-channel
+        // weighted average made near-black custom colors miss the outline
+        // threshold in core charts, even when Android charts outlined them.
+        fun linearize(channel: Double): Double {
+            return if (channel <= 0.04045) channel / 12.92
+            else ((channel + 0.055) / 1.055).pow(2.4)
+        }
+        fun luminance(value: Color): Double {
+            return 0.2126 * linearize(value.red) +
+                0.7152 * linearize(value.green) +
+                0.0722 * linearize(value.blue)
+        }
+        return ColorOutline.shouldUseLightOutline(
+            luminance(cardBackgroundColor),
+            luminance(color)
+        )
+    }
+
+    fun shouldUseCalendarLightOutline(color: Color): Boolean {
+        fun linearize(channel: Double): Double {
+            return if (channel <= 0.04045) channel / 12.92
+            else ((channel + 0.055) / 1.055).pow(2.4)
+        }
+        fun luminance(value: Color): Double {
+            return 0.2126 * linearize(value.red) +
+                0.7152 * linearize(value.green) +
+                0.0722 * linearize(value.blue)
+        }
+        return ColorOutline.shouldUseCalendarLightOutline(
+            luminance(cardBackgroundColor),
+            luminance(color)
+        )
+    }
 
     fun color(paletteColor: PaletteColor): Color {
         return if (paletteColor.isCustom) Color(paletteColor.argb and 0x00FFFFFF) else color(paletteColor.paletteIndex)
@@ -120,13 +158,16 @@ class PureBlackTheme : DarkTheme() {
     override val lowContrastTextColor = Color(0x212121)
 }
 
-class WidgetTheme : LightTheme() {
+class WidgetTheme(private val isDark: Boolean? = null) : LightTheme() {
+    override val lightOutlineWidth = 0.2
+    override val calendarOutlineWidth = 0.2
     override val cardBackgroundColor = Color.TRANSPARENT
-    override val highContrastTextColor = Color.WHITE
-    override val mediumContrastTextColor = Color.WHITE.withAlpha(0.50)
-    override val lowContrastTextColor = Color.WHITE.withAlpha(0.10)
+    override val highContrastTextColor = if (isDark != false) Color.WHITE else Color(0x202020)
+    override val mediumContrastTextColor = (if (isDark != false) Color.WHITE else Color(0x202020)).withAlpha(0.50)
+    override val lowContrastTextColor = (if (isDark != false) Color.WHITE else Color(0x202020)).withAlpha(0.10)
 
     override fun color(paletteIndex: Int): Color {
+        if (isDark == true) return DarkTheme().color(paletteIndex)
         return when (paletteIndex) {
             0 -> Color(0xD32F2F)
             1 -> Color(0xE64A19)

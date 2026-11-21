@@ -37,6 +37,7 @@ import org.isoron.uhabits.core.models.Entry.Companion.UNKNOWN
 import org.isoron.uhabits.core.models.Entry.Companion.YES_AUTO
 import org.isoron.uhabits.core.models.Entry.Companion.YES_MANUAL
 import org.isoron.uhabits.core.preferences.Preferences
+import org.isoron.uhabits.core.ui.views.ColorOutline
 import org.isoron.uhabits.inject.ActivityContext
 import org.isoron.uhabits.utils.drawNotesIndicator
 import org.isoron.uhabits.utils.getFontAwesome
@@ -175,6 +176,28 @@ class CheckmarkButtonView(
 
             rect.set(0f, 0f, width.toFloat(), height.toFloat())
             rect.offset(0f, 0.4f * em)
+
+            val isCompleted = state.value == YES_MANUAL || state.value == YES_AUTO
+            val useLightOutline = isCompleted && ColorOutline.shouldUseLightOutline(
+                Color.luminance(bgColor).toDouble(),
+                Color.luminance(state.color).toDouble()
+            )
+            if (useLightOutline) {
+                val originalColor = paint.color
+                val originalStrokeWidth = paint.strokeWidth
+                val originalStyle = paint.style
+                paint.color = Color.WHITE
+                paint.style = Paint.Style.STROKE
+                paint.strokeWidth = if (state.value == YES_AUTO) {
+                    5f + 0.4f * resources.displayMetrics.density
+                } else {
+                    0.2f * resources.displayMetrics.density
+                }
+                canvas.drawText(label, rect.centerX(), rect.centerY(), paint)
+                paint.color = originalColor
+                paint.strokeWidth = originalStrokeWidth
+                paint.style = originalStyle
+            }
             canvas.drawText(label, rect.centerX(), rect.centerY(), paint)
 
             if (state.value == YES_AUTO) {

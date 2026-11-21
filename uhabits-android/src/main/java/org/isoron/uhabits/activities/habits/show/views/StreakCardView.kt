@@ -31,6 +31,7 @@ class StreakCardView(context: Context, attrs: AttributeSet) : LinearLayout(conte
     fun setState(state: StreakCardState) {
         val androidColor = state.theme.color(state.color).toInt()
         binding.title.setTextColor(androidColor)
+        applySectionTitleStyle(binding.title, androidColor)
         binding.streakChart.setColor(androidColor)
         binding.streakChart.setStreaks(state.bestStreaks)
         postInvalidate()

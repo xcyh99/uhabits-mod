@@ -30,6 +30,7 @@ import org.isoron.uhabits.core.models.PaletteColor
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
 import kotlin.math.round
 
 interface OnDateClickedListener {
@@ -255,6 +256,14 @@ class HistoryChart(
         canvas.setColor(squareColor)
         canvas.fillRoundRect(x, y, width, height, width * 0.15)
 
+        // Calendar squares use a dedicated, stricter near-black threshold
+        // and thinner outline than the other charts.
+        if (value == Square.ON && theme.shouldUseCalendarLightOutline(squareColor)) {
+            canvas.setColor(Color.WHITE)
+            canvas.setStrokeWidth(theme.calendarOutlineWidth)
+            canvas.drawRect(x + 0.5, y + 0.5, width - 1.0, height - 1.0)
+        }
+
         if (value == Square.HATCHED) {
             canvas.setStrokeWidth(0.75)
             canvas.setColor(theme.cardBackgroundColor)
@@ -271,7 +280,26 @@ class HistoryChart(
             }
         }
 
-        val textColor = if (theme.cardBackgroundColor == Color.TRANSPARENT) {
+        val textColor = if (value == Square.ON) {
+            // Match the checkmark widget's black/white switch thresholds:
+            // dark theme: switch to black at luminance 0.70;
+            // light theme: switch to white at luminance 0.18.
+            // The completed square uses the same opaque habit color as the widget.
+            val luminance = fun(channel: Double): Double {
+                return if (channel <= 0.04045) channel / 12.92
+                else ((channel + 0.055) / 1.055).pow(2.4)
+            }
+            val backgroundLuminance =
+                0.2126 * luminance(squareColor.red) +
+                0.7152 * luminance(squareColor.green) +
+                0.0722 * luminance(squareColor.blue)
+            val isDarkTheme = theme is DarkTheme
+            if (isDarkTheme) {
+                if (backgroundLuminance >= 0.70) Color.BLACK else Color.WHITE
+            } else {
+                if (backgroundLuminance <= 0.18) Color.WHITE else Color.BLACK
+            }
+        } else if (theme.cardBackgroundColor == Color.TRANSPARENT) {
             theme.highContrastTextColor
         } else {
             val c1 = squareColor.contrast(theme.cardBackgroundColor)
@@ -284,9 +312,14 @@ class HistoryChart(
         canvas.drawText(date.day.toString(), x + width / 2, y + width / 2)
 
         if (hasNotes) {
-            circleColor = when (value) {
-                Square.ON, Square.GREY -> theme.lowContrastTextColor
-                else -> color
+            circleColor = if (value == Square.ON) {
+                // On completed squares, the note dot must match the date text
+                // exactly (including its fully opaque black/white color).
+                textColor
+            } else {
+                // Preserve the original configured habit color on all other
+                // square states; do not alter uncompleted-day indicators.
+                color
             }
             canvas.setColor(circleColor)
             canvas.fillCircle(x + width - width / 5, y + width / 5, width / 12)

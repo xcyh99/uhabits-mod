@@ -244,6 +244,7 @@ class SQLiteHabitList(private val modelFactory: ModelFactory) : HabitList() {
     @Synchronized
     fun reload() {
         loaded = false
+        observable.notifyListeners()
     }
 
     companion object {

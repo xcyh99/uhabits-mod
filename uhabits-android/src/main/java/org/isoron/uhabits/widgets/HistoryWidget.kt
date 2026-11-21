@@ -42,6 +42,10 @@ class HistoryWidget(
     override val defaultHeight: Int = 250
     override val defaultWidth: Int = 250
 
+    private fun widgetTheme(): WidgetTheme {
+        return WidgetTheme(isDarkWidgetTheme)
+    }
+
     override fun getOnClickPendingIntent(context: Context): PendingIntent {
         return pendingIntentFactory.showHabit(habit)
     }
@@ -53,7 +57,7 @@ class HistoryWidget(
         val model = HistoryCardPresenter.buildState(
             habit = habit,
             firstWeekday = prefs.firstWeekday,
-            theme = WidgetTheme()
+            theme = widgetTheme()
         )
         (widgetView.dataView as AndroidDataView).apply {
             val historyChart = (this.view as HistoryChart)
@@ -70,7 +74,7 @@ class HistoryWidget(
                 view = HistoryChart(
                     today = getToday(),
                     paletteColor = habit.color,
-                    theme = WidgetTheme(),
+                    theme = widgetTheme(),
                     dateFormatter = JavaLocalDateFormatter(Locale.getDefault()),
                     firstWeekday = prefs.firstWeekday,
                     series = listOf(),
@@ -81,5 +85,6 @@ class HistoryWidget(
             }
         ).apply {
             setTitle(habit.name)
+            applyWidgetTitleColor(this)
         }
 }

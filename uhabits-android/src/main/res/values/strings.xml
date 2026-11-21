@@ -208,6 +208,8 @@
     <string name="first_day_of_the_week">First day of the week</string>
     <string name="default_reminder_question">Have you completed this habit today?</string>
     <string name="notes">Notes</string>
+    <string name="history_notes">History notes</string>
+    <string name="description_notes">Description notes</string>
     <string name="category">Category</string>
     <string name="example_notes">(Optional)</string>
     <string name="yes_or_no_example">e.g. Did you wake up early today? Did you exercise? Did you play chess?</string>
@@ -259,4 +261,19 @@
     <string name="webdav_upload_success">备份上传成功。</string>
     <string name="webdav_download_success">备份已下载到所选的本地备份文件夹。需要恢复时，请使用“导入数据”。</string>
     <string name="webdav_operation_failed">WebDAV 操作失败。</string>
+    <string name="settings_backup_restore">Back up / restore app settings</string>
+    <string name="settings_backup_restore_summary">Upload or restore non-sensitive app settings through WebDAV. Server credentials are excluded.</string>
+    <string name="settings_backup_upload">Upload settings backup</string>
+    <string name="settings_backup_download">Restore settings backup</string>
+    <string name="settings_backup_success_upload">Settings backup uploaded.</string>
+    <string name="settings_backup_success_download">Settings restored. Some changes may take effect after reopening the app.</string>
+    <string name="clear_local_habit_data">Clear local habits and check-ins</string>
+    <string name="clear_local_habit_data_summary">Delete all local habits and their check-in records. App settings and backups are kept.</string>
+    <string name="clear_local_habit_data_first_title">Clear local habit data?</string>
+    <string name="clear_local_habit_data_first_message">This will delete all habits and check-in records stored on this device. App settings and backup files will remain unchanged.</string>
+    <string name="clear_local_habit_data_second_title">Confirm permanent deletion</string>
+    <string name="clear_local_habit_data_second_message">This action cannot be undone. Continue clearing all local habits and check-in records?</string>
+    <string name="clear_local_habit_data_done">Local habits and check-in records have been cleared.</string>
+    <string name="next_step">Next</string>
+    <string name="confirm_clear">Clear data</string>
 </resources>

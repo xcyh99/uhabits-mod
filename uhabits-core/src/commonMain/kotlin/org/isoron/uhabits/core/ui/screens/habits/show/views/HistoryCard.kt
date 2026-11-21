@@ -178,11 +178,10 @@ class HistoryCardPresenter(
                     }
                 }
             }
+            // Notes belong to the original entries. Computed entries can omit
+            // note-only data, so read the indicator from the original record.
             val notesIndicators = entries.map {
-                when (it.notes) {
-                    "" -> false
-                    else -> true
-                }
+                habit.originalEntries.get(it.date).notes.isNotEmpty()
             }
 
             return HistoryCardState(
