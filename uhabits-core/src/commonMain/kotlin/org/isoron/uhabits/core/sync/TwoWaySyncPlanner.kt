@@ -7,7 +7,9 @@ package org.isoron.uhabits.core.sync
 data class SyncHabitIdentity(
     val uuid: String,
     val matchKey: String,
-    val displayName: String
+    val displayName: String,
+    /** Stable serialization of sync-relevant settings; blank means not supplied. */
+    val settingsFingerprint: String = ""
 )
 
 data class SyncEntryIdentity(
@@ -21,6 +23,12 @@ data class SyncHabitMatch(
     val localUuid: String,
     val remoteUuid: String,
     val displayName: String
+)
+
+data class SyncHabitSettingsConflict(
+    val habitUuid: String,
+    val local: SyncHabitIdentity,
+    val remote: SyncHabitIdentity
 )
 
 data class SyncEntryConflict(
@@ -40,10 +48,11 @@ data class TwoWaySyncPlan(
     val localEntriesForNewHabits: List<SyncEntryIdentity>,
     val remoteEntriesForNewHabits: List<SyncEntryIdentity>,
     val identicalEntries: Int,
-    val conflictingEntries: List<SyncEntryConflict>
+    val conflictingEntries: List<SyncEntryConflict>,
+    val conflictingHabitSettings: List<SyncHabitSettingsConflict>
 ) {
     val hasConflicts: Boolean
-        get() = conflictingEntries.isNotEmpty()
+        get() = conflictingEntries.isNotEmpty() || conflictingHabitSettings.isNotEmpty()
 
     val totalLocalAdditions: Int
         get() = localOnlyHabits.size + localOnlyEntries.size + localEntriesForNewHabits.size
@@ -77,6 +86,14 @@ object TwoWaySyncPlanner {
         val localByUuid = localHabits.associateBy { it.uuid }
         val remoteByUuid = remoteHabits.associateBy { it.uuid }
         val matched = localByUuid.keys.intersect(remoteByUuid.keys)
+
+        val conflictingHabitSettings = matched.mapNotNull { uuid ->
+            val local = localByUuid.getValue(uuid)
+            val remote = remoteByUuid.getValue(uuid)
+            if (local.settingsFingerprint.isNotBlank() && remote.settingsFingerprint.isNotBlank() &&
+                local.settingsFingerprint != remote.settingsFingerprint
+            ) SyncHabitSettingsConflict(uuid, local, remote) else null
+        }
 
         val localOnlyHabits = localHabits.filter { it.uuid !in remoteByUuid }
         val remoteOnlyHabits = remoteHabits.filter { it.uuid !in localByUuid }
