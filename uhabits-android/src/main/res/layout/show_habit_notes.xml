@@ -25,6 +25,14 @@
     tools:parentTag="android.widget.LinearLayout">
 
     <TextView
+        android:id="@+id/descriptionTitle"
+        style="@style/CardHeader"
+        android:layout_marginBottom="4dp"
+        android:text="@string/description_notes"
+        android:visibility="gone"
+        tools:text="说明备注" />
+
+    <TextView
         android:id="@+id/habitNotes"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -33,11 +41,8 @@
 
     <TextView
         android:id="@+id/historyNotesTitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        style="@style/CardHeader"
         android:layout_marginTop="6dp"
-        android:textColor="?attr/contrast100"
-        android:textStyle="bold"
         android:visibility="gone"
         tools:text="历史备注" />
 
