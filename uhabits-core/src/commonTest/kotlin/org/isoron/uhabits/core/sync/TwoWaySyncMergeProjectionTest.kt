@@ -59,6 +59,21 @@ class TwoWaySyncMergeProjectionTest {
     }
 
     @Test
+    fun rejectsChangedEntriesEvenWhenHabitSetIsUnchanged() {
+        val local = TwoWaySyncMergeProjection.Snapshot(
+            listOf(habit("a")),
+            listOf(entry("a", "2026-11-20", 1))
+        )
+        val remote = TwoWaySyncMergeProjection.Snapshot(listOf(habit("a")), emptyList())
+        val plan = TwoWaySyncPlanner.build(local.habits, remote.habits, local.entries, remote.entries)
+        val resolution = TwoWaySyncResolution.validate(plan, emptyList(), emptyList(), emptyList())
+        val changedLocal = local.copy(entries = listOf(entry("a", "2026-11-20", 2)))
+        assertFailsWith<IllegalArgumentException> {
+            TwoWaySyncMergeProjection.build(changedLocal, remote, plan, resolution)
+        }
+    }
+
+    @Test
     fun rejectsEntriesForUnknownHabit() {
         val local = TwoWaySyncMergeProjection.Snapshot(listOf(habit("a")), listOf(entry("missing", "2026-11-20", 1)))
         val remote = TwoWaySyncMergeProjection.Snapshot(listOf(habit("a")), emptyList())
