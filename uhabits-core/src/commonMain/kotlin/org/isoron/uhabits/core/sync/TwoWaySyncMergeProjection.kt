@@ -19,6 +19,16 @@ object TwoWaySyncMergeProjection {
         plan: TwoWaySyncPlan,
         resolution: TwoWaySyncResolution
     ): Snapshot {
+        val currentPlan = TwoWaySyncPlanner.build(
+            local.habits,
+            remote.habits,
+            local.entries,
+            remote.entries
+        )
+        require(currentPlan == plan) {
+            "本机或服务器数据已变化，请重新预览后再合并"
+        }
+
         val expectedEntryConflicts = plan.conflictingEntries.map { it.habitUuid to it.dayKey }.toSet()
         val entryChoices = resolution.entryConflictChoices.associateBy { it.habitUuid to it.dayKey }
         require(entryChoices.keys == expectedEntryConflicts) {
