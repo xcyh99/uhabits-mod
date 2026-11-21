@@ -276,12 +276,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             .setTitle(R.string.clear_local_habit_data_first_title)
             .setMessage(R.string.clear_local_habit_data_first_message)
             .setNegativeButton(R.string.clear_label, null)
-            .setPositiveButton("下一步") { _, _ ->
+            .setPositiveButton(R.string.next_step) { _, _ ->
                 AlertDialog.Builder(requireContext())
                     .setTitle(R.string.clear_local_habit_data_second_title)
                     .setMessage(R.string.clear_local_habit_data_second_message)
                     .setNegativeButton(R.string.clear_label, null)
-                    .setPositiveButton("确认清空") { _, _ ->
+                    .setPositiveButton(R.string.confirm_clear) { _, _ ->
                         val result = runCatching {
                             val app = requireContext().applicationContext as HabitsApplication
                             app.component.habitList.removeAll()
