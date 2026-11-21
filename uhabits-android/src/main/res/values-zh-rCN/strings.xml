@@ -104,6 +104,7 @@
     <string name="version_n">当前版本：%s</string>
     <string name="frequency">频率</string>
     <string name="checkmark">标记</string>
+    <string name="days_since_last_checkin">距离上次打卡</string>
     <string name="best_streaks">最佳连续完成次数</string>
     <string name="every_day">每天</string>
     <string name="every_week">每周</string>
