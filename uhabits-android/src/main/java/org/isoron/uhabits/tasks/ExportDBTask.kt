@@ -49,7 +49,7 @@ class ExportDBTask(
             val stagedFile = File(stagedPath)
             if (legacyCompatible) convertColorsForLegacyApp(stagedFile)
             val type = if (legacyCompatible) "ORG" else "FULL"
-            val prefix = "SH_EXP_${BackupFileName.deviceId()}_${type}_${BackupFileName.date()}"
+            val prefix = "EXP_${BackupFileName.deviceId()}_${type}_${BackupFileName.date()}"
             var finalFile = File(backupDir, "$prefix.db")
             if (finalFile.exists()) {
                 finalFile = File(
