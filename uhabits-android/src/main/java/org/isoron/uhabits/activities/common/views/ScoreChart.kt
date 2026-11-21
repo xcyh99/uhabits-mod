@@ -187,7 +187,7 @@ class ScoreChart : ScrollableChart {
         columnWidth = width.toFloat() / nColumns
         setScrollerBucketSize(columnWidth.toInt())
         columnHeight = 8 * baseSize
-        val minStrokeWidth = dpToPixels(context, 1f)
+        val minStrokeWidth = dpToPixels(context, if (isWidget) 0.6f else 0.8f)
         pGraph!!.textSize = baseSize * 0.5f
         pGraph!!.strokeWidth = baseSize * 0.1f
         pGrid!!.strokeWidth = min(minStrokeWidth, baseSize * 0.05f)
