@@ -38,6 +38,10 @@ import android.view.Gravity
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ListView
+import android.widget.RadioButton
+import android.widget.TextView
+import android.widget.BaseAdapter
 import android.widget.Toast
 import android.text.InputType
 import androidx.preference.ListPreference
@@ -337,53 +341,45 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         config: WebDavSync.Config,
         appContext: android.content.Context
     ) {
-        val labels = files.map { it.name }.toTypedArray()
-        var selectedIndex = -1
-        AlertDialog.Builder(requireContext())
-            .setTitle("选择用于双向同步的远端数据库")
-            .setSingleChoiceItems(labels, -1) { _, which -> selectedIndex = which }
-            .setNegativeButton("取消", null)
-            .setPositiveButton("生成只读预览") { _, _ ->
-                if (selectedIndex !in files.indices) {
-                    Toast.makeText(requireContext(), "请先选择一个数据库文件", Toast.LENGTH_SHORT).show()
-                } else {
-                    val selected = files[selectedIndex]
-                    Thread {
-                        val result = runCatching {
-                            TwoWaySyncPreview(WebDavSync(appContext)).createPlan(config, selected)
-                        }
-                        activity?.runOnUiThread {
-                            if (!isAdded) return@runOnUiThread
-                            result.fold(
-                                { plan ->
-                                    val summary = buildString {
-                                        append("本机新增：${plan.totalLocalAdditions} 项\n")
-                                        append("服务器新增：${plan.totalRemoteAdditions} 项\n")
-                                        append("完全相同、已去重的打卡：${plan.identicalEntries} 条\n")
-                                        append("打卡冲突：${plan.conflictingEntries.size} 条\n")
-                                        append("习惯设置冲突：${plan.conflictingHabitSettings.size} 项\n")
-                                        append("可能需要人工配对的旧习惯：${plan.possibleLegacyMatches.size} 项\n\n")
-                                        append("这是只读预览，尚未修改本机或服务器数据。")
-                                    }
-                                    AlertDialog.Builder(requireContext())
-                                        .setTitle("双向同步预览")
-                                        .setMessage(summary)
-                                        .setPositiveButton("关闭", null)
-                                        .show()
-                                },
-                                { error ->
-                                    AlertDialog.Builder(requireContext())
-                                        .setTitle("无法生成同步预览")
-                                        .setMessage(error.message ?: "读取数据库失败，数据未修改。")
-                                        .setPositiveButton("知道了", null)
-                                        .show()
-                                }
-                            )
-                        }
-                    }.start()
+        showRemoteFilePicker(
+            files,
+            "选择用于双向同步的远端数据库",
+            "生成只读预览"
+        ) { selected ->
+            Thread {
+                val result = runCatching {
+                    TwoWaySyncPreview(WebDavSync(appContext)).createPlan(config, selected)
                 }
-            }
-            .show()
+                activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
+                    result.fold(
+                        { plan ->
+                            val summary = buildString {
+                                append("本机新增：${plan.totalLocalAdditions} 项\\n")
+                                append("服务器新增：${plan.totalRemoteAdditions} 项\\n")
+                                append("完全相同、已去重的打卡：${plan.identicalEntries} 条\\n")
+                                append("打卡冲突：${plan.conflictingEntries.size} 条\\n")
+                                append("习惯设置冲突：${plan.conflictingHabitSettings.size} 项\\n")
+                                append("可能需要人工配对的旧习惯：${plan.possibleLegacyMatches.size} 项\\n\\n")
+                                append("这是只读预览，尚未修改本机或服务器数据。")
+                            }
+                            AlertDialog.Builder(requireContext())
+                                .setTitle("双向同步预览")
+                                .setMessage(summary)
+                                .setPositiveButton("关闭", null)
+                                .show()
+                        },
+                        { error ->
+                            AlertDialog.Builder(requireContext())
+                                .setTitle("无法生成同步预览")
+                                .setMessage(error.message ?: "读取数据库失败，数据未修改。")
+                                .setPositiveButton("知道了", null)
+                                .show()
+                        }
+                    )
+                }
+            }.start()
+        }
     }
 
     private fun runWebDavAction(
@@ -459,7 +455,22 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             Toast.makeText(requireContext(), "服务器目录中没有找到备份文件（.db）", Toast.LENGTH_LONG).show()
             return
         }
+        showRemoteFilePicker(files, "选择要下载的备份", "下载所选文件") { selected ->
+            downloadRemoteBackup(selected, config, appContext)
+        }
+    }
 
+    /**
+     * Shared, compact file picker for download and two-way sync.
+     * Each file gets its own padded row, readable filename and muted metadata.
+     */
+    private fun showRemoteFilePicker(
+        files: List<WebDavSync.RemoteFile>,
+        title: String,
+        positiveLabel: String,
+        onSelected: (WebDavSync.RemoteFile) -> Unit
+    ) {
+        var selectedIndex = -1
         fun formatSize(size: Long?): String {
             if (size == null) return "大小未知"
             return when {
@@ -469,22 +480,83 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             }
         }
 
-        val labels = files.map { file ->
-            "${file.name}\n${file.modified ?: "修改时间未知"}  ·  ${formatSize(file.size)}"
-        }.toTypedArray()
-        var selectedIndex = -1
+        val list = ListView(requireContext()).apply {
+            choiceMode = ListView.CHOICE_MODE_SINGLE
+            divider = android.graphics.drawable.ColorDrawable(Color.rgb(218, 224, 232))
+            dividerHeight = dp(1)
+            setPadding(0, dp(4), 0, dp(4))
+            clipToPadding = false
+            adapter = object : BaseAdapter() {
+                override fun getCount() = files.size
+                override fun getItem(position: Int) = files[position]
+                override fun getItemId(position: Int) = position
+
+                override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                    val file = files[position]
+                    val row = LinearLayout(requireContext()).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                        setPadding(dp(12), dp(9), dp(12), dp(9))
+                        setBackgroundColor(
+                            when {
+                                position == selectedIndex -> Color.rgb(220, 234, 250)
+                                position % 2 == 0 -> Color.rgb(246, 248, 251)
+                                else -> Color.WHITE
+                            }
+                        )
+                    }
+                    val radio = RadioButton(requireContext()).apply {
+                        isClickable = false
+                        isFocusable = false
+                        isChecked = position == selectedIndex
+                        buttonTintList = ColorStateList.valueOf(
+                            if (isChecked) Color.rgb(40, 112, 190) else Color.rgb(130, 140, 152)
+                        )
+                    }
+                    row.addView(radio, LinearLayout.LayoutParams(dp(40), dp(40)))
+
+                    val textColumn = LinearLayout(requireContext()).apply {
+                        orientation = LinearLayout.VERTICAL
+                        gravity = Gravity.CENTER_VERTICAL
+                    }
+                    val name = TextView(requireContext()).apply {
+                        text = file.name
+                        textSize = 14f
+                        setTextColor(Color.rgb(32, 40, 52))
+                        setTypeface(typeface, android.graphics.Typeface.BOLD)
+                        maxLines = 2
+                    }
+                    val details = TextView(requireContext()).apply {
+                        text = "${file.modified ?: "修改时间未知"}  ·  ${formatSize(file.size)}"
+                        textSize = 11f
+                        setTextColor(Color.rgb(100, 112, 128))
+                        maxLines = 1
+                    }
+                    textColumn.addView(name)
+                    textColumn.addView(details)
+                    row.addView(textColumn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                    row.setOnClickListener {
+                        selectedIndex = position
+                        (list.adapter as BaseAdapter).notifyDataSetChanged()
+                    }
+                    return row
+                }
+            }
+            setOnItemClickListener { _, _, position, _ ->
+                selectedIndex = position
+                (adapter as BaseAdapter).notifyDataSetChanged()
+            }
+        }
 
         AlertDialog.Builder(requireContext())
-            .setTitle("选择要下载的备份")
-            .setSingleChoiceItems(labels, -1) { _, which ->
-                selectedIndex = which
-            }
+            .setTitle(title)
+            .setView(list)
             .setNegativeButton("取消", null)
-            .setPositiveButton("下载所选文件") { _, _ ->
+            .setPositiveButton(positiveLabel) { _, _ ->
                 if (selectedIndex !in files.indices) {
                     Toast.makeText(requireContext(), "请先选择一个备份文件", Toast.LENGTH_SHORT).show()
                 } else {
-                    downloadRemoteBackup(files[selectedIndex], config, appContext)
+                    onSelected(files[selectedIndex])
                 }
             }
             .show()
