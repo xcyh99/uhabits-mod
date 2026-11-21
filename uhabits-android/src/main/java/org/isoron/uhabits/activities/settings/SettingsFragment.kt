@@ -716,7 +716,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                         maxLines = 2
                     }
                     val details = TextView(requireContext()).apply {
-                        text = "${file.modified ?: "修改时间未知"}  ·  ${formatSize(file.size)}"
+                        text = "渠道：WebDAV  ·  ${file.modified ?: "修改时间未知"}  ·  ${formatSize(file.size)}"
                         textSize = 11f
                         setTextColor(secondaryTextColor)
                         maxLines = 1
