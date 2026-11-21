@@ -36,7 +36,7 @@ class HistoryCardView(context: Context, attrs: AttributeSet) : LinearLayout(cont
 
     fun setState(state: HistoryCardState) {
         val androidColor = state.theme.color(state.color).toInt()
-        binding.title.setTextColor(getThemeTextColor(context))
+        binding.title.setTextColor(androidColor)
         applySectionTitleStyle(binding.title, androidColor)
         binding.chart.view = HistoryChart(
             today = state.today,
