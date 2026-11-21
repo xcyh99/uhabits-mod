@@ -52,6 +52,7 @@ class StreakChart : View {
     private var baseSize = 0
     private var primaryColor = 0
     private var isDarkTheme = true
+    private var isWidget = false
     private var streaks: List<Streak>? = null
     private var isBackgroundTransparent = false
     private var dateFormatter: JavaLocalDateFormatter? = null
@@ -89,6 +90,11 @@ class StreakChart : View {
             start = end.plus(1)
         }
         setStreaks(streaks)
+    }
+
+    fun setWidgetMode(isWidget: Boolean) {
+        this.isWidget = isWidget
+        postInvalidate()
     }
 
     fun setDarkTheme(isDarkTheme: Boolean) {
@@ -176,7 +182,7 @@ class StreakChart : View {
         // shared dark-surface / near-black-color threshold is met.
         if (percentage >= 1.0f && shouldUseLightOutline(context, barColor)) {
             paint!!.style = Paint.Style.STROKE
-            paint!!.strokeWidth = dpToPixels(context, 1f)
+            paint!!.strokeWidth = dpToPixels(context, if (isWidget) 0.6f else 0.8f)
             paint!!.color = Color.WHITE
             canvas.drawRoundRect(left, top, right, bottom, round, round, paint!!)
             paint!!.style = Paint.Style.FILL
