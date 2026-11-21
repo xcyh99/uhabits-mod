@@ -4,7 +4,6 @@
 package org.isoron.uhabits.database
 
 import android.content.Context
-import android.os.Build
 import android.net.Uri
 import android.util.Xml
 import androidx.preference.PreferenceManager
@@ -17,19 +16,17 @@ import okhttp3.Response
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.isoron.uhabits.utils.BackupFileName
 import org.isoron.uhabits.utils.DatabaseUtils
 import org.xmlpull.v1.XmlPullParser
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.net.URL
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class WebDavSync(private val context: Context) {
     enum class UploadKind(val fileLabel: String) {
-        LOCAL_BACKUP("LocalBackup"),
-        TWO_WAY_MERGED("TwoWayMerged")
+        LOCAL_BACKUP("LOC"),
+        TWO_WAY_MERGED("MRG")
     }
 
     data class Config(val server: String, val username: String, val password: String)
@@ -107,14 +104,7 @@ class WebDavSync(private val context: Context) {
             if (!exists() && !mkdirs()) error("无法创建备份临时目录")
         }
         val file = File(DatabaseUtils.saveDatabaseCopy(context, dir))
-        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(Date())
-        val manufacturer = Build.MANUFACTURER.orEmpty().ifBlank { "Android" }
-        val model = Build.MODEL.orEmpty().ifBlank { "Device" }
-        val deviceName = "${manufacturer}_${model}"
-            .replace(Regex("[^A-Za-z0-9._-]+"), "_")
-            .trim('_')
-            .ifBlank { "Android_Device" }
-        val remoteName = "ShiziHabits_WebDAV_${deviceName}_${kind.fileLabel}_${timestamp}.db"
+        val remoteName = "SH_WEB_\${BackupFileName.deviceId()}_\${kind.fileLabel}_\${BackupFileName.timestamp()}.db"
 
         try {
             withClient { client ->
