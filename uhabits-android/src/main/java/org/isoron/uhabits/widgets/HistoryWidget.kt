@@ -21,6 +21,8 @@ package org.isoron.uhabits.widgets
 
 import android.app.PendingIntent
 import android.content.Context
+import android.content.res.Configuration
+import android.graphics.Color
 import android.view.View
 import org.isoron.platform.gui.AndroidDataView
 import org.isoron.platform.time.JavaLocalDateFormatter
@@ -28,6 +30,7 @@ import org.isoron.platform.time.getToday
 import org.isoron.uhabits.core.models.Habit
 import org.isoron.uhabits.core.ui.screens.habits.show.views.HistoryCardPresenter
 import org.isoron.uhabits.core.ui.views.HistoryChart
+import org.isoron.uhabits.core.ui.ThemeSwitcher
 import org.isoron.uhabits.core.ui.views.WidgetTheme
 import org.isoron.uhabits.widgets.views.GraphWidgetView
 import java.util.Locale
@@ -42,6 +45,16 @@ class HistoryWidget(
     override val defaultHeight: Int = 250
     override val defaultWidth: Int = 250
 
+    private fun widgetTheme(): WidgetTheme {
+        val isDark = when (prefs.theme) {
+            ThemeSwitcher.THEME_DARK -> true
+            ThemeSwitcher.THEME_LIGHT -> false
+            else -> (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                Configuration.UI_MODE_NIGHT_YES
+        }
+        return WidgetTheme(isDark)
+    }
+
     override fun getOnClickPendingIntent(context: Context): PendingIntent {
         return pendingIntentFactory.showHabit(habit)
     }
@@ -53,7 +66,7 @@ class HistoryWidget(
         val model = HistoryCardPresenter.buildState(
             habit = habit,
             firstWeekday = prefs.firstWeekday,
-            theme = WidgetTheme()
+            theme = widgetTheme()
         )
         (widgetView.dataView as AndroidDataView).apply {
             val historyChart = (this.view as HistoryChart)
@@ -70,7 +83,7 @@ class HistoryWidget(
                 view = HistoryChart(
                     today = getToday(),
                     paletteColor = habit.color,
-                    theme = WidgetTheme(),
+                    theme = widgetTheme(),
                     dateFormatter = JavaLocalDateFormatter(Locale.getDefault()),
                     firstWeekday = prefs.firstWeekday,
                     series = listOf(),
@@ -81,5 +94,6 @@ class HistoryWidget(
             }
         ).apply {
             setTitle(habit.name)
+            setTitleColor(if (widgetTheme().highContrastTextColor.red > 0.5) Color.WHITE else Color.BLACK)
         }
 }
