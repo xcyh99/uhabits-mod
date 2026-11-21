@@ -25,6 +25,7 @@ import kotlin.math.pow
 
 abstract class Theme {
     open val lightOutlineWidth = 0.8
+    open val calendarOutlineWidth = 0.4
     open val appBackgroundColor = Color(0xf4f4f4)
     open val cardBackgroundColor = Color(0xFAFAFA)
     open val headerBackgroundColor = Color(0xeeeeee)
@@ -52,6 +53,22 @@ abstract class Theme {
                 0.0722 * linearize(value.blue)
         }
         return ColorOutline.shouldUseLightOutline(
+            luminance(cardBackgroundColor),
+            luminance(color)
+        )
+    }
+
+    fun shouldUseCalendarLightOutline(color: Color): Boolean {
+        fun linearize(channel: Double): Double {
+            return if (channel <= 0.04045) channel / 12.92
+            else ((channel + 0.055) / 1.055).pow(2.4)
+        }
+        fun luminance(value: Color): Double {
+            return 0.2126 * linearize(value.red) +
+                0.7152 * linearize(value.green) +
+                0.0722 * linearize(value.blue)
+        }
+        return ColorOutline.shouldUseCalendarLightOutline(
             luminance(cardBackgroundColor),
             luminance(color)
         )
@@ -143,6 +160,7 @@ class PureBlackTheme : DarkTheme() {
 
 class WidgetTheme(private val isDark: Boolean? = null) : LightTheme() {
     override val lightOutlineWidth = 0.6
+    override val calendarOutlineWidth = 0.3
     override val cardBackgroundColor = Color.TRANSPARENT
     override val highContrastTextColor = if (isDark != false) Color.WHITE else Color(0x202020)
     override val mediumContrastTextColor = (if (isDark != false) Color.WHITE else Color(0x202020)).withAlpha(0.50)
