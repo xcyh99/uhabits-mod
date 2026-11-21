@@ -75,6 +75,7 @@ import org.isoron.uhabits.core.sync.TwoWaySyncPlanner
 import org.isoron.uhabits.core.ui.NotificationTray
 import org.isoron.uhabits.notifications.AndroidNotificationTray.Companion.createAndroidNotificationChannel
 import org.isoron.uhabits.notifications.RingtoneManager
+import org.isoron.uhabits.utils.WebDavCredentialsStore
 import org.isoron.uhabits.utils.StyledResources
 import org.isoron.uhabits.utils.applyBottomInset
 import org.isoron.uhabits.utils.startActivitySafely
@@ -223,11 +224,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     }
 
     private fun runSettingsBackupAction(upload: Boolean) {
-        val preferences = androidx.preference.PreferenceManager
-            .getDefaultSharedPreferences(requireContext())
-        val server = preferences.getString("webdav_server", "").orEmpty().trim()
-        val username = preferences.getString("webdav_username", "").orEmpty().trim()
-        val password = preferences.getString("webdav_password", "").orEmpty()
+        val credentials = WebDavCredentialsStore(requireContext()).load()
+        val server = credentials.server.trim()
+        val username = credentials.username.trim()
+        val password = credentials.password
         if (!server.startsWith("https://") || username.isBlank() || password.isBlank()) {
             Toast.makeText(
                 requireContext(),
@@ -310,19 +310,20 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     }
 
     private fun showWebDavSettings() {
+        val credentials = WebDavCredentialsStore(requireContext()).load()
         val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
         val server = EditText(requireContext()).apply {
             hint = getString(R.string.webdav_server_hint)
-            setText(prefs.getString("webdav_server", ""))
+            setText(credentials.server)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
         }
         val username = EditText(requireContext()).apply {
             hint = getString(R.string.webdav_username)
-            setText(prefs.getString("webdav_username", ""))
+            setText(credentials.username)
         }
         val password = EditText(requireContext()).apply {
             hint = getString(R.string.webdav_password)
-            setText(prefs.getString("webdav_password", ""))
+            setText(credentials.password)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
 
@@ -423,11 +424,16 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             Toast.makeText(requireContext(), R.string.webdav_https_required, Toast.LENGTH_LONG).show()
             return
         }
-        prefs.edit()
-            .putString("webdav_server", url)
-            .putString("webdav_username", user)
-            .putString("webdav_password", pass)
-            .apply()
+        try {
+            WebDavCredentialsStore(requireContext()).save(url, user, pass)
+        } catch (error: Exception) {
+            Toast.makeText(
+                requireContext(),
+                error.message ?: "WebDAV 凭据加密保存失败",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
         val appContext = requireContext().applicationContext
         val config = WebDavSync.Config(url, user, pass)
         Thread {
@@ -684,11 +690,16 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             Toast.makeText(requireContext(), R.string.webdav_https_required, Toast.LENGTH_LONG).show()
             return
         }
-        prefs.edit()
-            .putString("webdav_server", url)
-            .putString("webdav_username", user)
-            .putString("webdav_password", pass)
-            .apply()
+        try {
+            WebDavCredentialsStore(requireContext()).save(url, user, pass)
+        } catch (error: Exception) {
+            Toast.makeText(
+                requireContext(),
+                error.message ?: "WebDAV 凭据加密保存失败",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
 
         val appContext = requireContext().applicationContext
         val config = WebDavSync.Config(url, user, pass)
