@@ -55,6 +55,7 @@ class TargetWidget(
             firstWeekday = prefs.firstWeekdayInt,
             theme = WidgetTheme(isDarkWidgetTheme)
         )
+        chart.setDarkTheme(isDarkWidgetTheme)
         chart.setColor(WidgetTheme(isDarkWidgetTheme).color(habit.color).toInt())
         chart.setTargets(data.targets)
         chart.setLabels(data.intervals.map { intervalToLabel(context.resources, it) })
