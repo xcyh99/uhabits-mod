@@ -60,6 +60,7 @@ import org.isoron.uhabits.activities.habits.list.RESULT_EXPORT_LEGACY_DB
 import org.isoron.uhabits.activities.habits.list.RESULT_IMPORT_DATA
 import org.isoron.uhabits.activities.habits.list.RESULT_REPAIR_DB
 import org.isoron.uhabits.core.preferences.Preferences
+import org.isoron.uhabits.core.models.sqlite.SQLiteHabitList
 import org.isoron.uhabits.database.WebDavSync
 import org.isoron.uhabits.database.WebDavSettingsBackup
 import org.isoron.uhabits.database.TwoWaySyncPreview
@@ -646,6 +647,16 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             }
             activity?.runOnUiThread {
                 if (!isAdded) return@runOnUiThread
+
+                // The merge writer updates SQLite directly, bypassing the
+                // in-memory SQLiteHabitList cache. Invalidate that cache now;
+                // ListHabitsActivity will reload it when it resumes.
+                if (localMerge != null) {
+                    val app = appContext as HabitsApplication
+                    (app.component.habitList as SQLiteHabitList).reload()
+                    widgetUpdater?.updateWidgets()
+                }
+
                 if (result.isSuccess) {
                     val merged = result.getOrThrow()
                     AlertDialog.Builder(requireContext())
