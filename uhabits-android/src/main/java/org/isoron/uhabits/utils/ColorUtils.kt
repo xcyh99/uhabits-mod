@@ -22,6 +22,26 @@ import android.graphics.Color
 import kotlin.math.max
 
 object ColorUtils {
+    /**
+     * Returns whichever of black or white has the stronger WCAG contrast
+     * against the supplied background color.
+     */
+    @JvmStatic
+    fun getContrastingTextColor(backgroundColor: Int): Int {
+        fun linearize(channel: Int): Double {
+            val value = channel / 255.0
+            return if (value <= 0.04045) value / 12.92
+            else Math.pow((value + 0.055) / 1.055, 2.4)
+        }
+
+        val luminance = 0.2126 * linearize(Color.red(backgroundColor)) +
+            0.7152 * linearize(Color.green(backgroundColor)) +
+            0.0722 * linearize(Color.blue(backgroundColor))
+        val whiteContrast = 1.05 / (luminance + 0.05)
+        val blackContrast = (luminance + 0.05) / 0.05
+        return if (whiteContrast >= blackContrast) Color.WHITE else Color.BLACK
+    }
+
     private const val ALPHA_CHANNEL = 24
     private const val RED_CHANNEL = 16
     private const val GREEN_CHANNEL = 8
