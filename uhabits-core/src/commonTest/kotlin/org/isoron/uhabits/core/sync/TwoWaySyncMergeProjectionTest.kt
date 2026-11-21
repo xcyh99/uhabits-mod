@@ -78,8 +78,9 @@ class TwoWaySyncMergeProjectionTest {
         val local = TwoWaySyncMergeProjection.Snapshot(listOf(habit("a")), listOf(entry("missing", "2026-11-20", 1)))
         val remote = TwoWaySyncMergeProjection.Snapshot(listOf(habit("a")), emptyList())
         val plan = TwoWaySyncPlanner.build(local.habits, remote.habits, local.entries, remote.entries)
+        val resolution = TwoWaySyncResolution.validate(plan, emptyList(), emptyList(), emptyList())
         assertFailsWith<IllegalArgumentException> {
-            TwoWaySyncResolution.validate(plan, emptyList(), emptyList(), emptyList())
+            TwoWaySyncMergeProjection.build(local, remote, plan, resolution)
         }
     }
 
@@ -88,9 +89,8 @@ class TwoWaySyncMergeProjectionTest {
         val local = TwoWaySyncMergeProjection.Snapshot(listOf(habit("a")), listOf(entry("a", "2026-11-20", 1)))
         val remote = TwoWaySyncMergeProjection.Snapshot(listOf(habit("a")), listOf(entry("a", "2026-11-20", 2)))
         val plan = TwoWaySyncPlanner.build(local.habits, remote.habits, local.entries, remote.entries)
-        val resolution = TwoWaySyncResolution.validate(plan, emptyList(), emptyList(), emptyList())
         assertFailsWith<IllegalArgumentException> {
-            TwoWaySyncMergeProjection.build(local, remote, plan, resolution)
+            TwoWaySyncResolution.validate(plan, emptyList(), emptyList(), emptyList())
         }
     }
 }
