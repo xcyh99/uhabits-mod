@@ -30,7 +30,7 @@ object ColorUtils {
         val themeTextColor = StyledResources(context).getColor(R.attr.contrast100)
         val isDarkTheme = Color.luminance(themeTextColor) > 0.5f
         // Add a white edge only for colors that are nearly indistinguishable from black.
-        return isDarkTheme && Color.luminance(color) < 0.04f
+        return isDarkTheme && Color.luminance(color) < 0.06f
     }
 
     /**
