@@ -37,7 +37,7 @@ class DaysSinceLastCheckinWidget(
                 ?.date
                 ?.daysUntil(getToday())
             activeColor = WidgetTheme().color(habit.color).toInt()
-            backgroundColor = StyledResources(context).getColor(R.attr.cardBgColor)
+            cardBackgroundColor = StyledResources(context).getColor(R.attr.cardBgColor)
             backgroundAlpha = preferedBackgroundAlpha
             refresh()
         }
@@ -49,7 +49,7 @@ class DaysSinceLastCheckinWidget(
 private class DaysSinceLastCheckinView(context: Context) : View(context) {
     var dayCount: Int? = null
     var activeColor: Int = Color.WHITE
-    var backgroundColor: Int = Color.DKGRAY
+    var cardBackgroundColor: Int = Color.DKGRAY
     var backgroundAlpha: Int = 255
 
     private val numberPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -77,8 +77,8 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         val density = resources.displayMetrics.density
         val inset = 2f * density
         cardRect.set(inset, inset, width - inset, height - inset)
-        val bg = (backgroundColor and 0x00FFFFFF) or
-            ((Color.alpha(backgroundColor) * backgroundAlpha / 255) shl 24)
+        val bg = (cardBackgroundColor and 0x00FFFFFF) or
+            ((Color.alpha(cardBackgroundColor) * backgroundAlpha / 255) shl 24)
         val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = bg }
         canvas.drawRoundRect(cardRect, 12f * density, 12f * density, bgPaint)
 
@@ -90,7 +90,7 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         labelPaint.color = activeColor
         outlinePaint.textSize = numberSize
 
-        val bgLum = Color.luminance(backgroundColor)
+        val bgLum = Color.luminance(cardBackgroundColor)
         val colorLum = Color.luminance(activeColor)
         val drawOutline = ColorOutline.shouldUseLightOutline(bgLum.toDouble(), colorLum.toDouble())
         val numberBaseline = height * 0.56f - (numberPaint.ascent() + numberPaint.descent()) / 2f
