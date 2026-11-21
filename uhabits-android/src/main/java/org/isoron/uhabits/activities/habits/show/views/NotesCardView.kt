@@ -107,9 +107,9 @@ class NotesCardView(context: Context, attrs: AttributeSet) : LinearLayout(contex
             row.addView(noteView, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
             binding.historyNotesList.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, dp(18)))
         }
-        // Fit the content when short; cap the viewport at 100dp and scroll beyond it.
+        // Fit the content when short; cap the viewport at 80dp and scroll beyond it.
         binding.historyNotesScroll.layoutParams = binding.historyNotesScroll.layoutParams.apply {
-            height = minOf(state.historyNotes.size * dp(18), dp(100))
+            height = minOf(state.historyNotes.size * dp(18), dp(80))
         }
         requestLayout()
         invalidate()
