@@ -11,22 +11,33 @@ class TwoWaySyncPreview(
     private val webDavSync: WebDavSync,
     private val snapshotReader: DatabaseSyncSnapshotReader = DatabaseSyncSnapshotReader()
 ) {
-    fun createPlan(
+    data class Session(
+        val plan: TwoWaySyncPlan,
+        val remote: DatabaseSyncSnapshotReader.Snapshot
+    )
+
+    fun createSession(
         config: WebDavSync.Config,
         remoteFile: WebDavSync.RemoteFile
-    ): TwoWaySyncPlan {
+    ): Session {
         val stagedFile = webDavSync.downloadToTemporaryFile(config, remoteFile)
         try {
             val local = snapshotReader.readLocal()
             val remote = snapshotReader.readRemote(stagedFile)
-            return TwoWaySyncPlanner.build(
+            val plan = TwoWaySyncPlanner.build(
                 localHabits = local.habits,
                 remoteHabits = remote.habits,
                 localEntries = local.entries,
                 remoteEntries = remote.entries
             )
+            return Session(plan, remote)
         } finally {
             stagedFile.delete()
         }
     }
+
+    fun createPlan(
+        config: WebDavSync.Config,
+        remoteFile: WebDavSync.RemoteFile
+    ): TwoWaySyncPlan = createSession(config, remoteFile).plan
 }
