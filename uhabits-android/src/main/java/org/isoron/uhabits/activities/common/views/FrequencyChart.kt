@@ -246,7 +246,7 @@ class FrequencyChart : ScrollableChart {
         val markerColor = colors[colorIndex]
         if (ColorUtils.shouldUseLightOutline(context, markerColor)) {
             pGraph!!.style = Paint.Style.STROKE
-            pGraph!!.strokeWidth = dpToPixels(context, 1f)
+            pGraph!!.strokeWidth = dpToPixels(context, if (isWidget) 0.6f else 0.8f)
             pGraph!!.color = Color.WHITE
             canvas.drawCircle(rect.centerX(), rect.centerY(), radius, pGraph!!)
         }
