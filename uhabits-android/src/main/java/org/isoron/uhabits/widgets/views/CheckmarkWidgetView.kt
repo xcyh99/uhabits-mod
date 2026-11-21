@@ -90,7 +90,11 @@ class CheckmarkWidgetView : HabitWidgetView {
             YES_MANUAL, SKIP, YES_AUTO -> {
                 bgColor = activeColor
                 fgColor = getContrastingTextColor(bgColor, widgetBackgroundAlpha, isDarkTheme)
-                setWidgetBackgroundColor(bgColor)
+                // Keep completed checkmarks fully colored, as in the original widget.
+                // setWidgetBackgroundColor() applies widget opacity and can wash out
+                // the habit color; the active state must retain its opaque fill.
+                backgroundPaint!!.color = bgColor
+                frame!!.setBackgroundDrawable(background)
             }
             NO, UNKNOWN -> {
                 bgColor = res.getColor(R.attr.cardBgColor)
