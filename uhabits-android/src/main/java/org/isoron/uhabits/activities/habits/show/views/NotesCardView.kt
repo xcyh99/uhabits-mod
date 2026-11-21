@@ -45,7 +45,7 @@ class NotesCardView(context: Context, attrs: AttributeSet) : LinearLayout(contex
         binding.historyNotesTitle.text = context.getString(R.string.history_notes)
         binding.historyNotesTitle.setTextColor(state.habitColor)
         binding.historyNotesList.removeAllViews()
-        binding.historyNotesList.visibility =
+        binding.historyNotesScroll.visibility =
             if (hasHistoryNotes) VISIBLE else GONE
 
         state.historyNotes.forEach { note ->
