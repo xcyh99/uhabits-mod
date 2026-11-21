@@ -65,6 +65,15 @@ object TwoWaySyncPlanner {
         localEntries: List<SyncEntryIdentity>,
         remoteEntries: List<SyncEntryIdentity>
     ): TwoWaySyncPlan {
+        require(localHabits.map { it.uuid }.toSet().size == localHabits.size) {
+            "Local habits contain duplicate UUIDs"
+        }
+        require(remoteHabits.map { it.uuid }.toSet().size == remoteHabits.size) {
+            "Remote habits contain duplicate UUIDs"
+        }
+        requireUniqueEntries(localEntries, "local")
+        requireUniqueEntries(remoteEntries, "remote")
+
         val localByUuid = localHabits.associateBy { it.uuid }
         val remoteByUuid = remoteHabits.associateBy { it.uuid }
         val matched = localByUuid.keys.intersect(remoteByUuid.keys)
@@ -121,5 +130,12 @@ object TwoWaySyncPlanner {
             identicalEntries = identical,
             conflictingEntries = conflicts
         )
+    }
+
+    private fun requireUniqueEntries(entries: List<SyncEntryIdentity>, side: String) {
+        val keys = entries.map { it.habitUuid to it.dayKey }
+        require(keys.toSet().size == keys.size) {
+            "$side entries contain duplicate habit/day keys"
+        }
     }
 }
