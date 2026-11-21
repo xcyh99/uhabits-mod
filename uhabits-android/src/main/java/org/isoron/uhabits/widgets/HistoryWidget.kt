@@ -46,13 +46,7 @@ class HistoryWidget(
     override val defaultWidth: Int = 250
 
     private fun widgetTheme(): WidgetTheme {
-        val isDark = when (prefs.theme) {
-            ThemeSwitcher.THEME_DARK -> true
-            ThemeSwitcher.THEME_LIGHT -> false
-            else -> (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-                Configuration.UI_MODE_NIGHT_YES
-        }
-        return WidgetTheme(isDark)
+        return WidgetTheme(isDarkWidgetTheme)
     }
 
     override fun getOnClickPendingIntent(context: Context): PendingIntent {
