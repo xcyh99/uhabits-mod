@@ -523,7 +523,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     expectedPlan = session.plan,
                     resolution = resolution
                 )
-                WebDavSync(appContext).upload(config)
+                WebDavSync(appContext).upload(
+                    config,
+                    WebDavSync.UploadKind.TWO_WAY_MERGED
+                )
                 localMerge!!
             }
             activity?.runOnUiThread {
