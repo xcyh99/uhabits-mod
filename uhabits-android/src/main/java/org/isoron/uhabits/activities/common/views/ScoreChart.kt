@@ -269,7 +269,7 @@ class ScoreChart : ScrollableChart {
         val originalWidth = pGraph!!.strokeWidth
         if (ColorUtils.shouldUseLightOutline(context, primaryColor)) {
             pGraph!!.color = Color.WHITE
-            pGraph!!.strokeWidth = originalWidth + dpToPixels(context, 1.5f)
+            pGraph!!.strokeWidth = originalWidth + dpToPixels(context, 1f)
             canvas!!.drawLine(x1, y1, x2, y2, pGraph!!)
         }
         pGraph!!.color = primaryColor
