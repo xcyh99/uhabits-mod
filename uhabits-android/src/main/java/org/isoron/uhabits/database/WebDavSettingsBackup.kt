@@ -35,7 +35,7 @@ class WebDavSettingsBackup(private val context: Context) {
     )
 
     private fun fileName() =
-        "SH_WEB_${BackupFileName.deviceId()}_SETTINGS.json"
+        "WEB_${BackupFileName.deviceId()}_SET.json"
 
     fun upload(config: WebDavSync.Config) {
         val settings = JSONObject()
