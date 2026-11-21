@@ -46,7 +46,7 @@ class BarCardView(context: Context, attrs: AttributeSet) : LinearLayout(context,
         binding.chart.resetDataOffset()
         binding.chart.postInvalidate()
 
-        binding.title.setTextColor(androidColor)
+        binding.title.setTextColor(getThemeTextColor(context))
         applySectionTitleStyle(binding.title, androidColor)
         if (state.isNumerical) {
             binding.boolSpinner.visibility = GONE
