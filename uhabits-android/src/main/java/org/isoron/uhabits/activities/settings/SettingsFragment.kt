@@ -68,6 +68,9 @@ import org.isoron.uhabits.core.sync.SyncConflictSide
 import org.isoron.uhabits.core.sync.SyncEntryConflictChoice
 import org.isoron.uhabits.core.sync.SyncHabitSettingsConflictChoice
 import org.isoron.uhabits.core.sync.TwoWaySyncResolution
+import org.isoron.uhabits.core.sync.SyncLegacyHabitPair
+import org.isoron.uhabits.core.sync.TwoWaySyncSnapshotRemapper
+import org.isoron.uhabits.core.sync.TwoWaySyncPlanner
 import org.isoron.uhabits.core.ui.NotificationTray
 import org.isoron.uhabits.notifications.AndroidNotificationTray.Companion.createAndroidNotificationChannel
 import org.isoron.uhabits.notifications.RingtoneManager
@@ -371,12 +374,40 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                                 append("继续后会先创建本机安全备份，再合并数据并上传合并结果。")
                             }
                             if (plan.possibleLegacyMatches.isNotEmpty()) {
+                                val pairsText = plan.possibleLegacyMatches.joinToString("\n") {
+                                    "本机「${it.displayName}」 ↔ 服务器「${it.displayName}」"
+                                }
                                 AlertDialog.Builder(requireContext())
-                                    .setTitle("暂不能安全合并")
+                                    .setTitle("发现可能相同的旧习惯")
                                     .setMessage(
-                                        summary + "\n\n发现 UUID 不一致的旧习惯。当前版本不会猜测它们是否相同，因此本次只显示结果，不修改任何数据。"
+                                        summary + "\n\n以下习惯名称相同但 UUID 不同：\n" +
+                                            pairsText +
+                                            "\n\n只有你确认它们是同一个习惯后，才会合并对应打卡记录。"
                                     )
-                                    .setPositiveButton("知道了", null)
+                                    .setNegativeButton("取消", null)
+                                    .setPositiveButton("确认配对并继续") { _, _ ->
+                                        val remapped = runCatching { remapLegacySyncSession(session) }
+                                        remapped.fold(
+                                            { mapped ->
+                                                val mappedSummary = buildString {
+                                                    append("已按你的确认配对旧习惯。\n")
+                                                    append("本机新增：${mapped.plan.totalLocalAdditions} 项\n")
+                                                    append("服务器新增：${mapped.plan.totalRemoteAdditions} 项\n")
+                                                    append("打卡冲突：${mapped.plan.conflictingEntries.size} 条\n")
+                                                    append("习惯设置冲突：${mapped.plan.conflictingHabitSettings.size} 项\n\n")
+                                                    append("继续后会先创建本机安全备份，再合并数据并上传。")
+                                                }
+                                                showTwoWaySyncConfirmation(mapped, config, appContext, mappedSummary)
+                                            },
+                                            { error ->
+                                                Toast.makeText(
+                                                    requireContext(),
+                                                    error.message ?: "旧习惯配对失败，数据未修改",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                            }
+                                        )
+                                    }
                                     .show()
                             } else {
                                 showTwoWaySyncConfirmation(session, config, appContext, summary)
@@ -393,6 +424,35 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 }
             }.start()
         }
+    }
+
+    private fun remapLegacySyncSession(
+        session: TwoWaySyncPreview.Session
+    ): TwoWaySyncPreview.Session {
+        val pairs = session.plan.possibleLegacyMatches.map {
+            SyncLegacyHabitPair(it.localUuid, it.remoteUuid)
+        }
+        val mapped = TwoWaySyncSnapshotRemapper.remapRemote(
+            localHabits = session.local.habits,
+            remoteHabits = session.remote.habits,
+            remoteEntries = session.remote.entries,
+            confirmedPairs = pairs
+        )
+        val uuidMap = pairs.associate { it.remoteUuid to it.localUuid }
+        val mappedRemote = session.remote.copy(
+            habits = mapped.habits,
+            entries = mapped.entries,
+            habitRows = session.remote.habitRows.map { row ->
+                row.copy(uuid = row.uuid?.let { uuidMap[it] ?: it })
+            }
+        )
+        val mappedPlan = TwoWaySyncPlanner.build(
+            session.local.habits,
+            mappedRemote.habits,
+            session.local.entries,
+            mappedRemote.entries
+        )
+        return TwoWaySyncPreview.Session(mappedPlan, session.local, mappedRemote)
     }
 
     private fun showTwoWaySyncConfirmation(
