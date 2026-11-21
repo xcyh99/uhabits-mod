@@ -56,15 +56,14 @@ class NotesCardView(context: Context, attrs: AttributeSet) : LinearLayout(contex
 
         binding.descriptionTitle.visibility = if (hasDescription) VISIBLE else GONE
         val titleColor = state.theme.color(state.color).toInt()
-        val textColor = getThemeTextColor(context)
-        binding.descriptionTitle.setTextColor(textColor)
+        binding.descriptionTitle.setTextColor(titleColor)
         applySectionTitleStyle(binding.descriptionTitle, titleColor)
         binding.habitNotes.visibility = if (hasDescription) VISIBLE else GONE
         binding.habitNotes.text = state.description
         binding.historyNotesTitle.visibility =
             if (hasHistoryNotes) VISIBLE else GONE
         binding.historyNotesTitle.text = context.getString(R.string.history_notes)
-        binding.historyNotesTitle.setTextColor(textColor)
+        binding.historyNotesTitle.setTextColor(titleColor)
         applySectionTitleStyle(binding.historyNotesTitle, titleColor)
         binding.historyNotesList.removeAllViews()
         binding.historyNotesScroll.visibility =

@@ -35,7 +35,7 @@ class FrequencyCardView(context: Context, attrs: AttributeSet) : LinearLayout(co
         binding.frequencyChart.setFrequency(state.frequency)
         binding.frequencyChart.setIsNumerical(state.isNumerical)
         binding.frequencyChart.setFirstWeekday(state.firstWeekday)
-        binding.title.setTextColor(getThemeTextColor(context))
+        binding.title.setTextColor(androidColor)
         applySectionTitleStyle(binding.title, androidColor)
         binding.frequencyChart.setColor(androidColor)
     }

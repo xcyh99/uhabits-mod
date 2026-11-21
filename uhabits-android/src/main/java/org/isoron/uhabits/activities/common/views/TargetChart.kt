@@ -142,6 +142,14 @@ class TargetChart : View {
         paint!!.color = primaryColor
         barRect[barRect.left, barRect.top, barRect.left + completedWidth] = barRect.bottom
         canvas.drawRoundRect(barRect, round, round, paint!!)
+        if (isDarkTheme && Color.luminance(primaryColor) < 0.35f) {
+            paint!!.style = Paint.Style.STROKE
+            paint!!.strokeWidth = dpToPixels(context, 1f)
+            paint!!.color = Color.WHITE
+            canvas.drawRoundRect(barRect, round, round, paint!!)
+            paint!!.style = Paint.Style.FILL
+            paint!!.color = primaryColor
+        }
 
         // Draw values
         paint!!.color = Color.WHITE

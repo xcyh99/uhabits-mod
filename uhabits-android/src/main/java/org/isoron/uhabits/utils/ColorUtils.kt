@@ -18,10 +18,20 @@
  */
 package org.isoron.uhabits.utils
 
+import android.content.Context
 import android.graphics.Color
+import org.isoron.uhabits.R
+import org.isoron.uhabits.utils.StyledResources
 import kotlin.math.max
 
 object ColorUtils {
+    @JvmStatic
+    fun shouldUseLightOutline(context: Context, color: Int): Boolean {
+        val themeTextColor = StyledResources(context).getColor(R.attr.contrast100)
+        val isDarkTheme = Color.luminance(themeTextColor) > 0.5f
+        return isDarkTheme && Color.luminance(color) < 0.35f
+    }
+
     /**
      * Chooses widget text contrast using the selected app theme. Translucent
      * widget backgrounds are composited over the matching theme surface.

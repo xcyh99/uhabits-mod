@@ -162,17 +162,21 @@ class StreakChart : View {
         barWidth = max(barWidth, minBarWidth)
         val gap = (internalWidth - barWidth) / 2
         val paddingTopBottom = baseSize * 0.05f
-        paint!!.color = percentageToColor(percentage)
+        val barColor = percentageToColor(percentage)
         val round = dpToPixels(context, 2f)
-        canvas.drawRoundRect(
-            rect!!.left + gap,
-            rect.top + paddingTopBottom,
-            rect.right - gap,
-            rect.bottom - paddingTopBottom,
-            round,
-            round,
-            paint!!
-        )
+        val left = rect!!.left + gap
+        val top = rect.top + paddingTopBottom
+        val right = rect.right - gap
+        val bottom = rect.bottom - paddingTopBottom
+        if (isDarkTheme && android.graphics.Color.luminance(barColor) < 0.35f) {
+            paint!!.style = Paint.Style.STROKE
+            paint!!.strokeWidth = dpToPixels(context, 1f)
+            paint!!.color = android.graphics.Color.WHITE
+            canvas.drawRoundRect(left, top, right, bottom, round, round, paint!!)
+        }
+        paint!!.style = Paint.Style.FILL
+        paint!!.color = barColor
+        canvas.drawRoundRect(left, top, right, bottom, round, round, paint!!)
         val yOffset = rect.centerY() + 0.3f * em
         paint!!.color = percentageToTextColor(percentage)
         paint!!.textAlign = Paint.Align.CENTER

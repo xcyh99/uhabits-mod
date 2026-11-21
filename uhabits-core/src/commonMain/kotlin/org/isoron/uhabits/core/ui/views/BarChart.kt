@@ -98,6 +98,13 @@ class BarChart(
             } else {
                 canvas.fillRect(x, y, barWidth, barHeight)
             }
+            if (theme.cardBackgroundColor.luminosity < 0.45 &&
+                colors[s].luminosity < 0.35
+            ) {
+                canvas.setColor(Color.WHITE)
+                canvas.setStrokeWidth(1.0)
+                canvas.drawRect(x, y, barWidth, barHeight)
+            }
             canvas.setFontSize(theme.smallTextSize)
             canvas.setTextAlign(TextAlign.CENTER)
             canvas.setColor(colors[s])
