@@ -27,7 +27,7 @@ class DatabaseSyncSafetyBackup(private val context: Context) {
         }
         val backup = File(
             backupDirectory,
-            "SH_WEB_${BackupFileName.deviceId()}_SAF_${BackupFileName.timestamp()}.db"
+            "WEB_${BackupFileName.deviceId()}_SAF_${BackupFileName.timestamp()}.db"
         )
         if (!backup.createNewFile()) {
             throw IOException("无法创建唯一的同步安全备份文件")
