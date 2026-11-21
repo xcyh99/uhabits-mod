@@ -296,17 +296,14 @@ class HistoryChart(
         canvas.drawText(date.day.toString(), x + width / 2, y + width / 2)
 
         if (hasNotes) {
-            circleColor = when (value) {
-                Square.ON, Square.GREY -> {
-                    val lightDot = Color(0xFFFFFF)
-                    val darkDot = Color(0x202020)
-                    if (squareColor.contrast(lightDot) >= squareColor.contrast(darkDot)) {
-                        lightDot
-                    } else {
-                        darkDot
-                    }
-                }
-                else -> color
+            circleColor = if (value == Square.ON) {
+                // On completed squares, the note dot must match the date text
+                // exactly (including its fully opaque black/white color).
+                textColor
+            } else {
+                // Preserve the original configured habit color on all other
+                // square states; do not alter uncompleted-day indicators.
+                color
             }
             canvas.setColor(circleColor)
             canvas.fillCircle(x + width - width / 5, y + width / 5, width / 12)
