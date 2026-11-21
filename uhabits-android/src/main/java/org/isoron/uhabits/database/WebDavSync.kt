@@ -184,6 +184,37 @@ class WebDavSync(private val context: Context) {
         return result
     }
 
+    /**
+     * Downloads a remote database into a private temporary file for read-only
+     * sync inspection. It does not touch the user's selected backup folder or
+     * replace the active database.
+     */
+    fun downloadToTemporaryFile(config: Config, remoteFile: RemoteFile): File {
+        val tempFile = File.createTempFile("shizi-webdav-sync-", ".db", context.cacheDir)
+        try {
+            val remoteUrl = URL(serverUrl(config), remoteFile.href)
+            withClient { client ->
+                request(client, config, "GET", remoteUrl).use { response ->
+                    if (response.code != 200) {
+                        throw IllegalStateException("同步数据下载失败，HTTP 状态码：${response.code}")
+                    }
+                    val input = response.body?.byteStream()
+                        ?: throw IllegalStateException("服务器返回了空数据库文件")
+                    input.use { source ->
+                        tempFile.outputStream().use { output -> source.copyTo(output) }
+                    }
+                }
+            }
+            if (!tempFile.isFile || tempFile.length() == 0L) {
+                throw IllegalStateException("下载的数据库文件为空")
+            }
+            return tempFile
+        } catch (error: Exception) {
+            tempFile.delete()
+            throw error
+        }
+    }
+
     fun download(config: Config, remoteFile: RemoteFile) {
         val folderUri = PreferenceManager.getDefaultSharedPreferences(context)
             .getString("publicBackupFolder", null)
