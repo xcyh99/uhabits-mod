@@ -104,7 +104,7 @@ class WebDavSync(private val context: Context) {
             if (!exists() && !mkdirs()) error("无法创建备份临时目录")
         }
         val file = File(DatabaseUtils.saveDatabaseCopy(context, dir))
-        val remoteName = "SH_WEB_\${BackupFileName.deviceId()}_\${kind.fileLabel}_\${BackupFileName.timestamp()}.db"
+        val remoteName = "SH_WEB_${BackupFileName.deviceId()}_${kind.fileLabel}_${BackupFileName.timestamp()}.db"
 
         try {
             withClient { client ->
