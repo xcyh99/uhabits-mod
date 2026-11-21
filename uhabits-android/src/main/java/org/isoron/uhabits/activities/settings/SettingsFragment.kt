@@ -244,7 +244,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         )
 
         val previewButton = actionButton(
-            "双向同步预览（只读）",
+            "双向同步",
             "#1565C0"
         )
 
