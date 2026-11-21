@@ -106,12 +106,24 @@ class BarChart(
             }
             canvas.setFontSize(theme.smallTextSize)
             canvas.setTextAlign(TextAlign.CENTER)
+            val label = value.toShortString()
+            val labelX = x + barWidth / 2
+            val labelY = y - theme.smallTextSize * 0.80
+            if (theme.shouldUseLightOutline(colors[s])) {
+                // Draw a subtle white halo around the value, using the same
+                // threshold as the bar outline so both remain readable together.
+                canvas.setColor(Color.WHITE)
+                val outlineOffset = 0.7
+                for (dx in listOf(-outlineOffset, 0.0, outlineOffset)) {
+                    for (dy in listOf(-outlineOffset, 0.0, outlineOffset)) {
+                        if (dx != 0.0 || dy != 0.0) {
+                            canvas.drawText(label, labelX + dx, labelY + dy)
+                        }
+                    }
+                }
+            }
             canvas.setColor(colors[s])
-            canvas.drawText(
-                value.toShortString(),
-                x + barWidth / 2,
-                y - theme.smallTextSize * 0.80
-            )
+            canvas.drawText(label, labelX, labelY)
         }
 
         fun drawSeries(s: Int) {
