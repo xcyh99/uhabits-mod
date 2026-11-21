@@ -31,6 +31,7 @@ import org.isoron.uhabits.activities.habits.list.views.toShortString
 import org.isoron.uhabits.utils.InterfaceUtils.dpToPixels
 import org.isoron.uhabits.utils.InterfaceUtils.getDimension
 import org.isoron.uhabits.utils.StyledResources
+import org.isoron.uhabits.utils.ColorUtils.getContrastingTextColor
 import kotlin.math.max
 import kotlin.math.min
 
@@ -38,6 +39,7 @@ class TargetChart : View {
     private var paint: Paint? = null
     private var baseSize = 0
     private var primaryColor = 0
+    private var isDarkTheme = true
     private var mediumContrastTextColor = 0
     private var highContrastReverseTextColor = 0
     private var lowContrastTextColor = 0
@@ -59,6 +61,13 @@ class TargetChart : View {
 
     fun setColor(color: Int) {
         primaryColor = color
+        highContrastReverseTextColor = getContrastingTextColor(primaryColor, 255, isDarkTheme)
+        postInvalidate()
+    }
+
+    fun setDarkTheme(isDarkTheme: Boolean) {
+        this.isDarkTheme = isDarkTheme
+        highContrastReverseTextColor = getContrastingTextColor(primaryColor, 255, isDarkTheme)
         postInvalidate()
     }
 
