@@ -34,37 +34,39 @@ class DatabaseSyncMergeWriter(
         resolution: TwoWaySyncResolution
     ): Result {
         require(expectedPlan.possibleLegacyMatches.isEmpty()) {
-            "发现 UUID 不一致的旧习惯。为避免把不同习惯错误合并，当前版本暂不自动处理这类配对；本次没有修改数据。"
+            "旧习惯配对尚未确认，已停止同步"
         }
 
-        val local = snapshotReader.readLocal()
-        val currentPlan = TwoWaySyncPlanner.build(
-            local.habits,
-            remote.habits,
-            local.entries,
-            remote.entries
-        )
-        require(currentPlan == expectedPlan) {
-            "预览后本机或服务器数据发生变化，请重新预览后再同步"
-        }
-
-        val merged = TwoWaySyncMergeProjection.build(
-            local = TwoWaySyncMergeProjection.Snapshot(local.habits, local.entries),
-            remote = TwoWaySyncMergeProjection.Snapshot(remote.habits, remote.entries),
-            plan = expectedPlan,
-            resolution = resolution
-        )
-
-        val localRowsByUuid = local.habitRows.associateBy { it.uuid!! }
-        val remoteRowsByUuid = remote.habitRows.associateBy { it.uuid!! }
         val db = DatabaseUtils.openDatabase()
         var habitsInserted = 0
         var settingsUpdated = 0
         var entriesInserted = 0
         var entriesUpdated = 0
 
+        // Lock the active database before re-reading it. This closes the gap
+        // between stale-plan validation and writes if the user edits a habit.
         db.beginTransaction()
         try {
+            val local = snapshotReader.readLocal()
+            val currentPlan = TwoWaySyncPlanner.build(
+                local.habits,
+                remote.habits,
+                local.entries,
+                remote.entries
+            )
+            require(currentPlan == expectedPlan) {
+                "预览后本机或服务器数据发生变化，请重新预览后再同步"
+            }
+
+            val merged = TwoWaySyncMergeProjection.build(
+                local = TwoWaySyncMergeProjection.Snapshot(local.habits, local.entries),
+                remote = TwoWaySyncMergeProjection.Snapshot(remote.habits, remote.entries),
+                plan = expectedPlan,
+                resolution = resolution
+            )
+
+            val localRowsByUuid = local.habitRows.associateBy { it.uuid!! }
+            val remoteRowsByUuid = remote.habitRows.associateBy { it.uuid!! }
             val habitIdByUuid = localRowsByUuid.mapValues { it.value.id!! }.toMutableMap()
             var nextPosition = (local.habitRows.maxOfOrNull { it.position } ?: -1) + 1
 
@@ -89,6 +91,8 @@ class DatabaseSyncMergeWriter(
                         val source = remoteRowsByUuid[habit.uuid]
                             ?: error("服务器习惯设置缺失：${habit.displayName}")
                         val values = source.toContentValues()
+                        // Position is device-local ordering, not a portable
+                        // habit setting; keep the local order.
                         values.remove("position")
                         val changed = db.update(
                             "Habits",
