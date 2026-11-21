@@ -28,9 +28,18 @@ object ColorUtils {
     @JvmStatic
     fun shouldUseLightOutline(context: Context, color: Int): Boolean {
         val cardBackground = StyledResources(context).getColor(R.attr.cardBgColor)
+        // Evaluate the color as it is actually rendered. Color.luminance()
+        // ignores alpha, which made every translucent dark streak tier look
+        // black and incorrectly triggered a white outline.
+        val alpha = Color.alpha(color) / 255.0
+        val visibleColor = Color.rgb(
+            (Color.red(color) * alpha + Color.red(cardBackground) * (1.0 - alpha)).toInt(),
+            (Color.green(color) * alpha + Color.green(cardBackground) * (1.0 - alpha)).toInt(),
+            (Color.blue(color) * alpha + Color.blue(cardBackground) * (1.0 - alpha)).toInt()
+        )
         return org.isoron.uhabits.core.ui.views.ColorOutline.shouldUseLightOutline(
             Color.luminance(cardBackground).toDouble(),
-            Color.luminance(color).toDouble()
+            Color.luminance(visibleColor).toDouble()
         )
     }
 
