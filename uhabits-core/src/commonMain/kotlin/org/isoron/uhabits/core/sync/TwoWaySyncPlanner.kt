@@ -32,9 +32,12 @@ data class SyncEntryConflict(
 
 data class TwoWaySyncPlan(
     val matchedHabitUuids: Set<String>,
+    val localOnlyHabits: List<SyncHabitIdentity>,
     val remoteOnlyHabits: List<SyncHabitIdentity>,
     val possibleLegacyMatches: List<SyncHabitMatch>,
+    val localOnlyEntries: List<SyncEntryIdentity>,
     val remoteOnlyEntries: List<SyncEntryIdentity>,
+    val localEntriesForNewHabits: List<SyncEntryIdentity>,
     val remoteEntriesForNewHabits: List<SyncEntryIdentity>,
     val identicalEntries: Int,
     val conflictingEntries: List<SyncEntryConflict>
@@ -42,12 +45,15 @@ data class TwoWaySyncPlan(
     val hasConflicts: Boolean
         get() = conflictingEntries.isNotEmpty()
 
+    val totalLocalAdditions: Int
+        get() = localOnlyHabits.size + localOnlyEntries.size + localEntriesForNewHabits.size
+
     val totalRemoteAdditions: Int
         get() = remoteOnlyHabits.size + remoteOnlyEntries.size + remoteEntriesForNewHabits.size
 }
 
 /**
- * Builds a read-only merge plan. It never writes to either database.
+ * Builds a read-only, symmetric merge plan. It never writes to either database.
  * Entries are matched by (habit UUID, day). Different values or notes on the
  * same key are reported as conflicts; neither side wins automatically.
  * Legacy habits with different UUIDs are only suggested for manual matching.
@@ -63,8 +69,8 @@ object TwoWaySyncPlanner {
         val remoteByUuid = remoteHabits.associateBy { it.uuid }
         val matched = localByUuid.keys.intersect(remoteByUuid.keys)
 
-        val remoteOnlyHabits = remoteHabits.filter { it.uuid !in localByUuid }
         val localOnlyHabits = localHabits.filter { it.uuid !in remoteByUuid }
+        val remoteOnlyHabits = remoteHabits.filter { it.uuid !in localByUuid }
         val localByMatchKey = localOnlyHabits.filter { it.matchKey.isNotBlank() }.groupBy { it.matchKey }
         val remoteByMatchKey = remoteOnlyHabits.filter { it.matchKey.isNotBlank() }.groupBy { it.matchKey }
 
@@ -78,30 +84,40 @@ object TwoWaySyncPlanner {
             }
         }
 
-        val localRecords = localEntries.filter { it.habitUuid in matched }
+        val localMatched = localEntries.filter { it.habitUuid in matched }
             .associateBy { it.habitUuid to it.dayKey }
-        val additions = mutableListOf<SyncEntryIdentity>()
+        val remoteMatched = remoteEntries.filter { it.habitUuid in matched }
+            .associateBy { it.habitUuid to it.dayKey }
+
+        val localOnlyEntries = mutableListOf<SyncEntryIdentity>()
+        val remoteOnlyEntries = mutableListOf<SyncEntryIdentity>()
         val conflicts = mutableListOf<SyncEntryConflict>()
         var identical = 0
 
-        for (remote in remoteEntries.filter { it.habitUuid in matched }) {
-            val local = localRecords[remote.habitUuid to remote.dayKey]
+        for ((key, remote) in remoteMatched) {
+            val local = localMatched[key]
             when {
-                local == null -> additions.add(remote)
+                local == null -> remoteOnlyEntries.add(remote)
                 local.value == remote.value && local.notes == remote.notes -> identical++
                 else -> conflicts.add(SyncEntryConflict(remote.habitUuid, remote.dayKey, local, remote))
             }
         }
+        for ((key, local) in localMatched) {
+            if (key !in remoteMatched) localOnlyEntries.add(local)
+        }
 
-        val newHabitUuids = remoteOnlyHabits.mapTo(HashSet()) { it.uuid }
-        val entriesForNewHabits = remoteEntries.filter { it.habitUuid in newHabitUuids }
+        val localNewHabitUuids = localOnlyHabits.mapTo(HashSet()) { it.uuid }
+        val remoteNewHabitUuids = remoteOnlyHabits.mapTo(HashSet()) { it.uuid }
 
         return TwoWaySyncPlan(
             matchedHabitUuids = matched,
+            localOnlyHabits = localOnlyHabits,
             remoteOnlyHabits = remoteOnlyHabits,
             possibleLegacyMatches = suggestions,
-            remoteOnlyEntries = additions,
-            remoteEntriesForNewHabits = entriesForNewHabits,
+            localOnlyEntries = localOnlyEntries,
+            remoteOnlyEntries = remoteOnlyEntries,
+            localEntriesForNewHabits = localEntries.filter { it.habitUuid in localNewHabitUuids },
+            remoteEntriesForNewHabits = remoteEntries.filter { it.habitUuid in remoteNewHabitUuids },
             identicalEntries = identical,
             conflictingEntries = conflicts
         )
