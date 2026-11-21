@@ -153,8 +153,8 @@ class DatabaseSyncMergeWriter(
             put("freq_den", freqDen)
             put("color", color)
             put("position", position)
-            if (reminderHour == null) putNull("reminder_hour") else put("reminder_hour", reminderHour)
-            if (reminderMin == null) putNull("reminder_min") else put("reminder_min", reminderMin)
+            reminderHour?.let { put("reminder_hour", it) } ?: putNull("reminder_hour")
+            reminderMin?.let { put("reminder_min", it) } ?: putNull("reminder_min")
             put("reminder_days", reminderDays)
             put("highlight", highlight)
             put("archived", archived)
@@ -162,7 +162,7 @@ class DatabaseSyncMergeWriter(
             put("target_value", targetValue)
             put("target_type", targetType)
             put("unit", unit)
-            if (uuid == null) putNull("uuid") else put("uuid", uuid)
+            uuid?.let { put("uuid", it) } ?: putNull("uuid")
             put("category", category)
         }
 }
