@@ -14,7 +14,7 @@ object SyncDayKey {
         LocalDate.fromUnixTime(timestamp).toCSVString()
 
     fun toTimestamp(dayKey: String): Long {
-        require(Regex("""\\d{4}-\\d{2}-\\d{2}""").matches(dayKey)) {
+        require(Regex("""\d{4}-\d{2}-\d{2}""").matches(dayKey)) {
             "Invalid sync day key: $dayKey"
         }
         val year = dayKey.substring(0, 4).toInt()
