@@ -357,12 +357,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                             result.fold(
                                 { plan ->
                                     val summary = buildString {
-                                        append("本机新增：${plan.totalLocalAdditions} 项\\n")
-                                        append("服务器新增：${plan.totalRemoteAdditions} 项\\n")
-                                        append("完全相同、已去重的打卡：${plan.identicalEntries} 条\\n")
-                                        append("打卡冲突：${plan.conflictingEntries.size} 条\\n")
-                                        append("习惯设置冲突：${plan.conflictingHabitSettings.size} 项\\n")
-                                        append("可能需要人工配对的旧习惯：${plan.possibleLegacyMatches.size} 项\\n\\n")
+                                        append("本机新增：${plan.totalLocalAdditions} 项\n")
+                                        append("服务器新增：${plan.totalRemoteAdditions} 项\n")
+                                        append("完全相同、已去重的打卡：${plan.identicalEntries} 条\n")
+                                        append("打卡冲突：${plan.conflictingEntries.size} 条\n")
+                                        append("习惯设置冲突：${plan.conflictingHabitSettings.size} 项\n")
+                                        append("可能需要人工配对的旧习惯：${plan.possibleLegacyMatches.size} 项\n\n")
                                         append("这是只读预览，尚未修改本机或服务器数据。")
                                     }
                                     AlertDialog.Builder(requireContext())
