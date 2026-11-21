@@ -52,16 +52,16 @@
                 style="@style/Card"
                 android:gravity="center" />
 
-            <org.isoron.uhabits.activities.habits.show.views.OverviewCardView
-                android:id="@+id/overviewCard"
-                style="@style/Card"
-                android:paddingTop="12dp" />
-
             <org.isoron.uhabits.activities.habits.show.views.HistoryCardView
                 android:id="@+id/historyCard"
                 style="@style/Card"
                 android:gravity="center"
                 android:paddingBottom="0dp" />
+
+            <org.isoron.uhabits.activities.habits.show.views.OverviewCardView
+                android:id="@+id/overviewCard"
+                style="@style/Card"
+                android:paddingTop="12dp" />
 
             <org.isoron.uhabits.activities.habits.show.views.TargetCardView
                 android:id="@+id/targetCard"
