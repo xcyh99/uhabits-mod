@@ -21,6 +21,9 @@ package org.isoron.uhabits.activities.habits.list.views
 
 import android.content.Context
 import android.graphics.PointF
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Color
 import android.graphics.text.LineBreaker.BREAK_STRATEGY_BALANCED
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
@@ -42,6 +45,7 @@ import org.isoron.platform.time.getToday
 import org.isoron.uhabits.R
 import org.isoron.uhabits.activities.common.views.RingView
 import org.isoron.uhabits.core.ui.screens.habits.list.HabitCardState
+import org.isoron.uhabits.core.ui.views.ColorOutline
 import org.isoron.uhabits.inject.ActivityContext
 import org.isoron.uhabits.utils.currentTheme
 import org.isoron.uhabits.utils.dp
@@ -63,7 +67,7 @@ class HabitCardView(
     var checkmarkPanel: CheckmarkPanelView
     private var numberPanel: NumberPanelView
     private var innerFrame: LinearLayout
-    private var label: TextView
+    private var label: HabitNameTextView
     private var scoreRing: RingView
 
     private var dataOffset = 0
@@ -78,6 +82,13 @@ class HabitCardView(
         label.apply {
             text = r.name
             setTextColor(c)
+            val theme = currentTheme()
+            setOutlineEnabled(
+                ColorOutline.shouldUseLightOutline(
+                    Color.luminance(theme.cardBackgroundColor.toInt()).toDouble(),
+                    Color.luminance(c).toDouble()
+                )
+            )
         }
         scoreRing.apply {
             setPercentage(r.score.toFloat())
@@ -131,7 +142,7 @@ class HabitCardView(
             setThickness(thickness)
         }
 
-        label = TextView(context).apply {
+        label = HabitNameTextView(context).apply {
             maxLines = 2
             ellipsize = TextUtils.TruncateAt.END
             layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
@@ -274,4 +285,40 @@ class HabitCardViewFactory(
     private val controller: Lazy<HabitCardListController>
 ) {
     fun create() = HabitCardView(context, checkmarkPanelFactory, numberPanelFactory, controller.value)
+}
+
+
+private class HabitNameTextView(context: Context) : TextView(context) {
+    private var outlineEnabled = false
+
+    fun setOutlineEnabled(enabled: Boolean) {
+        if (outlineEnabled != enabled) {
+            outlineEnabled = enabled
+            invalidate()
+        }
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        if (!outlineEnabled) {
+            super.onDraw(canvas)
+            return
+        }
+
+        val originalColor = paint.color
+        val originalStyle = paint.style
+        val originalStrokeWidth = paint.strokeWidth
+
+        paint.color = Color.WHITE
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = dp(0.3f)
+        super.onDraw(canvas)
+
+        paint.color = originalColor
+        paint.style = Paint.Style.FILL
+        super.onDraw(canvas)
+
+        paint.color = originalColor
+        paint.style = originalStyle
+        paint.strokeWidth = originalStrokeWidth
+    }
 }
