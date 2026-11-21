@@ -28,13 +28,15 @@ data class HistoryNote(
 
 data class NotesCardState(
     val description: String,
-    val historyNotes: List<HistoryNote>
+    val historyNotes: List<HistoryNote>,
+    val habitColor: Int
 )
 
 class NotesCardPresenter {
     companion object {
         fun buildState(habit: Habit) = NotesCardState(
             description = habit.description,
+            habitColor = habit.color.argb,
             historyNotes = habit.originalEntries.getKnown()
                 .filter { it.notes.isNotBlank() }
                 .map { HistoryNote(it.date.toString(), it.notes) }
