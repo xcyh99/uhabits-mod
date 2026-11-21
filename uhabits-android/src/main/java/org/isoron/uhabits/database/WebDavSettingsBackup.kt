@@ -61,45 +61,10 @@ class WebDavSettingsBackup(private val context: Context) {
         execute(config, "PUT", document.toString(2), fileName())
     }
 
-    fun download(config: WebDavSync.Config) {
-        val latestFile = findLatestBackup(config)
-            ?: throw IllegalStateException("服务器没有找到软件设置备份")
-        val content = execute(config, "GET", remoteFileName = latestFile)
-            ?: throw IllegalStateException("服务器没有找到软件设置备份")
-        val document = JSONObject(content)
-        require(document.optString("format") == "SHIZI_SETTINGS" &&
-            document.optInt("version", -1) == 1) {
-            "设置备份格式或版本不受支持"
-        }
-        val settings = document.optJSONObject("settings")
-            ?: throw IllegalStateException("设置备份内容不完整")
-
-        val editor = preferences.edit()
-        for (key in backupableKeys) editor.remove(key)
-        val keys = settings.keys()
-        while (keys.hasNext()) {
-            val key = keys.next()
-            if (key !in backupableKeys) continue
-            when (val value = settings.get(key)) {
-                is Boolean -> editor.putBoolean(key, value)
-                is Int -> editor.putInt(key, value)
-                is Long -> editor.putLong(key, value)
-                is Double -> editor.putFloat(key, value.toFloat())
-                is String -> editor.putString(key, value)
-                is JSONArray -> {
-                    val values = mutableSetOf<String>()
-                    for (index in 0 until value.length()) values.add(value.getString(index))
-                    editor.putStringSet(key, values)
-                }
-            }
-        }
-        check(editor.commit()) { "设置已下载，但写入本机失败" }
-    }
-
-    private fun findLatestBackup(config: WebDavSync.Config): String? {
+    fun listBackupFiles(config: WebDavSync.Config): List<String> {
         val base = URL(config.server.trimEnd('/') + "/")
         require(base.protocol == "https") { "WebDAV 仅允许使用 HTTPS" }
-        val xml = """<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/></d:prop></d:propfind>"""
+        val xml = """<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/><d:getlastmodified/></d:prop></d:propfind>"""
         val body = xml.toRequestBody("application/xml; charset=utf-8".toMediaType())
         val client = OkHttpClient()
         try {
@@ -119,9 +84,9 @@ class WebDavSettingsBackup(private val context: Context) {
                     ?: throw IllegalStateException("服务器返回了空备份列表")
                 val parser = Xml.newPullParser()
                 parser.setInput(ByteArrayInputStream(bytes), "UTF-8")
-                val prefix = "WEB_${BackupFileName.deviceId()}_SET_"
-                val pattern = Regex(Regex.escape(prefix) + "\\d{8}_\\d{6}_\\d{3}\\.json")
-                val candidates = mutableListOf<String>()
+                // Accept backups from every device, not only this device's model.
+                val pattern = Regex("WEB_.+_SET_\\\\d{8}_\\\\d{6}_\\\\d{3}\\\\.json")
+                val candidates = linkedSetOf<String>()
                 var inResponse = false
                 var href: String? = null
                 var isCollection = false
@@ -150,12 +115,48 @@ class WebDavSettingsBackup(private val context: Context) {
                     }
                     event = parser.next()
                 }
-                return candidates.maxOrNull()
+                return candidates.sortedDescending()
             }
         } finally {
             client.dispatcher.executorService.shutdown()
             client.connectionPool.evictAll()
         }
+    }
+
+    fun download(config: WebDavSync.Config, remoteFileName: String) {
+        require(Regex("WEB_.+_SET_\\\\d{8}_\\\\d{6}_\\\\d{3}\\\\.json").matches(remoteFileName)) {
+            "所选设置备份文件名无效"
+        }
+        val content = execute(config, "GET", remoteFileName = remoteFileName)
+            ?: throw IllegalStateException("服务器没有找到所选软件设置备份")
+        val document = JSONObject(content)
+        require(document.optString("format") == "SHIZI_SETTINGS" &&
+            document.optInt("version", -1) == 1) {
+            "设置备份格式或版本不受支持"
+        }
+        val settings = document.optJSONObject("settings")
+            ?: throw IllegalStateException("设置备份内容不完整")
+
+        val editor = preferences.edit()
+        for (key in backupableKeys) editor.remove(key)
+        val keys = settings.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            if (key !in backupableKeys) continue
+            when (val value = settings.get(key)) {
+                is Boolean -> editor.putBoolean(key, value)
+                is Int -> editor.putInt(key, value)
+                is Long -> editor.putLong(key, value)
+                is Double -> editor.putFloat(key, value.toFloat())
+                is String -> editor.putString(key, value)
+                is JSONArray -> {
+                    val values = mutableSetOf<String>()
+                    for (index in 0 until value.length()) values.add(value.getString(index))
+                    editor.putStringSet(key, values)
+                }
+            }
+        }
+        check(editor.commit()) { "设置已下载，但写入本机失败" }
     }
 
     private fun execute(
