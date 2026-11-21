@@ -27,7 +27,6 @@ import org.isoron.platform.time.DayOfWeek
 import org.isoron.platform.time.LocalDate
 import org.isoron.platform.time.LocalDateFormatter
 import org.isoron.uhabits.core.models.PaletteColor
-import org.isoron.uhabits.core.ui.views.DarkTheme
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
@@ -288,9 +287,9 @@ class HistoryChart(
                 0.0722 * luminance(squareColor.blue)
             val isDarkTheme = theme is DarkTheme
             if (isDarkTheme) {
-                if (backgroundLuminance >= 0.70) Color(0x202020) else Color.WHITE
+                if (backgroundLuminance >= 0.70) Color.BLACK else Color.WHITE
             } else {
-                if (backgroundLuminance <= 0.18) Color.WHITE else Color(0x202020)
+                if (backgroundLuminance <= 0.18) Color.WHITE else Color.BLACK
             }
         } else if (theme.cardBackgroundColor == Color.TRANSPARENT) {
             theme.highContrastTextColor
