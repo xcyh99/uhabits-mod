@@ -22,6 +22,7 @@ package org.isoron.uhabits.activities.habits.show.views
 import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.graphics.Typeface
 import android.view.Gravity
 import android.widget.LinearLayout
@@ -47,6 +48,15 @@ class NotesCardView(context: Context, attrs: AttributeSet) : LinearLayout(contex
         binding.historyNotesList.removeAllViews()
         binding.historyNotesScroll.visibility =
             if (hasHistoryNotes) VISIBLE else GONE
+        binding.historyNotesScroll.setOnTouchListener { view, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE ->
+                    view.parent.requestDisallowInterceptTouchEvent(true)
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
+                    view.parent.requestDisallowInterceptTouchEvent(false)
+            }
+            false
+        }
 
         state.historyNotes.forEach { note ->
             val row = LinearLayout(context).apply {
