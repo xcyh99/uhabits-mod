@@ -19,6 +19,7 @@
 package org.isoron.uhabits.widgets.views
 
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.util.AttributeSet
@@ -35,6 +36,7 @@ import org.isoron.uhabits.core.models.Entry.Companion.UNKNOWN
 import org.isoron.uhabits.core.models.Entry.Companion.YES_AUTO
 import org.isoron.uhabits.core.models.Entry.Companion.YES_MANUAL
 import org.isoron.uhabits.core.preferences.Preferences
+import org.isoron.uhabits.core.ui.ThemeSwitcher
 import org.isoron.uhabits.inject.HabitsApplicationComponent
 import org.isoron.uhabits.utils.InterfaceUtils.getDimension
 import org.isoron.uhabits.utils.ColorUtils.getContrastingTextColor
@@ -68,6 +70,16 @@ class CheckmarkWidgetView : HabitWidgetView {
         init()
     }
 
+    private val isDarkTheme: Boolean
+        get() {
+            return when (preferences?.theme) {
+                ThemeSwitcher.THEME_DARK -> true
+                ThemeSwitcher.THEME_LIGHT -> false
+                else -> (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                    Configuration.UI_MODE_NIGHT_YES
+            }
+        }
+
     fun refresh() {
         if (backgroundPaint == null || frame == null) return
         val res = StyledResources(context)
@@ -77,7 +89,7 @@ class CheckmarkWidgetView : HabitWidgetView {
         when (entryState) {
             YES_MANUAL, SKIP, YES_AUTO -> {
                 bgColor = activeColor
-                fgColor = getContrastingTextColor(bgColor, widgetBackgroundAlpha)
+                fgColor = getContrastingTextColor(bgColor, widgetBackgroundAlpha, isDarkTheme)
                 setWidgetBackgroundColor(bgColor)
             }
             NO, UNKNOWN -> {
