@@ -256,11 +256,11 @@ class HistoryChart(
         canvas.setColor(squareColor)
         canvas.fillRoundRect(x, y, width, height, width * 0.15)
 
-        // Outline completed calendar squares only when the habit color meets
-        // the shared dark-surface / near-black threshold used by other charts.
-        if (value == Square.ON && theme.shouldUseLightOutline(squareColor)) {
+        // Calendar squares use a dedicated, stricter near-black threshold
+        // and thinner outline than the other charts.
+        if (value == Square.ON && theme.shouldUseCalendarLightOutline(squareColor)) {
             canvas.setColor(Color.WHITE)
-            canvas.setStrokeWidth(theme.lightOutlineWidth)
+            canvas.setStrokeWidth(theme.calendarOutlineWidth)
             canvas.drawRect(x + 0.5, y + 0.5, width - 1.0, height - 1.0)
         }
 
