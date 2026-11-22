@@ -127,6 +127,7 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
     override fun onPause() {
         androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
             .edit().putString("startup_page_last", "main").apply()
+        org.isoron.uhabits.notifications.StatusBarDaysNotifier.update(this)
         midnightTimer.onPause()
         screen.onDetached()
         dismissCurrentDialog()
@@ -137,6 +138,7 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
         androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
             .edit().putString("startup_page_last", "main").apply()
         screen.refresh()
+        org.isoron.uhabits.notifications.StatusBarDaysNotifier.update(this)
         screen.onAttached()
         rootView.postInvalidate()
         midnightTimer.onResume()

@@ -63,6 +63,7 @@ object TimeRecordStore {
             .edit()
             .putString(RECORDS_KEY, array.toString())
             .apply()
+        org.isoron.uhabits.notifications.StatusBarDaysNotifier.update(context)
     }
 
     fun delete(context: Context, id: String) {
@@ -81,5 +82,6 @@ object TimeRecordStore {
             .edit()
             .putString(RECORDS_KEY, array.toString())
             .apply()
+        org.isoron.uhabits.notifications.StatusBarDaysNotifier.update(context)
     }
 }

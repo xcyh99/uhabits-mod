@@ -35,6 +35,7 @@ import org.isoron.uhabits.database.FullBackupManager
 import org.isoron.uhabits.widgets.TimeRecordWidgetProvider
 import org.isoron.uhabits.utils.WebDavCredentialsStore
 import org.isoron.uhabits.widgets.WidgetUpdater
+import org.isoron.uhabits.notifications.StatusBarDaysNotifier
 import java.io.File
 
 /**
@@ -102,6 +103,7 @@ class HabitsApplication : Application() {
             reminderScheduler.scheduleAll()
             widgetUpdater.updateWidgets()
             TimeRecordWidgetProvider.updateAll(this)
+            StatusBarDaysNotifier.update(this)
         }
     }
 
