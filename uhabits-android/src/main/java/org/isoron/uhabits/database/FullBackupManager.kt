@@ -9,7 +9,6 @@ import androidx.preference.PreferenceManager
 import org.json.JSONArray
 import org.json.JSONObject
 import org.isoron.uhabits.BuildConfig
-import org.isoron.uhabits.activities.timerecords.TimeRecordStore
 import org.isoron.uhabits.utils.BackupFileName
 import org.isoron.uhabits.utils.DatabaseUtils
 import java.io.BufferedInputStream
@@ -17,7 +16,6 @@ import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
-import java.security.DigestOutputStream
 import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
@@ -224,7 +222,10 @@ class FullBackupManager(private val context: Context) {
     }
 
     private fun writeTextFile(dir: File, name: String, content: String): File =
-        File(dir, name).apply { writeText(content, Charsets.UTF_8) }
+        File(dir, name).apply {
+            parentFile?.mkdirs()
+            writeText(content, Charsets.UTF_8)
+        }
 
     private fun addFile(zip: ZipOutputStream, name: String, file: File) {
         zip.putNextEntry(ZipEntry(name))
@@ -240,7 +241,7 @@ class FullBackupManager(private val context: Context) {
             if (count < 0) break
             digest.update(buffer, 0, count)
         }
-        digest.digest().joinToString("") { "%02x".format(it) }
+        digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
     }
 
     private fun sha256(bytes: ByteArray): String =
