@@ -20,11 +20,17 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <Preference
-            android:key="timeRecords"
-            android:title="@string/time_records"
-            android:summary="@string/time_records_summary"
-            app:iconSpaceReserved="false" />
+    <PreferenceCategory
+            android:key="featureCenterCategory"
+            android:title="@string/feature_center">
+
+        <Preference
+                android:key="timeRecords"
+                android:title="@string/time_records"
+                android:summary="@string/time_records_summary"
+                app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
 
 
 
