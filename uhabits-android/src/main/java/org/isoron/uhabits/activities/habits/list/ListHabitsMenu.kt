@@ -65,9 +65,10 @@ class ListHabitsMenu(
         val nightModeItem = menu.findItem(R.id.actionToggleNightMode)
         val hideArchivedItem = menu.findItem(R.id.actionHideArchived)
         val hideCompletedItem = menu.findItem(R.id.actionHideCompleted)
-        // Handle this action directly on the MenuItem. In this custom toolbar
-        // setup the Activity options callback is not consistently reached.
-        menu.findItem(R.id.actionShortcuts).setOnMenuItemClickListener {
+        // Bind the shortcut action directly to the menu item. This keeps the
+        // toolbar shortcut responsive even when the activity's options-menu
+        // callback is rebuilt during invalidateOptionsMenu().
+        menu.findItem(R.id.actionShortcuts)?.setOnMenuItemClickListener {
             showShortcutsMenu()
             true
         }
@@ -128,12 +129,12 @@ class ListHabitsMenu(
     }
 
     private fun showShortcutsMenu() {
-        // Restore the original toolbar-anchored PopupMenu (before the centered
-        // AlertDialog experiment). Keep the action item as the primary anchor.
+        // Keep the menu anchored to the toolbar shortcut icon, as in the original
+        // interaction. PopupMenu also supports scrolling when the list is taller
+        // than the available screen area.
+        val actionView = activity.findViewById<android.view.View>(R.id.actionShortcuts)
         val toolbar = activity.findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
-        val anchor = toolbar?.findViewById<android.view.View>(R.id.actionShortcuts)
-            ?: toolbar
-            ?: activity.window.decorView
+        val anchor = actionView ?: toolbar ?: activity.window.decorView
         val popup = PopupMenu(activity, anchor)
         val prefs = PreferenceManager.getDefaultSharedPreferences(activity)
         val savedOrder = prefs.getString("feature_shortcuts_order", null)
@@ -141,6 +142,14 @@ class ListHabitsMenu(
         val selected = savedOrder?.takeIf { it.isNotEmpty() }
             ?: prefs.getStringSet("feature_shortcuts", emptySet())?.toList().orEmpty()
         val available = selected.mapNotNull { key -> shortcutTitle(key)?.let { key to it } }
+
+        popup.menu.add(activity.getString(R.string.configure_shortcuts)).setOnMenuItemClickListener {
+            activity.startActivity(
+                Intent(activity, SettingsActivity::class.java)
+                    .putExtra("open_preference_key", "featureShortcuts")
+            )
+            true
+        }
         if (available.isEmpty()) {
             popup.menu.add(activity.getString(R.string.no_shortcuts_configured)).isEnabled = false
         } else {
@@ -157,13 +166,6 @@ class ListHabitsMenu(
                     true
                 }
             }
-        }
-        popup.menu.add(activity.getString(R.string.configure_shortcuts)).setOnMenuItemClickListener {
-            activity.startActivity(
-                Intent(activity, SettingsActivity::class.java)
-                    .putExtra("open_preference_key", "featureShortcuts")
-            )
-            true
         }
         popup.show()
     }
