@@ -24,6 +24,10 @@ import java.net.URL
  */
 class WebDavFullBackup(private val context: Context) {
 
+    private companion object {
+        const val MAX_DOWNLOAD_BYTES = 256L * 1024 * 1024
+    }
+
     fun upload(config: WebDavSync.Config): String {
         val tempFile = File.createTempFile("shizi-full-backup-", ".uhabitsbackup", context.cacheDir)
         try {
@@ -123,7 +127,19 @@ class WebDavFullBackup(private val context: Context) {
                     val input = response.body?.byteStream()
                         ?: throw IllegalStateException("服务器返回了空备份文件")
                     input.use { source ->
-                        tempFile.outputStream().use { output -> source.copyTo(output) }
+                        tempFile.outputStream().use { output ->
+                            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                            var totalBytes = 0L
+                            while (true) {
+                                val count = source.read(buffer)
+                                if (count < 0) break
+                                totalBytes += count
+                                if (totalBytes > MAX_DOWNLOAD_BYTES) {
+                                    throw IllegalStateException("云端完整备份超过允许的 256 MB")
+                                }
+                                output.write(buffer, 0, count)
+                            }
+                        }
                     }
                 }
             }
