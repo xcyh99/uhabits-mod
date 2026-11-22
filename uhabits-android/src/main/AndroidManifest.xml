@@ -52,13 +52,13 @@
             android:name="org.isoron.uhabits.activities.habits.list.ListHabitsActivity"
             android:exported="true"
             android:label="@string/main_activity_title"
-            android:launchMode="singleTop" />
+            android:launchMode="singleTask" />
 
         <activity-alias
             android:name="org.isoron.uhabits.MainActivity"
             android:exported="true"
             android:label="@string/main_activity_title"
-            android:launchMode="singleTop"
+            android:launchMode="singleTask"
             android:targetActivity="org.isoron.uhabits.activities.habits.list.ListHabitsActivity">
             <intent-filter android:label="@string/main_activity_title">
                 <action android:name="android.intent.action.MAIN" />
