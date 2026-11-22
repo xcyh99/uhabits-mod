@@ -95,6 +95,7 @@ class ListHabitsRootView(
             addBelow(progressBar, header) {
                 it.topMargin = dp(-6.0f).toInt()
             }
+
             addAtBottom(hintView)
         }
         rootView.setupToolbar(

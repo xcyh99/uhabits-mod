@@ -20,17 +20,9 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <Preference
-            android:key="timeRecords"
-            android:title="@string/time_records"
-            android:summary="@string/time_records_summary"
-            app:iconSpaceReserved="false" />
-
-
-
     <PreferenceCategory
-            android:key="databaseCategory"
-            android:title="@string/database">
+            android:key="importExportCategory"
+            android:title="数据导入与导出">
 
         <Preference
                 android:key="exportDB"
@@ -55,17 +47,17 @@
                 android:summary="@string/import_data_summary"
                 android:title="@string/import_data"
                 app:iconSpaceReserved="false" />
-<Preference
+
+    </PreferenceCategory>
+
+<PreferenceCategory
+            android:key="webDavCategory"
+            android:title="WebDAV 云端管理">
+
+        <Preference
                 android:key="webDavSync"
                 android:title="@string/webdav_sync"
                 android:summary="@string/webdav_sync_summary"
-                app:iconSpaceReserved="false" />
-
-
-        <Preference
-                android:key="publicBackupFolder"
-                android:title="@string/select_public_backup_folder"
-                android:summary="@string/no_public_backup_folder_selected"
                 app:iconSpaceReserved="false" />
 
         <Preference
@@ -73,6 +65,36 @@
                 android:title="@string/settings_backup_restore"
                 android:summary="@string/settings_backup_restore_summary"
                 app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+<PreferenceCategory
+            android:key="backupCategory"
+            android:title="备份与恢复">
+
+        <Preference
+                android:key="createFullBackup"
+                android:title="完整备份"
+                android:summary="备份主数据库、时间记录、软件设置和小组件配置；不包含桌面布局及设备专属权限。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
+                android:key="restoreFullBackup"
+                android:title="完整恢复"
+                android:summary="从 .uhabitsbackup 恢复数据；恢复前保存本机安全副本，并重启应用。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
+                android:key="publicBackupFolder"
+                android:title="@string/select_public_backup_folder"
+                android:summary="@string/no_public_backup_folder_selected"
+                app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+<PreferenceCategory
+            android:key="dataSafetyCategory"
+            android:title="数据与安全">
 
         <Preference
                 android:key="clearLocalHabitData"
@@ -82,8 +104,37 @@
 
     </PreferenceCategory>
 
+    <Preference
+            android:key="sectionDividerFeatureCenter"
+            android:selectable="false"
+            android:layout="@layout/preference_section_divider"
+            app:iconSpaceReserved="false" />
 
-    <PreferenceCategory
+<PreferenceCategory
+            android:key="featureCenterCategory"
+            android:title="@string/feature_center">
+
+        <Preference
+                android:key="timeRecords"
+                android:title="@string/time_records"
+                android:summary="@string/time_records_summary"
+                app:iconSpaceReserved="false" />
+
+        <Preference
+                android:key="featureShortcuts"
+                android:title="@string/shortcut_settings"
+                android:summary="@string/shortcut_settings_summary"
+                app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <Preference
+            android:key="sectionDividerInterface"
+            android:selectable="false"
+            android:layout="@layout/preference_section_divider"
+            app:iconSpaceReserved="false" />
+
+<PreferenceCategory
             android:key="interfaceCategory"
             android:title="@string/interface_preferences">
 
@@ -153,7 +204,7 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory
+<PreferenceCategory
             android:key="reminderCategory"
             android:title="@string/reminder">
 
@@ -177,9 +228,13 @@
 
     </PreferenceCategory>
 
+    <Preference
+            android:key="sectionDividerTroubleshooting"
+            android:selectable="false"
+            android:layout="@layout/preference_section_divider"
+            app:iconSpaceReserved="false" />
 
-
-    <PreferenceCategory
+<PreferenceCategory
             android:key="pref_key_debug"
             android:title="@string/troubleshooting">
 
@@ -195,7 +250,7 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory
+<PreferenceCategory
             android:key="linksCategory"
             android:title="@string/links">
 
@@ -224,7 +279,7 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory
+<PreferenceCategory
             android:key="devCategory"
             android:title="Development">
 
@@ -256,5 +311,6 @@
             />
 
     </PreferenceCategory>
+
 
 </PreferenceScreen>
