@@ -154,39 +154,27 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         // the condensed face. Font height is independent of digit count.
         val digitWidthScale = when (number.length) {
             1 -> 1.18f
-            2 -> 1.10f
-            3 -> 1.0f
-            4 -> 0.92f
-            else -> (0.92f - (number.length - 4) * 0.06f).coerceAtLeast(0.70f)
+            2 -> 0.98f
+            3 -> 0.92f
+            4 -> 0.86f
+            else -> (0.86f - (number.length - 4) * 0.04f).coerceAtLeast(0.70f)
         }
         numberPaint.textScaleX = digitWidthScale
         outlinePaint.textScaleX = digitWidthScale
         numberPaint.textSize = numberSize
         var glyphWidths = number.map { numberPaint.measureText(it.toString()) }
         val gapCount = (number.length - 1).coerceAtLeast(0)
-        val baseSpacing = when (number.length) {
-            1 -> 0f
-            2 -> -0.5f * density
-            3 -> -1.0f * density
-            4 -> -1.5f * density
-            else -> -(1.5f + (number.length - 4) * 0.5f) * density
-        }
-        var digitSpacing = baseSpacing
+        // Keep a small positive gap between digits. If the full number is too wide,
+        // narrow the glyphs further while preserving both the gap and the font height.
+        val digitSpacing = if (gapCount > 0) 1.2f * density else 0f
         var totalNumberWidth = glyphWidths.sum() + digitSpacing * gapCount
         if (totalNumberWidth > maxTextWidth) {
-            // Preserve height: compress width and spacing rather than shrinking the digits.
-            val targetSpacing = if (gapCount > 0) {
-                ((maxTextWidth - glyphWidths.sum()) / gapCount).coerceAtMost(baseSpacing)
-            } else 0f
-            digitSpacing = targetSpacing
+            val availableGlyphWidth = (maxTextWidth - digitSpacing * gapCount).coerceAtLeast(1f)
+            val fitScale = availableGlyphWidth / glyphWidths.sum().coerceAtLeast(1f)
+            numberPaint.textScaleX *= fitScale
+            outlinePaint.textScaleX *= fitScale
+            glyphWidths = number.map { numberPaint.measureText(it.toString()) }
             totalNumberWidth = glyphWidths.sum() + digitSpacing * gapCount
-            if (totalNumberWidth > maxTextWidth) {
-                val fitScale = maxTextWidth / totalNumberWidth
-                numberPaint.textScaleX = digitWidthScale * fitScale
-                outlinePaint.textScaleX = digitWidthScale * fitScale
-                glyphWidths = number.map { numberPaint.measureText(it.toString()) }
-                totalNumberWidth = glyphWidths.sum() + digitSpacing * gapCount
-            }
         }
 
         numberPaint.color = activeColor
