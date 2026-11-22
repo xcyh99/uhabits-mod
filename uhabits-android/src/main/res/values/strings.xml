@@ -148,7 +148,7 @@
     <string name="habits_imported">Habits imported successfully.</string>
     <string name="import_data">Import data</string>
     <string name="export_full_backup">Export database (FULL)</string>
-    <string name="import_data_summary">Imports database or CSV data. Database imports merge records and do not remove local habits absent from the imported file. Use Full restore for a complete app backup.</string>
+    <string name="import_data_summary">Imports this app’s database and CSV files, as well as exports from Tickmate, HabitBull, and Rewire. Database imports merge records and do not remove local habits absent from the imported file. Use Full restore for a complete app backup.</string>
     <string name="export_as_csv_summary">Generates files that can be opened by spreadsheet software such as Microsoft Excel or OpenOffice Calc. This file cannot be imported back.</string>
     <string name="export_full_backup_summary">Exports only the main database file (.db). It does not include time records, app settings, or standalone widget configuration; use Import data to merge it back.</string>
     <string name="export_legacy_backup">Export original-compatible database</string>
