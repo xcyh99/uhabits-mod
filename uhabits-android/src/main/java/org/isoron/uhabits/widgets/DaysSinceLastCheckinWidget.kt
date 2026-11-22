@@ -143,12 +143,12 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         labelPaint.color = activeColor
         val labelBaseline = height * 0.94f
         val labelTop = labelBaseline + labelPaint.ascent()
-        val verticalGap = 4f * density
+        val verticalGap = 2.4f * density
         val numberTopLimit = titleBottom + verticalGap
         val numberBottomLimit = labelTop - verticalGap
         val availableNumberHeight = (numberBottomLimit - numberTopLimit).coerceAtLeast(1f)
 
-        val baseNumberSize = min(width * 0.82f, height * 0.58f)
+        val baseNumberSize = min(width * 0.82f, height * 0.70f)
         var numberSize = min(baseNumberSize, availableNumberHeight / 1.18f)
         // Short counts use a fuller width; longer counts progressively return to / narrow
         // the condensed face. Font height is independent of digit count.
