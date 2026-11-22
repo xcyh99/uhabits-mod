@@ -314,10 +314,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             widgets.indexOfFirst { it.second.name == name }.takeIf { it >= 0 }?.let(selected::add)
         }
         val checked = BooleanArray(widgets.size) { it in selected }
-        AlertDialog.Builder(context)
+        var positiveButton: Button? = null
+        val dialog = AlertDialog.Builder(context)
             .setTitle(if (preselectedProviders.isEmpty()) "选择要添加的桌面组件（可多选）" else "继续添加剩余桌面组件")
             .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
                 if (isChecked) selected.add(which) else selected.remove(which)
+                positiveButton?.isEnabled = selected.isNotEmpty()
             }
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(if (preselectedProviders.isEmpty()) "开始添加" else "继续添加") { _, _ ->
@@ -363,7 +365,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     Toast.makeText(context, "桌面未接受添加请求。", Toast.LENGTH_LONG).show()
                 }
             }
-            .show()
+            .create()
+        dialog.setOnShowListener {
+            positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            positiveButton?.isEnabled = selected.isNotEmpty()
+        }
+        dialog.show()
     }
     private fun showFeatureShortcutSettings() {
         val candidateKeys = arrayOf(
