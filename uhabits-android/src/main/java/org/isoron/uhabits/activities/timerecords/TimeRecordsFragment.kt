@@ -7,6 +7,7 @@
 package org.isoron.uhabits.activities.timerecords
 
 import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.os.Bundle
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -23,6 +24,10 @@ import androidx.preference.PreferenceFragmentCompat
 import org.isoron.uhabits.R
 import org.isoron.uhabits.widgets.TimeRecordWidgetProvider
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.Duration
+import java.time.Period
+import java.time.temporal.ChronoUnit
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Locale
@@ -68,6 +73,10 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
             getString(R.string.time_records_countdown),
             getString(R.string.time_records_countdown_summary)
         ) { showEditor(TimeRecord.COUNTDOWN) })
+        addCategory.addPreference(createAction(
+            "日期推算",
+            "独立计算两个日期和时间之间的跨度；只计算，不创建正计时或倒计时记录。"
+        ) { showStandaloneDateCalculator() })
         val recordsCategory = PreferenceCategory(context).apply {
             title = getString(R.string.time_records_saved_category)
         }
@@ -281,6 +290,109 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
         }
         dialog.show()
     }
+
+
+    /**
+     * Standalone date/time span calculator. It never creates or modifies a time record.
+     */
+    private fun showStandaloneDateCalculator() {
+        val context = requireContext()
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+        var start = LocalDateTime.now().withSecond(0).withNano(0).withHour(0).withMinute(0)
+        var end = LocalDateTime.now().withSecond(0).withNano(0)
+
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(8), dp(24), 0)
+        }
+        val startButton = TextView(context).apply {
+            textSize = 16f
+            setPadding(0, dp(12), 0, dp(12))
+        }
+        val endButton = TextView(context).apply {
+            textSize = 16f
+            setPadding(0, dp(12), 0, dp(12))
+        }
+        val formatter = DateTimeFormatter.ofPattern("yyyy年M月d日 HH:mm", Locale.CHINA)
+        fun refreshLabels() {
+            startButton.text = "开始：${start.format(formatter)}（点击修改）"
+            endButton.text = "结束：${end.format(formatter)}（点击修改）"
+        }
+        fun editDate(value: LocalDateTime, onChanged: (LocalDateTime) -> Unit) {
+            DatePickerDialog(context, { _, year, month, day ->
+                onChanged(value.withDate(LocalDate.of(year, month + 1, day)))
+                refreshLabels()
+            }, value.year, value.monthValue - 1, value.dayOfMonth).show()
+        }
+        fun editTime(value: LocalDateTime, onChanged: (LocalDateTime) -> Unit) {
+            TimePickerDialog(context, { _, hour, minute ->
+                onChanged(value.withHour(hour).withMinute(minute))
+                refreshLabels()
+            }, value.hour, value.minute, true).show()
+        }
+        startButton.setOnClickListener {
+            AlertDialog.Builder(context)
+                .setTitle("修改开始时间")
+                .setItems(arrayOf("选择日期", "选择时间")) { _, which ->
+                    if (which == 0) editDate(start) { start = it } else editTime(start) { start = it }
+                }.show()
+        }
+        endButton.setOnClickListener {
+            AlertDialog.Builder(context)
+                .setTitle("修改结束时间")
+                .setItems(arrayOf("选择日期", "选择时间")) { _, which ->
+                    if (which == 0) editDate(end) { end = it } else editTime(end) { end = it }
+                }.show()
+        }
+        refreshLabels()
+        container.addView(startButton)
+        container.addView(endButton)
+
+        AlertDialog.Builder(context)
+            .setTitle("日期推算")
+            .setView(container)
+            .setNegativeButton(R.string.clear_label, null)
+            .setPositiveButton("计算跨度", null)
+            .create().also { dialog ->
+                dialog.setOnShowListener {
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                        val earlier = if (start <= end) start else end
+                        val later = if (start <= end) end else start
+                        val duration = Duration.between(earlier, later)
+                        val totalMinutes = duration.toMinutes()
+                        val totalHours = duration.toHours()
+                        val totalDays = duration.toDays()
+                        val totalWeeks = totalDays / 7
+                        val remainingDays = totalDays % 7
+                        val period = Period.between(earlier.toLocalDate(), later.toLocalDate())
+                        val totalMonths = ChronoUnit.MONTHS.between(earlier, later)
+                        val totalYears = ChronoUnit.YEARS.between(earlier, later)
+                        val direction = if (start <= end) "结束时间晚于开始时间" else "结束时间早于开始时间"
+                        val resultText = buildString {
+                            append(direction).append("\\n")
+                            append("日历跨度：${period.years}年${period.months}个月${period.days}天").append("\\n\\n")
+                            append("总年数：${totalYears}年（完整年）").append("\\n")
+                            append("总月数：${totalMonths}个月（完整月）").append("\\n")
+                            append("总星期：${totalWeeks}周${remainingDays}天").append("\\n")
+                            append("总天数：${totalDays}天").append("\\n")
+                            append("总小时：${totalHours}小时").append("\\n")
+                            append("总分钟：${totalMinutes}分钟")
+                        }
+                        AlertDialog.Builder(context)
+                            .setTitle("计算结果")
+                            .setMessage(resultText)
+                            .setPositiveButton("完成", null)
+                            .show()
+                        dialog.dismiss()
+                    }
+                }
+                dialog.show()
+            }
+    }
+
+    private fun LocalDateTime.withDate(date: LocalDate): LocalDateTime =
+        LocalDateTime.of(date, toLocalTime())
 
     private fun showEditor(type: String, existing: TimeRecord? = null) {
         val context = requireContext()
