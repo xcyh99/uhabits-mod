@@ -12,13 +12,12 @@ import androidx.core.app.NotificationManagerCompat
 import org.isoron.platform.time.getToday
 import org.isoron.uhabits.HabitsApplication
 import org.isoron.uhabits.R
-import org.isoron.uhabits.activities.habits.list.ListHabitsActivity
 import org.isoron.uhabits.activities.timerecords.TimeRecord
 import org.isoron.uhabits.activities.timerecords.TimeRecordStore
 import org.isoron.uhabits.core.models.Entry
+import org.isoron.uhabits.intents.IntentFactory
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
-import kotlin.math.min
 
 object StatusBarDaysNotifier {
     private const val CHANNEL_ID = "STATUS_BAR_DAYS_V2"
@@ -57,17 +56,21 @@ object StatusBarDaysNotifier {
                 }
             )
         }
-        val openApp = PendingIntent.getActivity(
-            app, 7405, Intent(app, ListHabitsActivity::class.java).apply {
+        val contentIntent = if (mode == "checkin" && result.habitId != null) {
+            IntentFactory().startShowHabitActivity(app, result.habitId).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            }
+        } else {
+            Intent(app, org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+        }
+        val openApp = PendingIntent.getActivity(
+            app, 7405, contentIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val dayValue = result.days.coerceIn(0L, 99L).toInt()
-        val iconName = "status_days_" + dayValue.toString().padStart(2, '0')
-        val iconRes = app.resources.getIdentifier(iconName, "drawable", app.packageName)
-            .takeIf { it != 0 } ?: R.drawable.ic_notification
         val notification = NotificationCompat.Builder(app, CHANNEL_ID)
-            .setSmallIcon(iconRes)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(result.description)
             .setContentText(result.projectName)
             .setContentIntent(openApp)
@@ -81,7 +84,7 @@ object StatusBarDaysNotifier {
         scheduleDailyRefresh(app)
     }
 
-    private data class DisplayValue(val days: Long, val description: String, val projectName: String)
+    private data class DisplayValue(val days: Long, val description: String, val projectName: String, val habitId: Long? = null)
 
     private fun resolveValue(context: Context, mode: String): DisplayValue? {
         val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
@@ -93,7 +96,7 @@ object StatusBarDaysNotifier {
                 val last = habit.computedEntries.getKnown()
                     .filter { it.completed && it.value != Entry.SKIP }
                     .maxByOrNull { it.date }?.date ?: return null
-                DisplayValue(last.daysUntil(getToday()).toLong(), "距离上次打卡：${last.daysUntil(getToday())} 天", habit.name)
+                DisplayValue(last.daysUntil(getToday()).toLong(), "距离上次打卡：${last.daysUntil(getToday())} 天", habit.name, id)
             }
             "elapsed", "countdown" -> {
                 val id = prefs.getString("status_bar_days_record_id", null) ?: return null
