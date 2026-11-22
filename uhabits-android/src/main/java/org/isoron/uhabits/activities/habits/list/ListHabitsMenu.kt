@@ -65,6 +65,13 @@ class ListHabitsMenu(
         val nightModeItem = menu.findItem(R.id.actionToggleNightMode)
         val hideArchivedItem = menu.findItem(R.id.actionHideArchived)
         val hideCompletedItem = menu.findItem(R.id.actionHideCompleted)
+        // Bind the shortcut action directly to the menu item. This keeps the
+        // toolbar shortcut responsive even when the activity's options-menu
+        // callback is rebuilt during invalidateOptionsMenu().
+        menu.findItem(R.id.actionShortcuts)?.setOnMenuItemClickListener {
+            showShortcutsMenu()
+            true
+        }
         nightModeItem.isChecked = themeSwitcher.isNightMode
         hideArchivedItem.isChecked = !preferences.showArchived
         hideCompletedItem.isChecked = !preferences.showCompleted
@@ -122,10 +129,12 @@ class ListHabitsMenu(
     }
 
     private fun showShortcutsMenu() {
+        // Prefer the actual toolbar action view as the popup anchor. The
+        // action item is not guaranteed to be a child of the Toolbar when
+        // AppCompat rebuilds the options menu, so retain safe fallbacks.
+        val actionView = activity.findViewById<android.view.View>(R.id.actionShortcuts)
         val toolbar = activity.findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
-        val anchor = toolbar?.findViewById<android.view.View>(R.id.actionShortcuts)
-            ?: toolbar
-            ?: activity.window.decorView
+        val anchor = actionView ?: toolbar ?: activity.window.decorView
         val popup = PopupMenu(activity, anchor)
         val prefs = PreferenceManager.getDefaultSharedPreferences(activity)
         val savedOrder = prefs.getString("feature_shortcuts_order", null)
