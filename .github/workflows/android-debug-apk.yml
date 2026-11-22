@@ -69,12 +69,19 @@ jobs:
         if: github.event_name == 'pull_request'
         run: ./gradlew :uhabits-android:assembleDebug --no-daemon
 
+      - name: Give release APK a readable filename
+        if: github.event_name != 'pull_request'
+        run: |
+          APK_PATH="$(find uhabits-android/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' | head -n 1)"
+          test -n "$APK_PATH"
+          cp "$APK_PATH" "uhabits-android/build/outputs/apk/release/十字习惯APP_正式版.apk"
+
       - name: Upload signed release APK
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: shizi-habits-release
-          path: uhabits-android/build/outputs/apk/release/*.apk
+          path: uhabits-android/build/outputs/apk/release/十字习惯APP_正式版.apk
           if-no-files-found: error
           retention-days: 14
 
