@@ -24,11 +24,13 @@ class WidgetTapRouterActivity : Activity() {
     private val singleTapAction = Runnable {
         if (handled || habitId < 0L || isFinishing) return@Runnable
         handled = true
-        val intent = Intent(this, ShowHabitActivity::class.java).apply {
+        val target = Intent(this, ShowHabitActivity::class.java).apply {
             data = Uri.parse("content://org.isoron.uhabits/habit/$habitId")
         }
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        startActivity(intent)
+        // Keep the destination in this tap-router task. NEW_TASK/CLEAR_TOP
+        // could expose the main activity before ShowHabitActivity on launchers
+        // that reconstruct the parent task.
+        startActivity(target)
         overridePendingTransition(0, 0)
         finish()
         overridePendingTransition(0, 0)
@@ -48,10 +50,10 @@ class WidgetTapRouterActivity : Activity() {
         if (handled) return
         handled = true
         handler.removeCallbacks(singleTapAction)
-        val target = Intent(this, SettingsActivity::class.java)
-            .putExtra("open_preference_key", "widgetManager")
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        startActivity(target)
+        startActivity(
+            Intent(this, SettingsActivity::class.java)
+                .putExtra("open_preference_key", "widgetManager")
+        )
         overridePendingTransition(0, 0)
         finish()
         overridePendingTransition(0, 0)
