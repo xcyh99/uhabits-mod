@@ -168,6 +168,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     "exportCSV",
                     "importData",
                     "featureShortcuts",
+                    "widgetManager",
                     "webDavSync",
                     "settingsBackupRestore",
                     "publicBackupFolder",
