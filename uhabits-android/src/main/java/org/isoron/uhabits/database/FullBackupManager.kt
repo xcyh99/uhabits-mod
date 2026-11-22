@@ -9,12 +9,14 @@ import androidx.preference.PreferenceManager
 import org.json.JSONArray
 import org.json.JSONObject
 import org.isoron.uhabits.BuildConfig
+import org.isoron.uhabits.core.DATABASE_VERSION
 import org.isoron.uhabits.utils.BackupFileName
 import org.isoron.uhabits.utils.DatabaseUtils
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.IOException
 import java.security.MessageDigest
 import java.util.zip.ZipEntry
@@ -156,6 +158,195 @@ class FullBackupManager(private val context: Context) {
         )
     }
 
+    /**
+     * Validates the selected archive and stages it for application on the next
+     * cold application start. The live database is never replaced while its
+     * SQLite connections are open.
+     */
+    @Throws(IOException::class)
+    fun prepareRestore(source: Uri): BackupInfo {
+        val info = inspectBackup(source)
+        if (info.databaseVersion > DATABASE_VERSION) {
+            throw IOException("此备份来自更新版本的数据库，当前版本无法安全恢复")
+        }
+
+        val input = context.contentResolver.openInputStream(source)
+            ?: throw IOException("无法读取所选备份文件")
+        val staging = File(context.filesDir, PENDING_RESTORE_DIR + ".tmp")
+        staging.deleteRecursively()
+        if (!staging.mkdirs()) throw IOException("无法创建恢复暂存目录")
+
+        try {
+            var totalBytes = 0L
+            ZipInputStream(BufferedInputStream(input)).use { zip ->
+                var entry = zip.nextEntry
+                while (entry != null) {
+                    if (!entry.isDirectory && entry.name in RESTORABLE_ENTRIES) {
+                        requireSafeEntryName(entry.name)
+                        val target = File(staging, entry.name)
+                        target.parentFile?.mkdirs()
+                        FileOutputStream(target).use { output ->
+                            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                            while (true) {
+                                val count = zip.read(buffer)
+                                if (count < 0) break
+                                totalBytes += count
+                                if (totalBytes > MAX_TOTAL_BYTES) throw IOException("备份包解压后超过允许大小")
+                                output.write(buffer, 0, count)
+                            }
+                        }
+                    }
+                    zip.closeEntry()
+                    entry = zip.nextEntry
+                }
+            }
+
+            val database = File(staging, "database/uhabits.db")
+            if (!database.isFile || database.length() == 0L) throw IOException("备份中没有有效主数据库")
+            validateDatabaseFile(database)
+            JSONObject(File(staging, "modules/time_records.json").readText())
+            JSONObject(File(staging, "widgets/time_record_widget_links.json").readText())
+            JSONObject(File(staging, "settings/preferences.json").readText())
+
+            val pending = File(context.filesDir, PENDING_RESTORE_DIR)
+            pending.deleteRecursively()
+            if (!staging.renameTo(pending)) throw IOException("无法保存待恢复数据")
+            return info
+        } catch (error: Exception) {
+            staging.deleteRecursively()
+            if (error is IOException) throw error
+            throw IOException(error.message ?: "备份恢复准备失败", error)
+        }
+    }
+
+    /**
+     * Called by HabitsApplication before opening SQLite. A pre-restore safety
+     * copy is retained so a failed restore can be rolled back.
+     */
+    @Throws(IOException::class)
+    fun applyPendingRestoreIfPresent(): Boolean {
+        val pending = File(context.filesDir, PENDING_RESTORE_DIR)
+        if (!pending.isDirectory) return false
+
+        val databaseFile = DatabaseUtils.getDatabaseFile(context)
+        databaseFile.parentFile?.mkdirs()
+        val safetyDir = File(
+            context.filesDir,
+            "restore-safety/${BackupFileName.timestamp()}"
+        ).apply { mkdirs() }
+        val safetyDatabase = File(safetyDir, "uhabits.db")
+        if (databaseFile.isFile) databaseFile.copyTo(safetyDatabase, overwrite = true)
+
+        val defaultPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+        val safetyPreferences = encodePreferences(defaultPreferences).toString()
+        val safetyTimeRecords = context.getSharedPreferences("time_records_data", Context.MODE_PRIVATE)
+            .getString("records", "[]") ?: "[]"
+        val safetyWidgetLinks = encodeStringPreferences(
+            context.getSharedPreferences("time_record_widget_links", Context.MODE_PRIVATE)
+        ).toString()
+        File(safetyDir, "preferences.json").writeText(safetyPreferences)
+        File(safetyDir, "time_records.json").writeText(
+            JSONObject().put("records", JSONArray(safetyTimeRecords)).toString()
+        )
+        File(safetyDir, "time_record_widget_links.json").writeText(safetyWidgetLinks)
+
+        try {
+            val stagedDatabase = File(pending, "database/uhabits.db")
+            validateDatabaseFile(stagedDatabase)
+            val replacement = File(databaseFile.parentFile, databaseFile.name + ".restore")
+            stagedDatabase.copyTo(replacement, overwrite = true)
+            File(databaseFile.absolutePath + "-wal").delete()
+            File(databaseFile.absolutePath + "-shm").delete()
+            if (databaseFile.exists() && !databaseFile.delete()) {
+                throw IOException("无法替换当前数据库")
+            }
+            if (!replacement.renameTo(databaseFile)) {
+                replacement.copyTo(databaseFile, overwrite = true)
+                replacement.delete()
+            }
+
+            restorePreferences(File(pending, "settings/preferences.json").readText())
+            restoreTimeRecords(File(pending, "modules/time_records.json").readText())
+            restoreWidgetLinks(File(pending, "widgets/time_record_widget_links.json").readText())
+            pending.deleteRecursively()
+            return true
+        } catch (error: Exception) {
+            if (safetyDatabase.isFile) {
+                databaseFile.delete()
+                safetyDatabase.copyTo(databaseFile, overwrite = true)
+            }
+            runCatching { restorePreferences(safetyPreferences) }
+            runCatching { restoreTimeRecords(JSONObject().put("records", JSONArray(safetyTimeRecords)).toString()) }
+            runCatching { restoreWidgetLinks(safetyWidgetLinks) }
+            throw IOException(error.message ?: "完整备份恢复失败，已尝试恢复原数据", error)
+        }
+    }
+
+    private fun validateDatabaseFile(file: File) {
+        val db = SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READONLY)
+        try {
+            if (db.version > DATABASE_VERSION) {
+                throw IOException("备份数据库版本高于当前 App 支持的版本")
+            }
+            db.rawQuery("PRAGMA integrity_check", null).use { cursor ->
+                if (!cursor.moveToFirst() || cursor.getString(0) != "ok") {
+                    throw IOException("备份数据库完整性检查未通过")
+                }
+            }
+        } finally {
+            db.close()
+        }
+    }
+
+    private fun restorePreferences(document: String) {
+        val values = JSONObject(document).optJSONObject("values")
+            ?: throw IOException("软件设置备份内容不完整")
+        val preferences = PreferenceManager.getDefaultSharedPreferences(context)
+        val editor = preferences.edit()
+        preferences.all.keys.forEach { key ->
+            if (!isDeviceLocalPreference(key)) editor.remove(key)
+        }
+        values.keys().forEach { key ->
+            val item = values.getJSONObject(key)
+            val value = item.get("value")
+            when (item.getString("type")) {
+                "boolean" -> editor.putBoolean(key, value as Boolean)
+                "int" -> editor.putInt(key, (value as Number).toInt())
+                "long" -> editor.putLong(key, (value as Number).toLong())
+                "float" -> editor.putFloat(key, (value as Number).toFloat())
+                "string" -> editor.putString(key, value as String)
+                "string_set" -> {
+                    val array = value as JSONArray
+                    editor.putStringSet(key, buildSet {
+                        for (index in 0 until array.length()) add(array.getString(index))
+                    })
+                }
+                else -> throw IOException("不支持的软件设置类型：${item.optString("type")}")
+            }
+        }
+        if (!editor.commit()) throw IOException("软件设置恢复失败")
+    }
+
+    private fun restoreTimeRecords(document: String) {
+        val records = JSONObject(document).optJSONArray("records")
+            ?: throw IOException("时间记录备份内容不完整")
+        if (!context.getSharedPreferences("time_records_data", Context.MODE_PRIVATE)
+                .edit().putString("records", records.toString()).commit()
+        ) throw IOException("时间记录恢复失败")
+    }
+
+    private fun restoreWidgetLinks(document: String) {
+        val values = JSONObject(document).optJSONObject("values")
+            ?: throw IOException("小组件配置备份内容不完整")
+        val preferences = context.getSharedPreferences("time_record_widget_links", Context.MODE_PRIVATE)
+        val editor = preferences.edit().clear()
+        values.keys().forEach { key -> editor.putString(key, values.getString(key)) }
+        if (!editor.commit()) throw IOException("时间记录小组件配置恢复失败")
+    }
+
+    private fun isDeviceLocalPreference(key: String): Boolean =
+        key.startsWith("webdav_") || key == "publicBackupFolder" || key == "reminderSound"
+
     private fun checkpointAndValidateDatabase(file: File) {
         val db = SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READWRITE)
         try {
@@ -257,5 +448,13 @@ class FullBackupManager(private val context: Context) {
         const val FORMAT_NAME = "SHIZI_FULL_BACKUP"
         const val FORMAT_VERSION = 1
         const val MAX_ENTRY_BYTES = 128 * 1024 * 1024
+        const val MAX_TOTAL_BYTES = 256L * 1024 * 1024
+        const val PENDING_RESTORE_DIR = "full-backup-pending"
+        val RESTORABLE_ENTRIES = setOf(
+            "database/uhabits.db",
+            "modules/time_records.json",
+            "widgets/time_record_widget_links.json",
+            "settings/preferences.json"
+        )
     }
 }
