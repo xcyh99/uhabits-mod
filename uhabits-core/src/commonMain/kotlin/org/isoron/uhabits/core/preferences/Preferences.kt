@@ -183,8 +183,11 @@ open class Preferences(private val storage: Storage) {
             for (l in listeners) l.onCheckmarkSequenceChanged()
         }
 
+    open val midnightDelayStartHour: Int
+        get() = storage.getInt("pref_midnight_delay_hour", MIDNIGHT_DELAY_HOURS).coerceIn(0, 23)
+
     open val midnightDelayHours: Int
-        get() = if (isMidnightDelayEnabled) MIDNIGHT_DELAY_HOURS else 0
+        get() = if (isMidnightDelayEnabled) midnightDelayStartHour else 0
 
     companion object {
         const val MIDNIGHT_DELAY_HOURS = 3
