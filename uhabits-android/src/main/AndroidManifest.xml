@@ -75,6 +75,14 @@
         </activity>
 
         <activity
+            android:name="org.isoron.uhabits.activities.timerecords.TimeRecordsActivity"
+            android:label="@string/time_records">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="org.isoron.uhabits.activities.habits.list.ListHabitsActivity" />
+        </activity>
+
+        <activity
             android:name="org.isoron.uhabits.activities.settings.SettingsActivity"
             android:label="@string/settings">
             <meta-data
