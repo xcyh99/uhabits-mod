@@ -156,6 +156,7 @@
     <string name="frequency">Frequency</string>
     <string name="checkmark">Checkmark</string>
     <string name="days_since_last_checkin">Days since last check-in</string>
+    <string name="batch_add_widget_name">批量添加</string>
     <string name="checkmark_stack_widget" formatted="false">Checkmark Stack Widget</string>
     <string name="frequency_stack_widget" formatted="false">Frequency Stack Widget</string>
     <string name="score_stack_widget" formatted="false">Score Stack Widget</string>
