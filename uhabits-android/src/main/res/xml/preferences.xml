@@ -115,6 +115,12 @@
             android:title="@string/feature_center">
 
         <Preference
+                android:key="startupPage"
+                android:title="启动首页设置"
+                android:summary="设置每次打开十字习惯 APP 时首先显示的页面。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
                 android:key="timeRecords"
                 android:title="@string/time_records"
                 android:summary="@string/time_records_summary"
