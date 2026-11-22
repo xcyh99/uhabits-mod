@@ -157,8 +157,7 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Do not rebuild the options menu before dispatching the click. Doing so
-        // can replace the clicked MenuItem while its shortcut popup is opening.
+        invalidateOptionsMenu()
         return menu.onItemSelected(item)
     }
 
