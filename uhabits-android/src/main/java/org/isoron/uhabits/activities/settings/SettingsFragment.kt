@@ -62,6 +62,7 @@ import org.isoron.uhabits.activities.habits.list.RESULT_REPAIR_DB
 import org.isoron.uhabits.core.preferences.Preferences
 import org.isoron.uhabits.core.models.sqlite.SQLiteHabitList
 import org.isoron.uhabits.database.WebDavSync
+import org.isoron.uhabits.database.FullBackupManager
 import org.isoron.uhabits.database.WebDavSettingsBackup
 import org.isoron.uhabits.database.TwoWaySyncPreview
 import org.isoron.uhabits.database.DatabaseSyncMergeWriter
@@ -104,6 +105,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 requireContext().contentResolver.takePersistableUriPermission(uri, flags)
                 sharedPrefs?.edit()?.putString("publicBackupFolder", uri.toString())?.apply()
                 updatePublicBackupFolderSummary()
+                return
+            }
+            FULL_BACKUP_CREATE_REQUEST_CODE -> {
+                if (resultCode != android.app.Activity.RESULT_OK) return
+                val uri = data?.data ?: return
+                createFullBackup(uri)
                 return
             }
         }
@@ -153,6 +160,15 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         val key = preference.key ?: return false
         when (key) {
+            "createFullBackup" -> {
+                val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "application/octet-stream"
+                    putExtra(Intent.EXTRA_TITLE, FullBackupManager(requireContext()).suggestedFileName())
+                }
+                startActivityForResult(intent, FULL_BACKUP_CREATE_REQUEST_CODE)
+                return true
+            }
             "timeRecords" -> {
                 startActivity(Intent(requireContext(), org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
                 return true
@@ -215,6 +231,29 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         findPreference("webDavSync").title =
             "☆ " + getString(R.string.webdav_sync)
         findPreference("reminderSound").isVisible = false
+    }
+
+    private fun createFullBackup(uri: Uri) {
+        val appContext = requireContext().applicationContext
+        Toast.makeText(requireContext(), "正在创建完整备份…", Toast.LENGTH_SHORT).show()
+        Thread {
+            val result = runCatching { FullBackupManager(appContext).createBackup(uri) }
+            activity?.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+                result.fold(
+                    {
+                        Toast.makeText(requireContext(), "完整备份已创建", Toast.LENGTH_LONG).show()
+                    },
+                    { error ->
+                        Toast.makeText(
+                            requireContext(),
+                            error.message ?: "完整备份创建失败",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                )
+            }
+        }.start()
     }
 
     private fun showSettingsBackupRestore() {
@@ -1064,5 +1103,6 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     companion object {
         private const val RINGTONE_REQUEST_CODE = 1
         private const val PUBLIC_BACKUP_REQUEST_CODE = 2
+        private const val FULL_BACKUP_CREATE_REQUEST_CODE = 3
     }
 }
