@@ -302,8 +302,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         val checked = BooleanArray(widgets.size)
         val selected = linkedSetOf<Int>()
         AlertDialog.Builder(context)
-            .setTitle("桌面组件管理")
-            .setMessage("选择要添加到桌面的组件，可一次选择多种。点击添加后，系统桌面会逐项请求确认。")
+            .setTitle("选择要添加的桌面组件（可多选）")
             .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
                 if (isChecked) selected.add(which) else selected.remove(which)
             }
@@ -368,32 +367,35 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
 
     private fun showShortcutOrderDialog(
         selected: MutableList<String>,
-        store: SharedPreferences
+        store: SharedPreferences,
+        initialSelectedIndex: Int = 0
     ) {
         if (selected.isEmpty()) {
             saveShortcutOrder(selected, store)
             return
         }
-        var selectedIndex = 0
+        var selectedIndex = initialSelectedIndex.coerceIn(0, selected.lastIndex)
         val labels = selected.map { key ->
             findPreference(key)?.title?.toString() ?: key
         }.toTypedArray()
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.shortcut_order_title)
-            .setSingleChoiceItems(labels, 0) { _, which -> selectedIndex = which }
+            .setSingleChoiceItems(labels, selectedIndex) { _, which -> selectedIndex = which }
             .setPositiveButton(R.string.shortcut_move_up) { _, _ ->
                 if (selectedIndex > 0) {
                     val item = selected.removeAt(selectedIndex)
                     selected.add(selectedIndex - 1, item)
+                    selectedIndex -= 1
                 }
-                showShortcutOrderDialog(selected, store)
+                showShortcutOrderDialog(selected, store, selectedIndex)
             }
             .setNegativeButton(R.string.shortcut_move_down) { _, _ ->
                 if (selectedIndex < selected.lastIndex) {
                     val item = selected.removeAt(selectedIndex)
                     selected.add(selectedIndex + 1, item)
+                    selectedIndex += 1
                 }
-                showShortcutOrderDialog(selected, store)
+                showShortcutOrderDialog(selected, store, selectedIndex)
             }
             .setNeutralButton(android.R.string.ok) { _, _ -> saveShortcutOrder(selected, store) }
             .show()
