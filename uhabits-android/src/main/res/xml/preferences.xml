@@ -33,6 +33,13 @@
             android:title="@string/database">
 
         <Preference
+                android:key="createFullBackup"
+                android:title="完整备份"
+                android:summary="创建包含主数据库、时间记录、软件设置和时间记录小组件配置的备份包（.uhabitsbackup）"
+                app:iconSpaceReserved="false" />
+
+
+        <Preference
                 android:key="exportDB"
                 android:summary="@string/export_full_backup_summary"
                 android:title="@string/export_full_backup"
