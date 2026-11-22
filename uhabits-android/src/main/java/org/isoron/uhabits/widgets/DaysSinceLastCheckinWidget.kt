@@ -128,7 +128,7 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         }
         titleLines.forEachIndexed { index, line ->
             val baseline = if (titleLines.size == 1) height * 0.18f
-                else height * (0.12f + index * 0.13f)
+                else height * (0.12f + index * 0.115f)
             canvas.drawText(line, width / 2f, baseline, titlePaint)
         }
 
@@ -137,19 +137,19 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         // Always reserve the full two-line title slot, even when the title
         // currently renders as one line or is empty. This keeps the number's
         // vertical position and size stable across title changes.
-        val reservedTitleLastBaseline = height * 0.25f
+        val reservedTitleLastBaseline = height * 0.235f
         val titleBottom = reservedTitleLastBaseline + titlePaint.descent()
         labelPaint.textSize = 6.5f * density
         labelPaint.color = activeColor
-        val labelBaseline = height * 0.94f
+        val labelBaseline = height * 0.97f
         val labelTop = labelBaseline + labelPaint.ascent()
-        val verticalGap = 2.4f * density
+        val verticalGap = 1.6f * density
         val numberTopLimit = titleBottom + verticalGap
         val numberBottomLimit = labelTop - verticalGap
         val availableNumberHeight = (numberBottomLimit - numberTopLimit).coerceAtLeast(1f)
 
-        val baseNumberSize = min(width * 0.82f, height * 0.70f)
-        var numberSize = min(baseNumberSize, availableNumberHeight / 1.18f)
+        val baseNumberSize = min(width * 0.86f, height * 0.82f)
+        var numberSize = min(baseNumberSize, availableNumberHeight / 1.12f)
         // Short counts use a fuller width; longer counts progressively return to / narrow
         // the condensed face. Font height is independent of digit count.
         val digitWidthScale = when (number.length) {
