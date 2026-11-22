@@ -142,6 +142,13 @@ class ListHabitsMenu(
         val selected = savedOrder?.takeIf { it.isNotEmpty() }
             ?: prefs.getStringSet("feature_shortcuts", emptySet())?.toList().orEmpty()
         val available = selected.mapNotNull { key -> shortcutTitle(key)?.let { key to it } }
+        popup.menu.add(activity.getString(R.string.configure_shortcuts)).setOnMenuItemClickListener {
+            activity.startActivity(
+                Intent(activity, SettingsActivity::class.java)
+                    .putExtra("open_preference_key", "featureShortcuts")
+            )
+            true
+        }
         if (available.isEmpty()) {
             popup.menu.add(activity.getString(R.string.no_shortcuts_configured)).isEnabled = false
         } else {
@@ -158,13 +165,6 @@ class ListHabitsMenu(
                     true
                 }
             }
-        }
-        popup.menu.add(activity.getString(R.string.configure_shortcuts)).setOnMenuItemClickListener {
-            activity.startActivity(
-                Intent(activity, SettingsActivity::class.java)
-                    .putExtra("open_preference_key", "featureShortcuts")
-            )
-            true
         }
         popup.show()
     }
