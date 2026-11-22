@@ -115,19 +115,32 @@ object StatusBarDaysNotifier {
     }
 
     private fun scheduleDailyRefresh(context: Context) {
+        val app = context.applicationContext as HabitsApplication
+        val delayHours = app.component.preferences.midnightDelayHours
         val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, StatusBarDaysReceiver::class.java).setAction(ACTION_UPDATE)
         val pending = PendingIntent.getBroadcast(
             context, 7406, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+
+        // Habits may use a delayed day boundary (for example, 03:00 instead of 00:00).
+        // Schedule the next refresh just after that boundary, not at natural midnight.
+        val now = System.currentTimeMillis()
         val next = java.util.Calendar.getInstance().apply {
-            add(java.util.Calendar.DAY_OF_YEAR, 1)
-            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.HOUR_OF_DAY, delayHours)
             set(java.util.Calendar.MINUTE, 3)
             set(java.util.Calendar.SECOND, 0)
             set(java.util.Calendar.MILLISECOND, 0)
+            if (timeInMillis <= now) add(java.util.Calendar.DAY_OF_YEAR, 1)
         }.timeInMillis
-        alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, next, AlarmManager.INTERVAL_DAY, pending)
+
+        // A one-shot alarm is recalculated after every refresh, so preference changes
+        // and daylight-saving/time-zone changes do not leave a stale repeating schedule.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next, pending)
+        } else {
+            alarm.set(AlarmManager.RTC_WAKEUP, next, pending)
+        }
     }
 
     private fun cancelDailyRefresh(context: Context) {
