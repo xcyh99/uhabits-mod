@@ -156,7 +156,8 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
             1 -> 1.18f
             2 -> 1.10f
             3 -> 1.0f
-            else -> 0.92f
+            4 -> 0.92f
+            else -> (0.92f - (number.length - 4) * 0.06f).coerceAtLeast(0.70f)
         }
         numberPaint.textScaleX = digitWidthScale
         outlinePaint.textScaleX = digitWidthScale
@@ -167,7 +168,8 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
             1 -> 0f
             2 -> -0.5f * density
             3 -> -1.0f * density
-            else -> -1.5f * density
+            4 -> -1.5f * density
+            else -> -(1.5f + (number.length - 4) * 0.5f) * density
         }
         var digitSpacing = baseSpacing
         var totalNumberWidth = glyphWidths.sum() + digitSpacing * gapCount
