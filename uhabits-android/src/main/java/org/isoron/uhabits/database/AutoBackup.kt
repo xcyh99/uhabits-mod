@@ -65,13 +65,19 @@ class AutoBackup(private val context: Context) {
             ?: emptyList()
         val newestTimestamp = files.lastOrNull()?.lastModified() ?: 0L
         if (System.currentTimeMillis() - newestTimestamp > DateUtils.DAY_LENGTH) {
-            removeOldestPrivate(files, (keep - 1).coerceAtLeast(0))
             val target = File(dir, "Shizi_Full_Backup_${BackupFileName.timestamp()}.uhabitsbackup")
-            runCatching { FullBackupManager(context).createBackup(target) }
-                .onFailure {
-                    target.delete()
-                    Log.e("AutoBackup", "Unable to create automatic full backup", it)
-                }
+            runCatching {
+                FullBackupManager(context).createBackup(target)
+                // Retention is applied only after the new archive has been written successfully.
+                val updatedFiles = dir.listFiles()
+                    ?.filter { it.isFile && backupPattern.matches(it.name) }
+                    ?.sortedBy { it.lastModified() }
+                    ?: emptyList()
+                removeOldestPrivate(updatedFiles, keep.coerceAtLeast(1))
+            }.onFailure {
+                target.delete()
+                Log.e("AutoBackup", "Unable to create automatic full backup", it)
+            }
         } else {
             Log.i("AutoBackup", "Fresh full backup found (timestamp=$newestTimestamp)")
         }
@@ -83,18 +89,23 @@ class AutoBackup(private val context: Context) {
             .sortedBy { it.lastModified() }
         val newestTimestamp = files.lastOrNull()?.lastModified() ?: 0L
         if (System.currentTimeMillis() - newestTimestamp > DateUtils.DAY_LENGTH) {
-            removeOldestPublic(files, (keep - 1).coerceAtLeast(0))
             val name = "Shizi_Full_Backup_${BackupFileName.timestamp()}.uhabitsbackup"
             val target = dir.createFile("application/octet-stream", name)
             if (target == null) {
                 Log.e("AutoBackup", "Unable to create automatic full backup file")
                 return
             }
-            runCatching { FullBackupManager(context).createBackup(target.uri) }
-                .onFailure {
-                    target.delete()
-                    Log.e("AutoBackup", "Unable to create automatic full backup", it)
-                }
+            runCatching {
+                FullBackupManager(context).createBackup(target.uri)
+                // Keep the previous valid archives until the replacement is complete.
+                val updatedFiles = dir.listFiles()
+                    .filter { it.isFile && it.name?.let(backupPattern::matches) == true }
+                    .sortedBy { it.lastModified() }
+                removeOldestPublic(updatedFiles, keep.coerceAtLeast(1))
+            }.onFailure {
+                target.delete()
+                Log.e("AutoBackup", "Unable to create automatic full backup", it)
+            }
         } else {
             Log.i("AutoBackup", "Fresh full backup found (timestamp=$newestTimestamp)")
         }
