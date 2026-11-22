@@ -29,30 +29,6 @@
 
 
     <PreferenceCategory
-            android:key="backupCategory"
-            android:title="备份与恢复">
-
-        <Preference
-                android:key="createFullBackup"
-                android:title="完整备份"
-                android:summary="备份主数据库、时间记录、软件设置和小组件配置；不包含桌面布局及设备专属权限。"
-                app:iconSpaceReserved="false" />
-
-        <Preference
-                android:key="restoreFullBackup"
-                android:title="完整恢复"
-                android:summary="从 .uhabitsbackup 恢复数据；恢复前保存本机安全副本，并重启应用。"
-                app:iconSpaceReserved="false" />
-
-        <Preference
-                android:key="publicBackupFolder"
-                android:title="@string/select_public_backup_folder"
-                android:summary="@string/no_public_backup_folder_selected"
-                app:iconSpaceReserved="false" />
-
-    </PreferenceCategory>
-
-    <PreferenceCategory
             android:key="importExportCategory"
             android:title="数据导入与导出">
 
@@ -96,6 +72,30 @@
                 android:key="settingsBackupRestore"
                 android:title="@string/settings_backup_restore"
                 android:summary="@string/settings_backup_restore_summary"
+                app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+            android:key="backupCategory"
+            android:title="备份与恢复">
+
+        <Preference
+                android:key="createFullBackup"
+                android:title="完整备份"
+                android:summary="备份主数据库、时间记录、软件设置和小组件配置；不包含桌面布局及设备专属权限。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
+                android:key="restoreFullBackup"
+                android:title="完整恢复"
+                android:summary="从 .uhabitsbackup 恢复数据；恢复前保存本机安全副本，并重启应用。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
+                android:key="publicBackupFolder"
+                android:title="@string/select_public_backup_folder"
+                android:summary="@string/no_public_backup_folder_selected"
                 app:iconSpaceReserved="false" />
 
     </PreferenceCategory>
