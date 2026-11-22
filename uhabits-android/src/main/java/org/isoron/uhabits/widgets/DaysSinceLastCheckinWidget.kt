@@ -55,7 +55,7 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
     var backgroundAlpha: Int = 255
 
     private val numberPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        textAlign = Paint.Align.CENTER
+        textAlign = Paint.Align.LEFT
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
     private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -69,7 +69,7 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
     private val outlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         color = Color.WHITE
-        textAlign = Paint.Align.CENTER
+        textAlign = Paint.Align.LEFT
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
     private val cardRect = RectF()
@@ -109,13 +109,25 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
             canvas.drawText(title, width / 2f, height * 0.18f, titlePaint)
         }
 
-        // Shrink the number only as much as needed, so 3–4 digit counts stay inside the card.
+        // Keep the original font size whenever possible: tighten digit spacing first,
+        // and only scale the whole number down if the minimum spacing still cannot fit.
         var numberSize = min(width * 0.62f, height * 0.52f)
         numberPaint.textSize = numberSize
-        val measuredNumberWidth = numberPaint.measureText(number)
-        if (measuredNumberWidth > maxTextWidth) {
-            numberSize *= maxTextWidth / measuredNumberWidth
+        var glyphWidths = number.map { numberPaint.measureText(it.toString()) }
+        val glyphWidth = glyphWidths.sum()
+        val gapCount = (number.length - 1).coerceAtLeast(0)
+        val minDigitSpacing = -1.5f * density
+        var digitSpacing = if (gapCount > 0) {
+            ((maxTextWidth - glyphWidth) / gapCount).coerceAtMost(0f)
+                .coerceAtLeast(minDigitSpacing)
+        } else 0f
+        var totalNumberWidth = glyphWidth + digitSpacing * gapCount
+        if (totalNumberWidth > maxTextWidth) {
+            numberSize *= maxTextWidth / totalNumberWidth
             numberPaint.textSize = numberSize
+            glyphWidths = number.map { numberPaint.measureText(it.toString()) }
+            digitSpacing = minDigitSpacing * (numberSize / min(width * 0.62f, height * 0.52f))
+            totalNumberWidth = glyphWidths.sum() + digitSpacing * gapCount
         }
         numberPaint.color = activeColor
         labelPaint.textSize = 8f * density
@@ -126,11 +138,14 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         val colorLum = Color.luminance(activeColor)
         val drawOutline = ColorOutline.shouldUseLightOutline(bgLum.toDouble(), colorLum.toDouble())
         val numberBaseline = height * 0.55f - (numberPaint.ascent() + numberPaint.descent()) / 2f
-        if (drawOutline) {
-            outlinePaint.strokeWidth = 0.6f * density
-            canvas.drawText(number, width / 2f, numberBaseline, outlinePaint)
+        var numberX = (width - totalNumberWidth) / 2f
+        if (drawOutline) outlinePaint.strokeWidth = 0.6f * density
+        number.forEachIndexed { index, character ->
+            val glyph = character.toString()
+            if (drawOutline) canvas.drawText(glyph, numberX, numberBaseline, outlinePaint)
+            canvas.drawText(glyph, numberX, numberBaseline, numberPaint)
+            numberX += glyphWidths[index] + digitSpacing
         }
-        canvas.drawText(number, width / 2f, numberBaseline, numberPaint)
         canvas.drawText("天未打卡", width / 2f, height * 0.94f, labelPaint)
     }
 }
