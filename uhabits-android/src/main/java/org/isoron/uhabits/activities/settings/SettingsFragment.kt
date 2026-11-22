@@ -26,6 +26,7 @@ import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
 import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.Settings
@@ -223,6 +224,18 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             }
             "startupPage" -> {
                 showStartupPageSettings()
+                return true
+            }
+            "floatingTimer" -> {
+                val context = requireContext()
+                if (!Settings.canDrawOverlays(context)) {
+                    Toast.makeText(context, "请允许十字习惯 APP 显示在其他应用上层，然后再次点击悬浮计时器", Toast.LENGTH_LONG).show()
+                    val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context.packageName))
+                    startActivity(intent)
+                } else {
+                    val intent = Intent(context, FloatingTimerService::class.java).setAction(FloatingTimerService.ACTION_SETUP)
+                    if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
+                }
                 return true
             }
             "statusBarDays" -> {
