@@ -316,10 +316,23 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 result.fold(
                     {
                         Toast.makeText(requireContext(), "备份已验证，正在重启并恢复…", Toast.LENGTH_LONG).show()
-                        val intent = Intent(requireContext(), ListHabitsActivity::class.java).apply {
+                        val restartIntent = Intent(appContext, ListHabitsActivity::class.java).apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                         }
-                        startActivity(intent)
+                        val restart = android.app.PendingIntent.getActivity(
+                            appContext,
+                            FULL_BACKUP_RESTART_REQUEST_CODE,
+                            restartIntent,
+                            android.app.PendingIntent.FLAG_CANCEL_CURRENT or
+                                android.app.PendingIntent.FLAG_IMMUTABLE
+                        )
+                        val alarm = appContext.getSystemService(android.content.Context.ALARM_SERVICE)
+                            as android.app.AlarmManager
+                        alarm.set(
+                            android.app.AlarmManager.RTC_WAKEUP,
+                            System.currentTimeMillis() + 800L,
+                            restart
+                        )
                         requireActivity().finishAffinity()
                         android.os.Process.killProcess(android.os.Process.myPid())
                     },
@@ -1276,5 +1289,6 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         private const val PUBLIC_BACKUP_REQUEST_CODE = 2
         private const val FULL_BACKUP_CREATE_REQUEST_CODE = 3
         private const val FULL_BACKUP_RESTORE_REQUEST_CODE = 4
+        private const val FULL_BACKUP_RESTART_REQUEST_CODE = 5
     }
 }
