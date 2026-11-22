@@ -56,7 +56,7 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
 
     private val numberPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.LEFT
-        typeface = Typeface.create("sans-serif-condensed", Typeface.NORMAL)
+        typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
     }
     private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.CENTER
@@ -70,7 +70,7 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         style = Paint.Style.STROKE
         color = Color.WHITE
         textAlign = Paint.Align.LEFT
-        typeface = Typeface.create("sans-serif-condensed", Typeface.NORMAL)
+        typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
     }
     private val cardRect = RectF()
 
@@ -153,7 +153,7 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
             totalNumberWidth = glyphWidths.sum() + digitSpacing * gapCount
         }
         numberPaint.color = activeColor
-        labelPaint.textSize = 8f * density
+        labelPaint.textSize = 6.5f * density
         labelPaint.color = activeColor
         outlinePaint.textSize = numberSize
 
@@ -166,7 +166,11 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         number.forEachIndexed { index, character ->
             val glyph = character.toString()
             if (drawOutline) canvas.drawText(glyph, numberX, numberBaseline, outlinePaint)
+            // A restrained same-color glow adds depth without changing the digit fill.
+            val glowColor = (activeColor and 0x00FFFFFF) or (96 shl 24)
+            numberPaint.setShadowLayer(2.2f * density, 0f, 0f, glowColor)
             canvas.drawText(glyph, numberX, numberBaseline, numberPaint)
+            numberPaint.clearShadowLayer()
             numberX += glyphWidths[index] + digitSpacing
         }
         canvas.drawText("天未打卡", width / 2f, height * 0.94f, labelPaint)
