@@ -43,6 +43,17 @@ class FullBackupManager(private val context: Context) {
 
     @Throws(IOException::class)
     fun createBackup(destination: Uri) {
+        val output = context.contentResolver.openOutputStream(destination, "wt")
+            ?: throw IOException("无法打开备份目标文件")
+        output.use { writeBackup(it) }
+    }
+
+    @Throws(IOException::class)
+    fun createBackup(destination: File) {
+        FileOutputStream(destination).use { writeBackup(it) }
+    }
+
+    private fun writeBackup(destination: java.io.OutputStream) {
         val databaseFile = DatabaseUtils.getDatabaseFile(context)
         require(databaseFile.isFile && databaseFile.length() > 0L) {
             "主数据库不存在或为空"
@@ -91,9 +102,7 @@ class FullBackupManager(private val context: Context) {
             .put("payload_count", payloads.size)
             .put("checksums_sha256", sha256(checksumsFile))
 
-        val output = context.contentResolver.openOutputStream(destination, "wt")
-            ?: throw IOException("无法打开备份目标文件")
-        ZipOutputStream(BufferedOutputStream(output)).use { zip ->
+        ZipOutputStream(BufferedOutputStream(destination)).use { zip ->
             payloads.forEach { (name, file) -> addFile(zip, name, file) }
             addFile(zip, "checksums.json", checksumsFile)
             zip.putNextEntry(ZipEntry("manifest.json"))
