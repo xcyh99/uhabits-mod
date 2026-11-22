@@ -64,8 +64,8 @@ class AutoBackup(private val context: Context) {
             ?.sortedBy { it.lastModified() }
             ?: emptyList()
         val newestTimestamp = files.lastOrNull()?.lastModified() ?: 0L
-        removeOldestPrivate(files, (keep - 1).coerceAtLeast(0))
         if (System.currentTimeMillis() - newestTimestamp > DateUtils.DAY_LENGTH) {
+            removeOldestPrivate(files, (keep - 1).coerceAtLeast(0))
             val target = File(dir, "Shizi_Full_Backup_${BackupFileName.timestamp()}.uhabitsbackup")
             runCatching { FullBackupManager(context).createBackup(target) }
                 .onFailure {
@@ -82,8 +82,8 @@ class AutoBackup(private val context: Context) {
             .filter { it.isFile && it.name?.let(backupPattern::matches) == true }
             .sortedBy { it.lastModified() }
         val newestTimestamp = files.lastOrNull()?.lastModified() ?: 0L
-        removeOldestPublic(files, (keep - 1).coerceAtLeast(0))
         if (System.currentTimeMillis() - newestTimestamp > DateUtils.DAY_LENGTH) {
+            removeOldestPublic(files, (keep - 1).coerceAtLeast(0))
             val name = "Shizi_Full_Backup_${BackupFileName.timestamp()}.uhabitsbackup"
             val target = dir.createFile("application/octet-stream", name)
             if (target == null) {
