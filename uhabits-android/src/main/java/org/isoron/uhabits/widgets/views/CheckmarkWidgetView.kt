@@ -19,6 +19,11 @@
 package org.isoron.uhabits.widgets.views
 
 import android.content.Context
+import android.content.res.Configuration
+import android.graphics.Color
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.RectF
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.View
@@ -33,8 +38,13 @@ import org.isoron.uhabits.core.models.Entry.Companion.UNKNOWN
 import org.isoron.uhabits.core.models.Entry.Companion.YES_AUTO
 import org.isoron.uhabits.core.models.Entry.Companion.YES_MANUAL
 import org.isoron.uhabits.core.preferences.Preferences
+import org.isoron.uhabits.core.ui.ThemeSwitcher
+import org.isoron.uhabits.core.ui.views.ColorOutline
 import org.isoron.uhabits.inject.HabitsApplicationComponent
 import org.isoron.uhabits.utils.InterfaceUtils.getDimension
+import org.isoron.uhabits.utils.InterfaceUtils.dpToPixels
+import org.isoron.uhabits.utils.ColorUtils.getContrastingTextColor
+import org.isoron.uhabits.utils.drawNotesIndicator
 import org.isoron.uhabits.utils.PaletteUtils.getAndroidTestColor
 import org.isoron.uhabits.utils.StyledResources
 import kotlin.math.max
@@ -46,6 +56,15 @@ class CheckmarkWidgetView : HabitWidgetView {
 
     var percentage = 0f
     var name: String? = null
+    var notes: String = ""
+    private val notesIndicatorPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private var notesIndicatorColor: Int = 0
+    private var cardOutlineEnabled = false
+    private val cardOutlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+    }
+    private val cardOutlineRect = RectF()
     private lateinit var ring: RingView
     private lateinit var label: TextView
     var entryValue = 0
@@ -61,6 +80,16 @@ class CheckmarkWidgetView : HabitWidgetView {
         init()
     }
 
+    private val isDarkTheme: Boolean
+        get() {
+            return when (preferences?.theme) {
+                ThemeSwitcher.THEME_DARK -> true
+                ThemeSwitcher.THEME_LIGHT -> false
+                else -> (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                    Configuration.UI_MODE_NIGHT_YES
+            }
+        }
+
     fun refresh() {
         if (backgroundPaint == null || frame == null) return
         val res = StyledResources(context)
@@ -70,28 +99,69 @@ class CheckmarkWidgetView : HabitWidgetView {
         when (entryState) {
             YES_MANUAL, SKIP, YES_AUTO -> {
                 bgColor = activeColor
-                fgColor = res.getColor(R.attr.contrast0)
+                fgColor = getContrastingTextColor(bgColor, 255, isDarkTheme)
+                // Keep completed checkmarks fully colored, as in the original widget.
+                // setWidgetBackgroundColor() applies widget opacity and can wash out
+                // the habit color; the active state must retain its opaque fill.
                 backgroundPaint!!.color = bgColor
                 frame!!.setBackgroundDrawable(background)
             }
             NO, UNKNOWN -> {
                 bgColor = res.getColor(R.attr.cardBgColor)
-                fgColor = res.getColor(R.attr.contrast60)
+                fgColor = getContrastingTextColor(bgColor, widgetBackgroundAlpha, isDarkTheme)
+                setWidgetBackgroundColor(bgColor)
             }
             else -> {
                 bgColor = res.getColor(R.attr.cardBgColor)
-                fgColor = res.getColor(R.attr.contrast60)
+                fgColor = getContrastingTextColor(bgColor, widgetBackgroundAlpha)
+                setWidgetBackgroundColor(bgColor)
             }
         }
+        notesIndicatorColor = fgColor
+        val isCompleted = entryState == YES_MANUAL || entryState == YES_AUTO
+        cardOutlineEnabled = isCompleted && ColorOutline.shouldUseLightOutline(
+            Color.luminance(res.getColor(R.attr.cardBgColor)).toDouble(),
+            Color.luminance(activeColor).toDouble()
+        )
         ring.setPercentage(percentage)
         ring.setColor(fgColor)
         ring.setBackgroundColor(bgColor)
         ring.setText(text)
         ring.setIsStrokedTextEnabled(strokedTextEnabled)
+        // The checkmark glyph itself should not receive an outline.
+        // The conditional white outline belongs to the outer card only.
+        ring.setTextOutlineEnabled(false)
         label.text = name
         label.setTextColor(fgColor)
         requestLayout()
         postInvalidate()
+    }
+
+    override fun dispatchDraw(canvas: Canvas) {
+        super.dispatchDraw(canvas)
+        if (cardOutlineEnabled && frame != null) {
+            val halfStroke = dpToPixels(context, 0.1f)
+            cardOutlineRect.set(
+                frame!!.left + halfStroke,
+                frame!!.top + halfStroke,
+                frame!!.right - halfStroke,
+                frame!!.bottom - halfStroke
+            )
+            cardOutlinePaint.strokeWidth = dpToPixels(context, 0.2f)
+            canvas.drawRoundRect(
+                cardOutlineRect,
+                dpToPixels(context, 18f),
+                dpToPixels(context, 18f),
+                cardOutlinePaint
+            )
+        }
+        drawNotesIndicator(
+            pNotesIndicator = notesIndicatorPaint,
+            canvas = canvas,
+            color = notesIndicatorColor,
+            size = label.textSize,
+            notes = notes
+        )
     }
 
     private val strokedTextEnabled: Boolean

@@ -16,16 +16,19 @@ import okhttp3.Response
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.isoron.uhabits.utils.BackupFileName
 import org.isoron.uhabits.utils.DatabaseUtils
 import org.xmlpull.v1.XmlPullParser
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.net.URL
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class WebDavSync(private val context: Context) {
+    enum class UploadKind(val fileLabel: String) {
+        LOCAL_BACKUP("LOC"),
+        TWO_WAY_MERGED("MRG")
+    }
+
     data class Config(val server: String, val username: String, val password: String)
 
     data class RemoteFile(
@@ -96,13 +99,12 @@ class WebDavSync(private val context: Context) {
         }
     }
 
-    fun upload(config: Config) {
+    fun upload(config: Config, kind: UploadKind = UploadKind.LOCAL_BACKUP) {
         val dir = File(context.cacheDir, "webdav-backup").apply {
             if (!exists() && !mkdirs()) error("无法创建备份临时目录")
         }
         val file = File(DatabaseUtils.saveDatabaseCopy(context, dir))
-        val timestamp = SimpleDateFormat("yyyy-MM-dd_HHmmss", Locale.US).format(Date())
-        val remoteName = "WebDAV_Shizi_Habits_Backup_${timestamp}.db"
+        val remoteName = "WEB_${BackupFileName.deviceId()}_${kind.fileLabel}_${BackupFileName.timestamp()}.db"
 
         try {
             withClient { client ->
@@ -182,6 +184,37 @@ class WebDavSync(private val context: Context) {
             }
         }
         return result
+    }
+
+    /**
+     * Downloads a remote database into a private temporary file for read-only
+     * sync inspection. It does not touch the user's selected backup folder or
+     * replace the active database.
+     */
+    fun downloadToTemporaryFile(config: Config, remoteFile: RemoteFile): File {
+        val tempFile = File.createTempFile("shizi-webdav-sync-", ".db", context.cacheDir)
+        try {
+            val remoteUrl = URL(serverUrl(config), remoteFile.href)
+            withClient { client ->
+                request(client, config, "GET", remoteUrl).use { response ->
+                    if (response.code != 200) {
+                        throw IllegalStateException("同步数据下载失败，HTTP 状态码：${response.code}")
+                    }
+                    val input = response.body?.byteStream()
+                        ?: throw IllegalStateException("服务器返回了空数据库文件")
+                    input.use { source ->
+                        tempFile.outputStream().use { output -> source.copyTo(output) }
+                    }
+                }
+            }
+            if (!tempFile.isFile || tempFile.length() == 0L) {
+                throw IllegalStateException("下载的数据库文件为空")
+            }
+            return tempFile
+        } catch (error: Exception) {
+            tempFile.delete()
+            throw error
+        }
     }
 
     fun download(config: Config, remoteFile: RemoteFile) {

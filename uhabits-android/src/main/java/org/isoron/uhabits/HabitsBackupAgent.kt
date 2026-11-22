@@ -28,7 +28,16 @@ import android.app.backup.SharedPreferencesBackupHelper
  */
 class HabitsBackupAgent : BackupAgentHelper() {
     override fun onCreate() {
-        addHelper("preferences", SharedPreferencesBackupHelper(this, "preferences"))
+        addHelper(
+            "preferences",
+            SharedPreferencesBackupHelper(
+                this,
+                "preferences",
+                "${packageName}_preferences",
+                "time_records_data",
+                "time_record_widget_links"
+            )
+        )
         addHelper("database", FileBackupHelper(this, "../databases/uhabits.db"))
     }
 }

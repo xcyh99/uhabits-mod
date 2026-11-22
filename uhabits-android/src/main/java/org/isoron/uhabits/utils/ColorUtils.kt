@@ -18,10 +18,61 @@
  */
 package org.isoron.uhabits.utils
 
+import android.content.Context
 import android.graphics.Color
+import org.isoron.uhabits.R
+import org.isoron.uhabits.utils.StyledResources
 import kotlin.math.max
 
 object ColorUtils {
+    @JvmStatic
+    fun shouldUseLightOutline(context: Context, color: Int): Boolean {
+        val cardBackground = StyledResources(context).getColor(R.attr.cardBgColor)
+        return org.isoron.uhabits.core.ui.views.ColorOutline.shouldUseLightOutline(
+            Color.luminance(cardBackground).toDouble(),
+            Color.luminance(color).toDouble()
+        )
+    }
+
+    /**
+     * Chooses widget text contrast using the selected app theme. Translucent
+     * widget backgrounds are composited over the matching theme surface.
+     */
+    @JvmStatic
+    fun getContrastingTextColor(
+        backgroundColor: Int,
+        backgroundAlpha: Int = Color.alpha(backgroundColor),
+        isDarkTheme: Boolean = true
+    ): Int {
+        val alpha = backgroundAlpha.coerceIn(0, 255) / 255.0
+        val surface = if (isDarkTheme) 0xFF212121.toInt() else Color.WHITE
+        val visibleBackground = Color.rgb(
+            (Color.red(backgroundColor) * alpha + Color.red(surface) * (1.0 - alpha)).toInt(),
+            (Color.green(backgroundColor) * alpha + Color.green(surface) * (1.0 - alpha)).toInt(),
+            (Color.blue(backgroundColor) * alpha + Color.blue(surface) * (1.0 - alpha)).toInt()
+        )
+
+        fun linearize(channel: Int): Double {
+            val value = channel / 255.0
+            return if (value <= 0.04045) value / 12.92
+            else Math.pow((value + 0.055) / 1.055, 2.4)
+        }
+
+        val luminance = 0.2126 * linearize(Color.red(visibleBackground)) +
+            0.7152 * linearize(Color.green(visibleBackground)) +
+            0.0722 * linearize(Color.blue(visibleBackground))
+
+        // Dark theme deliberately favors white text. Switch to black only
+        // when the visible background is very light. Light theme is reversed.
+        // The slightly higher dark-theme threshold preserves the user's
+        // preferred white text on medium-bright habit colors.
+        return if (isDarkTheme) {
+            if (luminance >= 0.70) Color.BLACK else Color.WHITE
+        } else {
+            if (luminance <= 0.18) Color.WHITE else Color.BLACK
+        }
+    }
+
     private const val ALPHA_CHANNEL = 24
     private const val RED_CHANNEL = 16
     private const val GREEN_CHANNEL = 8

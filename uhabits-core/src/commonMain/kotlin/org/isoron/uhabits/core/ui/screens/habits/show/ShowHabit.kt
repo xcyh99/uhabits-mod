@@ -105,7 +105,8 @@ class ShowHabitPresenter(
                     theme = theme
                 ),
                 notes = NotesCardPresenter.buildState(
-                    habit = habit
+                    habit = habit,
+                    theme = theme
                 ),
                 target = TargetCardPresenter.buildState(
                     habit = habit,

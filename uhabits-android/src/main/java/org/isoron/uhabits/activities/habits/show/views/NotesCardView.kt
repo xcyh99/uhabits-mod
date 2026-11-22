@@ -22,19 +22,104 @@ package org.isoron.uhabits.activities.habits.show.views
 import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
+import android.view.MotionEvent
+import android.graphics.Typeface
+import android.view.Gravity
 import android.widget.LinearLayout
+import android.widget.TextView
+import org.isoron.platform.gui.toInt
+import org.isoron.uhabits.R
 import org.isoron.uhabits.core.ui.screens.habits.show.views.NotesCardState
+import org.isoron.uhabits.core.ui.screens.habits.show.views.HistoryNote
 import org.isoron.uhabits.databinding.ShowHabitNotesBinding
 
 class NotesCardView(context: Context, attrs: AttributeSet) : LinearLayout(context, attrs) {
+    private var onDescriptionClickListener: (() -> Unit)? = null
+    private var onHistoryNoteClickListener: ((HistoryNote) -> Unit)? = null
+
+    fun setEditListeners(
+        onDescriptionClick: () -> Unit,
+        onHistoryNoteClick: (HistoryNote) -> Unit
+    ) {
+        onDescriptionClickListener = onDescriptionClick
+        onHistoryNoteClickListener = onHistoryNoteClick
+        binding.habitNotes.setOnClickListener { onDescriptionClickListener?.invoke() }
+        binding.habitNotes.isClickable = true
+        binding.habitNotes.isFocusable = true
+    }
+
     private val binding = ShowHabitNotesBinding.inflate(LayoutInflater.from(context), this)
     fun setState(state: NotesCardState) {
-        if (state.description.isEmpty()) {
-            visibility = GONE
-        } else {
-            visibility = VISIBLE
-            binding.habitNotes.text = state.description
+        val hasDescription = state.description.isNotBlank()
+        val hasHistoryNotes = state.historyNotes.isNotEmpty()
+        visibility = if (hasDescription || hasHistoryNotes) VISIBLE else GONE
+
+        binding.descriptionTitle.visibility = if (hasDescription) VISIBLE else GONE
+        val titleColor = state.theme.color(state.color).toInt()
+        binding.descriptionTitle.setTextColor(titleColor)
+        applySectionTitleStyle(binding.descriptionTitle, titleColor)
+        binding.habitNotes.visibility = if (hasDescription) VISIBLE else GONE
+        binding.habitNotes.text = state.description
+        binding.historyNotesTitle.visibility =
+            if (hasHistoryNotes) VISIBLE else GONE
+        binding.historyNotesTitle.text = context.getString(R.string.history_notes)
+        binding.historyNotesTitle.setTextColor(titleColor)
+        applySectionTitleStyle(binding.historyNotesTitle, titleColor)
+        binding.historyNotesList.removeAllViews()
+        binding.historyNotesScroll.visibility =
+            if (hasHistoryNotes) VISIBLE else GONE
+        binding.historyNotesScroll.setOnTouchListener { view, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE ->
+                    view.parent.requestDisallowInterceptTouchEvent(true)
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
+                    view.parent.requestDisallowInterceptTouchEvent(false)
+            }
+            false
         }
+
+        state.historyNotes.forEach { note ->
+            val row = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                isClickable = true
+                isFocusable = true
+                setPadding(0, dp(1), 0, dp(1))
+                setOnClickListener {
+                    onHistoryNoteClickListener?.invoke(note)
+                }
+            }
+            val dateView = TextView(context).apply {
+                text = formatHistoryDate(note.date)
+                textSize = 11f
+                setTypeface(typeface, Typeface.BOLD)
+                setTextColor(binding.habitNotes.currentTextColor)
+                maxLines = 1
+            }
+            val noteView = TextView(context).apply {
+                text = note.text
+                textSize = 12f
+                setTextColor(binding.habitNotes.currentTextColor)
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                gravity = Gravity.START
+                setPadding(dp(6), 0, 0, 0)
+            }
+            row.addView(dateView, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
+            row.addView(noteView, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+            binding.historyNotesList.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, dp(18)))
+        }
+        // Fit the content when short; cap the viewport at 90dp and scroll beyond it.
+        binding.historyNotesScroll.layoutParams = binding.historyNotesScroll.layoutParams.apply {
+            height = minOf(state.historyNotes.size * dp(18), dp(90))
+        }
+        requestLayout()
         invalidate()
     }
+
+    private fun formatHistoryDate(date: String): String =
+        date.removePrefix("LocalDate(").removeSuffix(")")
+
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density).toInt()
 }

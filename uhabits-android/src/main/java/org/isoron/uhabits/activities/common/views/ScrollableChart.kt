@@ -33,6 +33,13 @@ import kotlin.math.max
 import kotlin.math.min
 
 abstract class ScrollableChart : View, GestureDetector.OnGestureListener, AnimatorUpdateListener {
+    var isWidget: Boolean = false
+        private set
+
+    fun setWidgetMode(isWidget: Boolean) {
+        this.isWidget = isWidget
+        invalidate()
+    }
     var dataOffset = 0
         private set
     private var scrollerBucketSize = 1

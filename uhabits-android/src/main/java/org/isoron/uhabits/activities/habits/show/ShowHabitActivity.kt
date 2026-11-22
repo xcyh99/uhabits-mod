@@ -24,6 +24,9 @@ import android.view.HapticFeedbackConstants
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.text.InputType
+import android.widget.EditText
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -40,6 +43,8 @@ import org.isoron.uhabits.activities.common.dialogs.HistoryEditorDialog
 import org.isoron.uhabits.activities.common.dialogs.NumberDialog
 import org.isoron.uhabits.core.commands.Command
 import org.isoron.uhabits.core.commands.CommandRunner
+import org.isoron.uhabits.core.commands.CreateRepetitionCommand
+import org.isoron.uhabits.core.commands.EditHabitCommand
 import org.isoron.uhabits.core.models.Habit
 import org.isoron.uhabits.core.models.PaletteColor
 import org.isoron.uhabits.core.preferences.Preferences
@@ -47,6 +52,7 @@ import org.isoron.uhabits.core.ui.callbacks.CheckMarkDialogCallback
 import org.isoron.uhabits.core.ui.callbacks.NumberPickerCallback
 import org.isoron.uhabits.core.ui.callbacks.OnConfirmedCallback
 import org.isoron.uhabits.core.ui.screens.habits.show.ShowHabitMenuPresenter
+import org.isoron.uhabits.core.ui.screens.habits.show.views.HistoryNote
 import org.isoron.uhabits.core.ui.screens.habits.show.ShowHabitPresenter
 import org.isoron.uhabits.core.ui.views.OnDateClickedListener
 import org.isoron.uhabits.intents.IntentFactory
@@ -111,6 +117,10 @@ class ShowHabitActivity : AppCompatActivity(), CommandRunner.Listener {
         )
 
         view.setListener(presenter)
+        view.setNoteEditListeners(
+            onDescriptionClick = { showDescriptionNoteEditor() },
+            onHistoryNoteClick = { note -> showHistoryNoteEditor(note) }
+        )
         view.applyRootViewInsets()
         setContentView(view)
     }
@@ -140,6 +150,62 @@ class ShowHabitActivity : AppCompatActivity(), CommandRunner.Listener {
 
     override fun onCommandFinished(command: Command) {
         screen.refresh()
+    }
+
+    private fun createNoteEditor(initialText: String): EditText = EditText(this).apply {
+        setText(initialText)
+        setSelection(text.length)
+        inputType = InputType.TYPE_CLASS_TEXT or
+            InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+            InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+        minLines = 3
+        maxLines = 8
+        setPadding(
+            (20 * resources.displayMetrics.density).toInt(),
+            (8 * resources.displayMetrics.density).toInt(),
+            (20 * resources.displayMetrics.density).toInt(),
+            (8 * resources.displayMetrics.density).toInt()
+        )
+    }
+
+    private fun showDescriptionNoteEditor() {
+        val editor = createNoteEditor(habit.description)
+        AlertDialog.Builder(this)
+            .setTitle(R.string.description_notes)
+            .setView(editor)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val component = (application as HabitsApplication).component
+                val modified = component.modelFactory.buildHabit().apply {
+                    copyFrom(habit)
+                    description = editor.text.toString().trim()
+                }
+                commandRunner.run(EditHabitCommand(component.habitList, habit.id!!, modified))
+            }
+            .show()
+    }
+
+    private fun showHistoryNoteEditor(note: HistoryNote) {
+        val entry = habit.originalEntries.getKnown()
+            .firstOrNull { it.date.toString() == note.date } ?: return
+        val editor = createNoteEditor(note.text)
+        AlertDialog.Builder(this)
+            .setTitle(note.date)
+            .setView(editor)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val component = (application as HabitsApplication).component
+                commandRunner.run(
+                    CreateRepetitionCommand(
+                        component.habitList,
+                        habit,
+                        entry.date,
+                        entry.value,
+                        editor.text.toString().trim()
+                    )
+                )
+            }
+            .show()
     }
 
     inner class Screen : ShowHabitMenuPresenter.Screen, ShowHabitPresenter.Screen {

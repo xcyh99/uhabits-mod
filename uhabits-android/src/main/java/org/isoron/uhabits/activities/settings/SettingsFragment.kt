@@ -21,6 +21,7 @@ package org.isoron.uhabits.activities.settings
 import androidx.appcompat.app.AlertDialog
 import android.app.backup.BackupManager
 import android.content.Intent
+import androidx.preference.PreferenceManager
 import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.net.Uri
@@ -38,6 +39,10 @@ import android.view.Gravity
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ListView
+import android.widget.RadioButton
+import android.widget.TextView
+import android.widget.BaseAdapter
 import android.widget.Toast
 import android.text.InputType
 import androidx.preference.ListPreference
@@ -50,16 +55,32 @@ import org.isoron.platform.time.JavaLocalDateFormatter
 import org.isoron.uhabits.HabitsApplication
 import org.isoron.uhabits.R
 import org.isoron.uhabits.activities.habits.list.RESULT_BUG_REPORT
+import org.isoron.uhabits.activities.habits.list.ListHabitsActivity
 import org.isoron.uhabits.activities.habits.list.RESULT_EXPORT_CSV
 import org.isoron.uhabits.activities.habits.list.RESULT_EXPORT_DB
 import org.isoron.uhabits.activities.habits.list.RESULT_EXPORT_LEGACY_DB
 import org.isoron.uhabits.activities.habits.list.RESULT_IMPORT_DATA
 import org.isoron.uhabits.activities.habits.list.RESULT_REPAIR_DB
 import org.isoron.uhabits.core.preferences.Preferences
+import org.isoron.uhabits.core.models.sqlite.SQLiteHabitList
 import org.isoron.uhabits.database.WebDavSync
+import org.isoron.uhabits.database.FullBackupManager
+import org.isoron.uhabits.database.WebDavFullBackup
+import org.isoron.uhabits.database.WebDavSettingsBackup
+import org.isoron.uhabits.database.TwoWaySyncPreview
+import org.isoron.uhabits.database.DatabaseSyncMergeWriter
+import org.isoron.uhabits.database.DatabaseSyncSafetyBackup
+import org.isoron.uhabits.core.sync.SyncConflictSide
+import org.isoron.uhabits.core.sync.SyncEntryConflictChoice
+import org.isoron.uhabits.core.sync.SyncHabitSettingsConflictChoice
+import org.isoron.uhabits.core.sync.TwoWaySyncResolution
+import org.isoron.uhabits.core.sync.SyncLegacyHabitPair
+import org.isoron.uhabits.core.sync.TwoWaySyncSnapshotRemapper
+import org.isoron.uhabits.core.sync.TwoWaySyncPlanner
 import org.isoron.uhabits.core.ui.NotificationTray
 import org.isoron.uhabits.notifications.AndroidNotificationTray.Companion.createAndroidNotificationChannel
 import org.isoron.uhabits.notifications.RingtoneManager
+import org.isoron.uhabits.utils.WebDavCredentialsStore
 import org.isoron.uhabits.utils.StyledResources
 import org.isoron.uhabits.utils.applyBottomInset
 import org.isoron.uhabits.utils.startActivitySafely
@@ -87,6 +108,18 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 requireContext().contentResolver.takePersistableUriPermission(uri, flags)
                 sharedPrefs?.edit()?.putString("publicBackupFolder", uri.toString())?.apply()
                 updatePublicBackupFolderSummary()
+                return
+            }
+            FULL_BACKUP_CREATE_REQUEST_CODE -> {
+                if (resultCode != android.app.Activity.RESULT_OK) return
+                val uri = data?.data ?: return
+                createFullBackup(uri)
+                return
+            }
+            FULL_BACKUP_RESTORE_REQUEST_CODE -> {
+                if (resultCode != android.app.Activity.RESULT_OK) return
+                val uri = data?.data ?: return
+                inspectAndConfirmRestore(uri)
                 return
             }
         }
@@ -122,6 +155,32 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         val sr = StyledResources(context!!)
         view.setBackgroundColor(sr.getColor(R.attr.contrast0))
         super.onViewCreated(view, savedInstanceState)
+        val targetPreference = requireActivity().intent.getStringExtra("open_preference_key")
+        val openFeatureCenter = requireActivity().intent.getBooleanExtra("open_feature_center", false)
+        if (targetPreference != null || openFeatureCenter) {
+            view.post {
+                val key = targetPreference ?: "featureCenterCategory"
+                val directActionKeys = setOf(
+                    "createFullBackup",
+                    "restoreFullBackup",
+                    "exportDB",
+                    "exportLegacyDB",
+                    "exportCSV",
+                    "importData",
+                    "featureShortcuts",
+                    "webDavSync",
+                    "settingsBackupRestore",
+                    "publicBackupFolder",
+                    "clearLocalHabitData",
+                    "reminderCustomize"
+                )
+                if (key in directActionKeys) {
+                    findPreference(key)?.performClick()
+                } else {
+                    scrollToPreference(key)
+                }
+            }
+        }
     }
 
     override fun onCreateRecyclerView(
@@ -136,6 +195,31 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         val key = preference.key ?: return false
         when (key) {
+            "createFullBackup" -> {
+                val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "application/octet-stream"
+                    putExtra(Intent.EXTRA_TITLE, FullBackupManager(requireContext()).suggestedFileName())
+                }
+                startActivityForResult(intent, FULL_BACKUP_CREATE_REQUEST_CODE)
+                return true
+            }
+            "restoreFullBackup" -> {
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "application/octet-stream"
+                }
+                startActivityForResult(intent, FULL_BACKUP_RESTORE_REQUEST_CODE)
+                return true
+            }
+            "timeRecords" -> {
+                startActivity(Intent(requireContext(), org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
+                return true
+            }
+            "featureShortcuts" -> {
+                showFeatureShortcutSettings()
+                return true
+            }
             "reminderSound" -> {
                 showRingtonePicker()
                 return true
@@ -155,6 +239,14 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             }
             "webDavSync" -> {
                 showWebDavSettings()
+                return true
+            }
+            "settingsBackupRestore" -> {
+                showSettingsBackupRestore()
+                return true
+            }
+            "clearLocalHabitData" -> {
+                confirmClearLocalHabitData()
                 return true
             }
             "publicBackupFolder" -> {
@@ -183,23 +275,369 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         updateWeekdayPreference()
         updatePublicBackupFolderSummary()
 
+        findPreference("webDavSync").title =
+            "☆ " + getString(R.string.webdav_sync)
         findPreference("reminderSound").isVisible = false
     }
 
+    private fun showFeatureShortcutSettings() {
+        val candidateKeys = arrayOf(
+            "timeRecords", "createFullBackup", "restoreFullBackup",
+            "exportDB", "exportLegacyDB", "exportCSV", "importData",
+            "webDavSync", "settingsBackupRestore", "publicBackupFolder",
+            "clearLocalHabitData", "pref_short_toggle", "pref_midnight_delay",
+            "pref_skip_enabled", "pref_unknown_enabled", "pref_checkmark_reverse_order",
+            "pref_pure_black", "pref_disable_animation", "pref_widget_opacity",
+            "pref_first_weekday", "pref_sticky_notifications", "reminderCustomize"
+        )
+        val keys = candidateKeys.filter { findPreference(it) != null }
+        val labels = keys.map { key -> findPreference(key)?.title?.toString() ?: key }
+            .toTypedArray()
+        val store = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val savedOrder = store.getString("feature_shortcuts_order", null)
+            ?.split("|")?.filter { it in keys }
+        val legacySelection = store.getStringSet("feature_shortcuts", emptySet()).orEmpty()
+        val selected = (savedOrder?.takeIf { it.isNotEmpty() } ?: keys.filter { it in legacySelection })
+            .distinct().toMutableList()
+        val checked = BooleanArray(keys.size) { keys[it] in selected }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.shortcut_settings)
+            .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
+                val key = keys[which]
+                if (isChecked && key !in selected) selected.add(key)
+                if (!isChecked) selected.remove(key)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                showShortcutOrderDialog(selected, store)
+            }
+            .show()
+    }
+
+    private fun showShortcutOrderDialog(
+        selected: MutableList<String>,
+        store: SharedPreferences
+    ) {
+        if (selected.isEmpty()) {
+            saveShortcutOrder(selected, store)
+            return
+        }
+        var selectedIndex = 0
+        val labels = selected.map { key ->
+            findPreference(key)?.title?.toString() ?: key
+        }.toTypedArray()
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.shortcut_order_title)
+            .setSingleChoiceItems(labels, 0) { _, which -> selectedIndex = which }
+            .setPositiveButton(R.string.shortcut_move_up) { _, _ ->
+                if (selectedIndex > 0) {
+                    val item = selected.removeAt(selectedIndex)
+                    selected.add(selectedIndex - 1, item)
+                }
+                showShortcutOrderDialog(selected, store)
+            }
+            .setNegativeButton(R.string.shortcut_move_down) { _, _ ->
+                if (selectedIndex < selected.lastIndex) {
+                    val item = selected.removeAt(selectedIndex)
+                    selected.add(selectedIndex + 1, item)
+                }
+                showShortcutOrderDialog(selected, store)
+            }
+            .setNeutralButton(android.R.string.ok) { _, _ -> saveShortcutOrder(selected, store) }
+            .show()
+    }
+
+    private fun saveShortcutOrder(selected: List<String>, store: SharedPreferences) {
+        store.edit()
+            .putString("feature_shortcuts_order", selected.joinToString("|"))
+            .putStringSet("feature_shortcuts", selected.toSet())
+            .apply()
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.shortcut_settings_saved, selected.size),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private fun createFullBackup(uri: Uri) {
+        val appContext = requireContext().applicationContext
+        Toast.makeText(requireContext(), "正在创建完整备份…", Toast.LENGTH_SHORT).show()
+        Thread {
+            val result = runCatching { FullBackupManager(appContext).createBackup(uri) }
+            activity?.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+                result.fold(
+                    {
+                        Toast.makeText(requireContext(), "完整备份已创建", Toast.LENGTH_LONG).show()
+                    },
+                    { error ->
+                        Toast.makeText(
+                            requireContext(),
+                            error.message ?: "完整备份创建失败",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                )
+            }
+        }.start()
+    }
+
+    private fun inspectAndConfirmRestore(uri: Uri) {
+        val appContext = requireContext().applicationContext
+        Toast.makeText(requireContext(), "正在检查完整备份…", Toast.LENGTH_SHORT).show()
+        Thread {
+            val result = runCatching { FullBackupManager(appContext).inspectBackup(uri) }
+            activity?.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+                result.fold(
+                    { info ->
+                        val details = "备份版本：${info.appVersion}\n数据库版本：${info.databaseVersion}\n\n包含内容：\n" +
+                            info.entries.sorted().joinToString("\n")
+                        AlertDialog.Builder(requireContext())
+                            .setTitle("确认完整恢复")
+                            .setMessage("恢复将替换本机主数据库、时间记录和相关设置。当前数据会先保存一份安全副本。\n\n$details")
+                            .setNegativeButton("取消", null)
+                            .setPositiveButton("确认恢复") { _, _ ->
+                                prepareAndRestartForRestore(uri, appContext)
+                            }
+                            .show()
+                    },
+                    { error ->
+                        Toast.makeText(
+                            requireContext(),
+                            error.message ?: "备份文件检查失败",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                )
+            }
+        }.start()
+    }
+
+    private fun prepareAndRestartForRestore(
+        uri: Uri,
+        appContext: android.content.Context
+    ) {
+        Toast.makeText(requireContext(), "正在准备恢复数据…", Toast.LENGTH_SHORT).show()
+        Thread {
+            val result = runCatching { FullBackupManager(appContext).prepareRestore(uri) }
+            activity?.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+                result.fold(
+                    {
+                        Toast.makeText(requireContext(), "备份已验证，正在重启并恢复…", Toast.LENGTH_LONG).show()
+                        val restartIntent = Intent(appContext, ListHabitsActivity::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                        }
+                        val restart = android.app.PendingIntent.getActivity(
+                            appContext,
+                            FULL_BACKUP_RESTART_REQUEST_CODE,
+                            restartIntent,
+                            android.app.PendingIntent.FLAG_CANCEL_CURRENT or
+                                android.app.PendingIntent.FLAG_IMMUTABLE
+                        )
+                        val alarm = appContext.getSystemService(android.content.Context.ALARM_SERVICE)
+                            as android.app.AlarmManager
+                        alarm.set(
+                            android.app.AlarmManager.RTC_WAKEUP,
+                            System.currentTimeMillis() + 800L,
+                            restart
+                        )
+                        requireActivity().finishAffinity()
+                        android.os.Process.killProcess(android.os.Process.myPid())
+                    },
+                    { error ->
+                        Toast.makeText(
+                            requireContext(),
+                            error.message ?: "恢复准备失败，原数据未更改",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                )
+            }
+        }.start()
+    }
+
+    private fun showSettingsBackupRestore() {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.settings_backup_restore)
+            .setItems(arrayOf(
+                getString(R.string.settings_backup_upload),
+                getString(R.string.settings_backup_download)
+            )) { _, which ->
+                runSettingsBackupAction(which == 0)
+            }
+            .setNegativeButton(R.string.clear_label, null)
+            .show()
+    }
+
+    private fun runSettingsBackupAction(upload: Boolean) {
+        val credentials = WebDavCredentialsStore(requireContext()).load()
+        val server = credentials.server.trim()
+        val username = credentials.username.trim()
+        val password = credentials.password
+        if (!server.startsWith("https://") || username.isBlank() || password.isBlank()) {
+            Toast.makeText(
+                requireContext(),
+                R.string.webdav_https_required,
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+        val config = WebDavSync.Config(server, username, password)
+        val appContext = requireContext().applicationContext
+        Thread {
+            val backup = WebDavSettingsBackup(appContext)
+            if (upload) {
+                val result = runCatching { backup.upload(config) }
+                activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
+                    result.fold(
+                        {
+                            Toast.makeText(
+                                requireContext(),
+                                R.string.settings_backup_success_upload,
+                                Toast.LENGTH_LONG
+                            ).show()
+                        },
+                        { error ->
+                            Toast.makeText(
+                                requireContext(),
+                                error.message ?: getString(R.string.webdav_operation_failed),
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    )
+                }
+            } else {
+                val result = runCatching { backup.listBackupFiles(config) }
+                activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
+                    result.fold(
+                        { files -> showSettingsBackupPicker(files, config, appContext) },
+                        { error ->
+                            Toast.makeText(
+                                requireContext(),
+                                error.message ?: getString(R.string.webdav_operation_failed),
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    )
+                }
+            }
+        }.start()
+    }
+
+    private fun showSettingsBackupPicker(
+        files: List<String>,
+        config: WebDavSync.Config,
+        appContext: android.content.Context
+    ) {
+        if (files.isEmpty()) {
+            Toast.makeText(requireContext(), "服务器目录中没有找到软件设置备份（SET.json）", Toast.LENGTH_LONG).show()
+            return
+        }
+        val labels = files.map { name ->
+            val device = name.removePrefix("WEB_").substringBefore("_SET_")
+            val timestamp = name.substringAfter("_SET_").removeSuffix(".json")
+            "$device  ·  $timestamp"
+        }.toTypedArray()
+        AlertDialog.Builder(requireContext())
+            .setTitle("选择要恢复的软件设置")
+            .setItems(labels) { _, which ->
+                val selected = files[which]
+                AlertDialog.Builder(requireContext())
+                    .setTitle("确认恢复设置")
+                    .setMessage("将使用以下备份覆盖本机对应的软件设置：\\n\\n$selected\\n\\n此操作不会修改习惯和打卡数据库。")
+                    .setNegativeButton("取消", null)
+                    .setPositiveButton("确认恢复") { _, _ ->
+                        Thread {
+                            val result = runCatching {
+                                WebDavSettingsBackup(appContext).download(config, selected)
+                            }
+                            activity?.runOnUiThread {
+                                if (!isAdded) return@runOnUiThread
+                                result.fold(
+                                    {
+                                        Toast.makeText(
+                                            requireContext(),
+                                            R.string.settings_backup_success_download,
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        updateWeekdayPreference()
+                                        widgetUpdater?.updateWidgets()
+                                        requireActivity().recreate()
+                                    },
+                                    { error ->
+                                        Toast.makeText(
+                                            requireContext(),
+                                            error.message ?: getString(R.string.webdav_operation_failed),
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                )
+                            }
+                        }.start()
+                    }
+                    .show()
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun confirmClearLocalHabitData() {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.clear_local_habit_data_first_title)
+            .setMessage(R.string.clear_local_habit_data_first_message)
+            .setNegativeButton(R.string.clear_label, null)
+            .setPositiveButton(R.string.next_step) { _, _ ->
+                AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.clear_local_habit_data_second_title)
+                    .setMessage(R.string.clear_local_habit_data_second_message)
+                    .setNegativeButton(R.string.clear_label, null)
+                    .setPositiveButton(R.string.confirm_clear) { _, _ ->
+                        val result = runCatching {
+                            val app = requireContext().applicationContext as HabitsApplication
+                            app.component.habitList.removeAll()
+                            widgetUpdater?.updateWidgets()
+                        }
+                        result.fold(
+                            {
+                                Toast.makeText(
+                                    requireContext(),
+                                    R.string.clear_local_habit_data_done,
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            },
+                            { error ->
+                                Toast.makeText(
+                                    requireContext(),
+                                    error.message ?: "清空失败，数据未确认清理完成",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        )
+                    }
+                    .show()
+            }
+            .show()
+    }
+
     private fun showWebDavSettings() {
+        val credentials = WebDavCredentialsStore(requireContext()).load()
         val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
         val server = EditText(requireContext()).apply {
             hint = getString(R.string.webdav_server_hint)
-            setText(prefs.getString("webdav_server", ""))
+            setText(credentials.server)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
         }
         val username = EditText(requireContext()).apply {
             hint = getString(R.string.webdav_username)
-            setText(prefs.getString("webdav_username", ""))
+            setText(credentials.username)
         }
         val password = EditText(requireContext()).apply {
             hint = getString(R.string.webdav_password)
-            setText(prefs.getString("webdav_password", ""))
+            setText(credentials.password)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
 
@@ -229,6 +667,23 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             "#2E7D32"
         )
 
+        val fullUploadButton = actionButton("完整备份上传", "#6A1B9A")
+        val fullDownloadButton = actionButton("完整备份下载", "#00838F")
+        val fullBackupRow = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(fullUploadButton, LinearLayout.LayoutParams(0, dp(52), 1f).apply {
+                marginEnd = dp(6)
+            })
+            addView(fullDownloadButton, LinearLayout.LayoutParams(0, dp(52), 1f).apply {
+                marginStart = dp(6)
+            })
+        }
+
+        val previewButton = actionButton(
+            "双向同步",
+            "#1565C0"
+        )
+
         val actionRow = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.HORIZONTAL
             addView(uploadButton, LinearLayout.LayoutParams(0, dp(52), 1f).apply {
@@ -255,6 +710,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             addView(actionRow, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(52)
             ))
+            addView(fullBackupRow, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(52)
+            ).apply { topMargin = dp(10) })
+            addView(previewButton, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(48)
+            ).apply { topMargin = dp(10) })
         }
 
         val dialog = AlertDialog.Builder(requireContext())
@@ -272,7 +733,363 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         downloadButton.setOnClickListener {
             runWebDavAction(server, username, password, prefs, 2)
         }
+        fullUploadButton.setOnClickListener {
+            runWebDavFullBackupAction(server, username, password, true)
+        }
+        fullDownloadButton.setOnClickListener {
+            runWebDavFullBackupAction(server, username, password, false)
+        }
+        previewButton.setOnClickListener {
+            runTwoWaySyncPreview(server, username, password, prefs)
+        }
         dialog.show()
+    }
+
+
+    private fun runWebDavFullBackupAction(
+        server: EditText,
+        username: EditText,
+        password: EditText,
+        upload: Boolean
+    ) {
+        val url = server.text.toString().trim()
+        val user = username.text.toString().trim()
+        val pass = password.text.toString()
+        if (!url.startsWith("https://") || user.isBlank() || pass.isBlank()) {
+            Toast.makeText(requireContext(), R.string.webdav_https_required, Toast.LENGTH_LONG).show()
+            return
+        }
+        try {
+            WebDavCredentialsStore(requireContext()).save(url, user, pass)
+        } catch (error: Exception) {
+            Toast.makeText(requireContext(), error.message ?: "WebDAV 凭据保存失败", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val appContext = requireContext().applicationContext
+        val config = WebDavSync.Config(url, user, pass)
+        Thread {
+            val transport = WebDavFullBackup(appContext)
+            if (upload) {
+                val result = runCatching { transport.upload(config) }
+                activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
+                    val message = result.fold(
+                        { "完整备份已上传：$it" },
+                        { it.message ?: "完整备份上传失败" }
+                    )
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                }
+            } else {
+                val result = runCatching { transport.listBackupFiles(config) }
+                activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
+                    result.fold(
+                        { files ->
+                            if (files.isEmpty()) {
+                                Toast.makeText(requireContext(), "云端没有完整备份文件", Toast.LENGTH_LONG).show()
+                            } else {
+                                showRemoteFilePicker(files, "选择云端完整备份", "下载完整备份") { selected ->
+                                    Thread {
+                                        val downloaded = runCatching { transport.download(config, selected) }
+                                        activity?.runOnUiThread {
+                                            if (!isAdded) return@runOnUiThread
+                                            val message = downloaded.fold(
+                                                { "完整备份已下载：$it" },
+                                                { it.message ?: "完整备份下载失败" }
+                                            )
+                                            Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                                        }
+                                    }.start()
+                                }
+                            }
+                        },
+                        { error ->
+                            Toast.makeText(
+                                requireContext(),
+                                error.message ?: "读取云端完整备份失败",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    )
+                }
+            }
+        }.start()
+    }
+
+    private fun runTwoWaySyncPreview(
+        server: EditText,
+        username: EditText,
+        password: EditText,
+        prefs: SharedPreferences
+    ) {
+        val url = server.text.toString().trim()
+        val user = username.text.toString().trim()
+        val pass = password.text.toString()
+        if (!url.startsWith("https://") || user.isBlank() || pass.isBlank()) {
+            Toast.makeText(requireContext(), R.string.webdav_https_required, Toast.LENGTH_LONG).show()
+            return
+        }
+        try {
+            WebDavCredentialsStore(requireContext()).save(url, user, pass)
+        } catch (error: Exception) {
+            Toast.makeText(
+                requireContext(),
+                error.message ?: "WebDAV 凭据加密保存失败",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+        val appContext = requireContext().applicationContext
+        val config = WebDavSync.Config(url, user, pass)
+        Thread {
+            val result = runCatching { WebDavSync(appContext).listBackupFiles(config) }
+            activity?.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+                result.fold(
+                    { files ->
+                        if (files.isEmpty()) {
+                            Toast.makeText(requireContext(), "服务器目录中没有可用于同步的数据库备份", Toast.LENGTH_LONG).show()
+                        } else {
+                            showTwoWaySyncRemotePicker(files, config, appContext)
+                        }
+                    },
+                    { error ->
+                        Toast.makeText(
+                            requireContext(),
+                            error.message ?: getString(R.string.webdav_operation_failed),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                )
+            }
+        }.start()
+    }
+
+    private fun showTwoWaySyncRemotePicker(
+        files: List<WebDavSync.RemoteFile>,
+        config: WebDavSync.Config,
+        appContext: android.content.Context
+    ) {
+        showRemoteFilePicker(
+            files,
+            "选择用于双向同步的远端数据库",
+            "分析并同步"
+        ) { selected ->
+            Thread {
+                val result = runCatching {
+                    TwoWaySyncPreview(WebDavSync(appContext)).createSession(config, selected)
+                }
+                activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
+                    result.fold(
+                        { session ->
+                            val plan = session.plan
+                            val summary = buildString {
+                                append("本机新增：${plan.totalLocalAdditions} 项\n")
+                                append("服务器新增：${plan.totalRemoteAdditions} 项\n")
+                                append("完全相同、已去重的打卡：${plan.identicalEntries} 条\n")
+                                append("打卡冲突：${plan.conflictingEntries.size} 条\n")
+                                append("习惯设置冲突：${plan.conflictingHabitSettings.size} 项\n")
+                                append("可能需要人工配对的旧习惯：${plan.possibleLegacyMatches.size} 项\n\n")
+                                append("继续后会先创建本机安全备份，再合并数据并上传合并结果。")
+                            }
+                            if (plan.possibleLegacyMatches.isNotEmpty()) {
+                                val pairsText = plan.possibleLegacyMatches.joinToString("\n") {
+                                    "本机「${it.displayName}」 ↔ 服务器「${it.displayName}」"
+                                }
+                                AlertDialog.Builder(requireContext())
+                                    .setTitle("发现可能相同的旧习惯")
+                                    .setMessage(
+                                        summary + "\n\n以下习惯名称相同但 UUID 不同：\n" +
+                                            pairsText +
+                                            "\n\n只有你确认它们是同一个习惯后，才会合并对应打卡记录。"
+                                    )
+                                    .setNegativeButton("取消", null)
+                                    .setPositiveButton("确认配对并继续") { _, _ ->
+                                        val remapped = runCatching { remapLegacySyncSession(session) }
+                                        remapped.fold(
+                                            { mapped ->
+                                                val mappedSummary = buildString {
+                                                    append("已按你的确认配对旧习惯。\n")
+                                                    append("本机新增：${mapped.plan.totalLocalAdditions} 项\n")
+                                                    append("服务器新增：${mapped.plan.totalRemoteAdditions} 项\n")
+                                                    append("打卡冲突：${mapped.plan.conflictingEntries.size} 条\n")
+                                                    append("习惯设置冲突：${mapped.plan.conflictingHabitSettings.size} 项\n\n")
+                                                    append("继续后会先创建本机安全备份，再合并数据并上传。")
+                                                }
+                                                showTwoWaySyncConfirmation(mapped, config, appContext, mappedSummary)
+                                            },
+                                            { error ->
+                                                Toast.makeText(
+                                                    requireContext(),
+                                                    error.message ?: "旧习惯配对失败，数据未修改",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                            }
+                                        )
+                                    }
+                                    .show()
+                            } else {
+                                showTwoWaySyncConfirmation(session, config, appContext, summary)
+                            }
+                        },
+                        { error ->
+                            AlertDialog.Builder(requireContext())
+                                .setTitle("无法生成同步预览")
+                                .setMessage(error.message ?: "读取数据库失败，数据未修改。")
+                                .setPositiveButton("知道了", null)
+                                .show()
+                        }
+                    )
+                }
+            }.start()
+        }
+    }
+
+    private fun remapLegacySyncSession(
+        session: TwoWaySyncPreview.Session
+    ): TwoWaySyncPreview.Session {
+        val pairs = session.plan.possibleLegacyMatches.map {
+            SyncLegacyHabitPair(it.localUuid, it.remoteUuid)
+        }
+        val mapped = TwoWaySyncSnapshotRemapper.remapRemote(
+            localHabits = session.local.habits,
+            remoteHabits = session.remote.habits,
+            remoteEntries = session.remote.entries,
+            confirmedPairs = pairs
+        )
+        val uuidMap = pairs.associate { it.remoteUuid to it.localUuid }
+        val mappedRemote = session.remote.copy(
+            habits = mapped.habits,
+            entries = mapped.entries,
+            habitRows = session.remote.habitRows.map { row ->
+                row.copy(uuid = row.uuid?.let { uuidMap[it] ?: it })
+            }
+        )
+        val mappedPlan = TwoWaySyncPlanner.build(
+            session.local.habits,
+            mappedRemote.habits,
+            session.local.entries,
+            mappedRemote.entries
+        )
+        return TwoWaySyncPreview.Session(mappedPlan, session.local, mappedRemote)
+    }
+
+    private fun showTwoWaySyncConfirmation(
+        session: TwoWaySyncPreview.Session,
+        config: WebDavSync.Config,
+        appContext: android.content.Context,
+        summary: String
+    ) {
+        val plan = session.plan
+        val hasConflicts = plan.hasConflicts
+        val choices = arrayOf("冲突时保留本机版本", "冲突时保留服务器版本")
+        var selectedChoice = 0
+        val builder = AlertDialog.Builder(requireContext())
+            .setTitle("双向同步确认")
+            .setMessage(summary)
+        if (hasConflicts) {
+            builder.setSingleChoiceItems(choices, selectedChoice) { _, which ->
+                selectedChoice = which
+            }
+        } else {
+            builder.setMessage(summary + "\n\n没有发现冲突，将自动合并双方新增数据。")
+        }
+        builder.setNegativeButton("取消", null)
+        builder.setPositiveButton("确认合并并上传", null)
+        val dialog = builder.create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val keep = if (selectedChoice == 0) SyncConflictSide.LOCAL else SyncConflictSide.REMOTE
+                val resolution = runCatching {
+                    TwoWaySyncResolution.validate(
+                        plan = plan,
+                        entryChoices = plan.conflictingEntries.map {
+                            SyncEntryConflictChoice(it.habitUuid, it.dayKey, keep)
+                        },
+                        settingsChoices = plan.conflictingHabitSettings.map {
+                            SyncHabitSettingsConflictChoice(it.habitUuid, keep)
+                        },
+                        legacyPairs = emptyList()
+                    )
+                }
+                if (resolution.isFailure) {
+                    Toast.makeText(
+                        requireContext(),
+                        resolution.exceptionOrNull()?.message ?: "冲突选择无效",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@setOnClickListener
+                }
+                dialog.dismiss()
+                runTwoWaySyncMerge(session, config, appContext, resolution.getOrThrow())
+            }
+        }
+        dialog.show()
+    }
+
+    private fun runTwoWaySyncMerge(
+        session: TwoWaySyncPreview.Session,
+        config: WebDavSync.Config,
+        appContext: android.content.Context,
+        resolution: TwoWaySyncResolution
+    ) {
+        Thread {
+            var localMerge: DatabaseSyncMergeWriter.Result? = null
+            val result = runCatching {
+                DatabaseSyncSafetyBackup(appContext).create()
+                localMerge = DatabaseSyncMergeWriter().apply(
+                    remote = session.remote,
+                    expectedPlan = session.plan,
+                    resolution = resolution
+                )
+                WebDavSync(appContext).upload(
+                    config,
+                    WebDavSync.UploadKind.TWO_WAY_MERGED
+                )
+                localMerge!!
+            }
+            activity?.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+
+                // The merge writer updates SQLite directly, bypassing the
+                // in-memory SQLiteHabitList cache. Invalidate that cache now;
+                // ListHabitsActivity will reload it when it resumes.
+                if (localMerge != null) {
+                    val app = appContext as HabitsApplication
+                    (app.component.habitList as SQLiteHabitList).reload()
+                    widgetUpdater?.updateWidgets()
+                }
+
+                if (result.isSuccess) {
+                    val merged = result.getOrThrow()
+                    AlertDialog.Builder(requireContext())
+                        .setTitle("双向同步完成")
+                        .setMessage(
+                            "本机已创建同步前安全备份。\n" +
+                                "新增习惯：${merged.habitsInserted}\n" +
+                                "更新习惯设置：${merged.habitSettingsUpdated}\n" +
+                                "新增打卡：${merged.entriesInserted}\n" +
+                                "更新冲突打卡：${merged.entriesUpdated}\n\n" +
+                                "合并后的数据库已上传到服务器。"
+                        )
+                        .setPositiveButton("完成", null)
+                        .show()
+                } else {
+                    val message = if (localMerge != null) {
+                        "本机数据已完成合并，但上传服务器失败。你的本机数据和同步前安全备份都保留着；请检查网络后重新上传本机备份。\n\n错误：${result.exceptionOrNull()?.message ?: "未知错误"}"
+                    } else {
+                        result.exceptionOrNull()?.message ?: "同步失败，未完成数据合并。"
+                    }
+                    AlertDialog.Builder(requireContext())
+                        .setTitle("双向同步未完全完成")
+                        .setMessage(message)
+                        .setPositiveButton("知道了", null)
+                        .show()
+                }
+            }
+        }.start()
     }
 
     private fun runWebDavAction(
@@ -289,11 +1106,16 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             Toast.makeText(requireContext(), R.string.webdav_https_required, Toast.LENGTH_LONG).show()
             return
         }
-        prefs.edit()
-            .putString("webdav_server", url)
-            .putString("webdav_username", user)
-            .putString("webdav_password", pass)
-            .apply()
+        try {
+            WebDavCredentialsStore(requireContext()).save(url, user, pass)
+        } catch (error: Exception) {
+            Toast.makeText(
+                requireContext(),
+                error.message ?: "WebDAV 凭据加密保存失败",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
 
         val appContext = requireContext().applicationContext
         val config = WebDavSync.Config(url, user, pass)
@@ -348,7 +1170,31 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             Toast.makeText(requireContext(), "服务器目录中没有找到备份文件（.db）", Toast.LENGTH_LONG).show()
             return
         }
+        showRemoteFilePicker(files, "选择要下载的备份", "下载所选文件") { selected ->
+            downloadRemoteBackup(selected, config, appContext)
+        }
+    }
 
+    /**
+     * Shared, compact file picker for download and two-way sync.
+     * Each file gets its own padded row, readable filename and muted metadata.
+     */
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun showRemoteFilePicker(
+        files: List<WebDavSync.RemoteFile>,
+        title: String,
+        positiveLabel: String,
+        onSelected: (WebDavSync.RemoteFile) -> Unit
+    ) {
+        var selectedIndex = -1
+        val styled = StyledResources(requireContext())
+        val rowColor = styled.getColor(R.attr.contrast0)
+        val alternateRowColor = styled.getColor(R.attr.contrast20)
+        val selectedRowColor = styled.getColor(R.attr.highlightedBackgroundColor)
+        val primaryTextColor = styled.getColor(R.attr.contrast100)
+        val secondaryTextColor = styled.getColor(R.attr.contrast80)
+        val dividerColor = styled.getColor(R.attr.contrast40)
         fun formatSize(size: Long?): String {
             if (size == null) return "大小未知"
             return when {
@@ -358,22 +1204,80 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             }
         }
 
-        val labels = files.map { file ->
-            "${file.name}\n${file.modified ?: "修改时间未知"}  ·  ${formatSize(file.size)}"
-        }.toTypedArray()
-        var selectedIndex = -1
+        val list = ListView(requireContext()).apply {
+            choiceMode = ListView.CHOICE_MODE_SINGLE
+            divider = android.graphics.drawable.ColorDrawable(dividerColor)
+            dividerHeight = dp(1)
+            setPadding(0, dp(4), 0, dp(4))
+            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(360))
+            clipToPadding = false
+            adapter = object : BaseAdapter() {
+                override fun getCount() = files.size
+                override fun getItem(position: Int) = files[position]
+                override fun getItemId(position: Int): Long = position.toLong()
+
+                override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                    val file = files[position]
+                    val row = LinearLayout(requireContext()).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                        setPadding(dp(12), dp(9), dp(12), dp(9))
+                        setBackgroundColor(
+                            when {
+                                position == selectedIndex -> selectedRowColor
+                                position % 2 == 0 -> rowColor
+                                else -> alternateRowColor
+                            }
+                        )
+                    }
+                    val radio = RadioButton(requireContext()).apply {
+                        isClickable = false
+                        isFocusable = false
+                        isChecked = position == selectedIndex
+                        buttonTintList = ColorStateList.valueOf(
+                            if (isChecked) primaryTextColor else secondaryTextColor
+                        )
+                    }
+                    row.addView(radio, LinearLayout.LayoutParams(dp(40), dp(40)))
+
+                    val textColumn = LinearLayout(requireContext()).apply {
+                        orientation = LinearLayout.VERTICAL
+                        gravity = Gravity.CENTER_VERTICAL
+                    }
+                    val name = TextView(requireContext()).apply {
+                        text = file.name
+                        textSize = 14f
+                        setTextColor(primaryTextColor)
+                        setTypeface(typeface, android.graphics.Typeface.BOLD)
+                        maxLines = 2
+                    }
+                    val details = TextView(requireContext()).apply {
+                        text = "渠道：WebDAV  ·  ${file.modified ?: "修改时间未知"}  ·  ${formatSize(file.size)}"
+                        textSize = 11f
+                        setTextColor(secondaryTextColor)
+                        maxLines = 1
+                    }
+                    textColumn.addView(name)
+                    textColumn.addView(details)
+                    row.addView(textColumn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                    return row
+                }
+            }
+            setOnItemClickListener { _, _, position, _ ->
+                selectedIndex = position
+                (adapter as BaseAdapter).notifyDataSetChanged()
+            }
+        }
 
         AlertDialog.Builder(requireContext())
-            .setTitle("选择要下载的备份")
-            .setSingleChoiceItems(labels, -1) { _, which ->
-                selectedIndex = which
-            }
+            .setTitle(title)
+            .setView(list)
             .setNegativeButton("取消", null)
-            .setPositiveButton("下载所选文件") { _, _ ->
+            .setPositiveButton(positiveLabel) { _, _ ->
                 if (selectedIndex !in files.indices) {
                     Toast.makeText(requireContext(), "请先选择一个备份文件", Toast.LENGTH_SHORT).show()
                 } else {
-                    downloadRemoteBackup(files[selectedIndex], config, appContext)
+                    onSelected(files[selectedIndex])
                 }
             }
             .show()
@@ -493,5 +1397,8 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     companion object {
         private const val RINGTONE_REQUEST_CODE = 1
         private const val PUBLIC_BACKUP_REQUEST_CODE = 2
+        private const val FULL_BACKUP_CREATE_REQUEST_CODE = 3
+        private const val FULL_BACKUP_RESTORE_REQUEST_CODE = 4
+        private const val FULL_BACKUP_RESTART_REQUEST_CODE = 5
     }
 }

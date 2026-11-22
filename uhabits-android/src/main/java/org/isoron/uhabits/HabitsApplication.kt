@@ -21,6 +21,7 @@ package org.isoron.uhabits
 
 import android.app.Application
 import android.content.Context
+import android.util.Log
 import org.isoron.platform.time.computeToday
 import org.isoron.platform.time.setFirstWeekday
 import org.isoron.platform.time.setToday
@@ -30,6 +31,9 @@ import org.isoron.uhabits.core.ui.NotificationTray
 import org.isoron.uhabits.inject.HabitsApplicationComponent
 import org.isoron.uhabits.inject.create
 import org.isoron.uhabits.utils.DatabaseUtils
+import org.isoron.uhabits.database.FullBackupManager
+import org.isoron.uhabits.widgets.TimeRecordWidgetProvider
+import org.isoron.uhabits.utils.WebDavCredentialsStore
 import org.isoron.uhabits.widgets.WidgetUpdater
 import java.io.File
 
@@ -47,10 +51,17 @@ class HabitsApplication : Application() {
         super.onCreate()
         context = this
 
+        // Migrate any legacy plaintext WebDAV credentials into Android Keystore-backed storage.
+        runCatching { WebDavCredentialsStore(context).load() }
+
         if (isTestMode()) {
             val db = DatabaseUtils.getDatabaseFile(context)
             if (db.exists()) db.delete()
         }
+
+        // Apply a staged full restore before SQLite opens the live database.
+        runCatching { FullBackupManager(context).applyPendingRestoreIfPresent() }
+            .onFailure { Log.e("HabitsApplication", "Pending full backup restore failed", it) }
 
         try {
             DatabaseUtils.initializeDatabase(context)
@@ -90,6 +101,7 @@ class HabitsApplication : Application() {
         taskRunner.execute {
             reminderScheduler.scheduleAll()
             widgetUpdater.updateWidgets()
+            TimeRecordWidgetProvider.updateAll(this)
         }
     }
 

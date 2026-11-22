@@ -75,6 +75,23 @@
         </activity>
 
         <activity
+            android:name="org.isoron.uhabits.activities.timerecords.TimeRecordsActivity"
+            android:label="@string/time_records">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="org.isoron.uhabits.activities.habits.list.ListHabitsActivity" />
+        </activity>
+
+        <activity
+            android:name="org.isoron.uhabits.widgets.TimeRecordWidgetConfigureActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.Light.Dialog.Alert">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name="org.isoron.uhabits.activities.settings.SettingsActivity"
             android:label="@string/settings">
             <meta-data
@@ -171,6 +188,30 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_score_info" />
+        </receiver>
+
+        <receiver
+            android:name="org.isoron.uhabits.widgets.TimeRecordWidgetProvider"
+            android:exported="true"
+            android:label="@string/time_records_widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_time_record_info" />
+        </receiver>
+
+        <receiver
+            android:name="org.isoron.uhabits.widgets.DaysSinceLastCheckinWidgetProvider"
+            android:exported="true"
+            android:label="@string/days_since_last_checkin">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_days_since_last_checkin_info" />
         </receiver>
 
         <receiver

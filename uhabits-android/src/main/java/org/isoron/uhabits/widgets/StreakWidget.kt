@@ -47,7 +47,9 @@ class StreakWidget(
         widgetView.setBackgroundAlpha(preferedBackgroundAlpha)
         if (preferedBackgroundAlpha >= 255) widgetView.setShadowAlpha(0x4f)
         (widgetView.dataView as StreakChart).apply {
-            setColor(WidgetTheme().color(habit.color).toInt())
+            setWidgetMode(true)
+            setDarkTheme(isDarkWidgetTheme)
+            setColor(WidgetTheme(isDarkWidgetTheme).color(habit.color).toInt())
             setStreaks(habit.streaks.getBest(maxStreakCount))
         }
     }
@@ -55,6 +57,7 @@ class StreakWidget(
     override fun buildView(): View {
         return GraphWidgetView(context, StreakChart(context)).apply {
             setTitle(habit.name)
+            applyWidgetTitleColor(this)
             layoutParams = LayoutParams(MATCH_PARENT, MATCH_PARENT)
         }
     }

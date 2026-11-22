@@ -33,6 +33,8 @@ import org.isoron.uhabits.core.models.Streak
 import org.isoron.uhabits.utils.InterfaceUtils.dpToPixels
 import org.isoron.uhabits.utils.InterfaceUtils.getDimension
 import org.isoron.uhabits.utils.StyledResources
+import org.isoron.uhabits.utils.ColorUtils.getContrastingTextColor
+import org.isoron.uhabits.utils.ColorUtils.shouldUseLightOutline
 import java.util.LinkedList
 import java.util.Locale
 import java.util.Random
@@ -49,6 +51,8 @@ class StreakChart : View {
     private var rect: RectF? = null
     private var baseSize = 0
     private var primaryColor = 0
+    private var isDarkTheme = true
+    private var isWidget = false
     private var streaks: List<Streak>? = null
     private var isBackgroundTransparent = false
     private var dateFormatter: JavaLocalDateFormatter? = null
@@ -86,6 +90,16 @@ class StreakChart : View {
             start = end.plus(1)
         }
         setStreaks(streaks)
+    }
+
+    fun setWidgetMode(isWidget: Boolean) {
+        this.isWidget = isWidget
+        postInvalidate()
+    }
+
+    fun setDarkTheme(isDarkTheme: Boolean) {
+        this.isDarkTheme = isDarkTheme
+        postInvalidate()
     }
 
     fun setColor(color: Int) {
@@ -155,17 +169,24 @@ class StreakChart : View {
         barWidth = max(barWidth, minBarWidth)
         val gap = (internalWidth - barWidth) / 2
         val paddingTopBottom = baseSize * 0.05f
-        paint!!.color = percentageToColor(percentage)
+        val barColor = percentageToColor(percentage)
         val round = dpToPixels(context, 2f)
-        canvas.drawRoundRect(
-            rect!!.left + gap,
-            rect.top + paddingTopBottom,
-            rect.right - gap,
-            rect.bottom - paddingTopBottom,
-            round,
-            round,
-            paint!!
-        )
+        val left = rect!!.left + gap
+        val top = rect.top + paddingTopBottom
+        val right = rect.right - gap
+        val bottom = rect.bottom - paddingTopBottom
+        paint!!.style = Paint.Style.FILL
+        paint!!.color = barColor
+        canvas.drawRoundRect(left, top, right, bottom, round, round, paint!!)
+        // Only the longest streak uses the habit color; outline it when the
+        // shared dark-surface / near-black-color threshold is met.
+        if (percentage >= 1.0f && shouldUseLightOutline(context, barColor)) {
+            paint!!.style = Paint.Style.STROKE
+            paint!!.strokeWidth = dpToPixels(context, if (isWidget) 0.6f else 0.8f)
+            paint!!.color = Color.WHITE
+            canvas.drawRoundRect(left, top, right, bottom, round, round, paint!!)
+            paint!!.style = Paint.Style.FILL
+        }
         val yOffset = rect.centerY() + 0.3f * em
         paint!!.color = percentageToTextColor(percentage)
         paint!!.textAlign = Paint.Align.CENTER
@@ -225,7 +246,8 @@ class StreakChart : View {
     }
 
     private fun percentageToTextColor(percentage: Float): Int {
-        return if (percentage >= 0.5f) textColors[2] else textColors[1]
+        val barColor = percentageToColor(percentage)
+        return getContrastingTextColor(barColor, android.graphics.Color.alpha(barColor), isDarkTheme)
     }
 
     private fun updateMaxMinLengths() {
