@@ -60,9 +60,10 @@ class FullBackupManager(private val context: Context) {
             "主数据库不存在或为空"
         }
 
-        val tempDir = File(context.cacheDir, "full-backup-staging").apply {
-            if (!exists() && !mkdirs()) throw IOException("无法创建完整备份临时目录")
+        val tempDir = File.createTempFile("full-backup-staging-", "", context.cacheDir).apply {
+            if (!delete() || !mkdirs()) throw IOException("无法创建完整备份临时目录")
         }
+        try {
         val stagedDatabase = File(tempDir, "uhabits.db")
         copyConsistentDatabaseSnapshot(databaseFile, stagedDatabase)
         if (stagedDatabase.length() == 0L) throw IOException("主数据库备份为空")
@@ -114,9 +115,10 @@ class FullBackupManager(private val context: Context) {
             zip.write(manifest.toString(2).toByteArray(Charsets.UTF_8))
             zip.closeEntry()
         }
-        stagedDatabase.delete()
-        payloads.values.filter { it != stagedDatabase }.forEach { it.delete() }
-        checksumsFile.delete()
+        } finally {
+            // Clean up even when ZIP creation or the destination stream fails.
+            tempDir.deleteRecursively()
+        }
     }
 
     /**
@@ -283,13 +285,25 @@ class FullBackupManager(private val context: Context) {
         val safetyDir = File(
             context.filesDir,
             "restore-safety/${BackupFileName.timestamp()}"
-        ).apply { mkdirs() }
+        )
+        if (!safetyDir.mkdirs() && !safetyDir.isDirectory) {
+            throw IOException("无法创建恢复前安全备份目录，已取消恢复")
+        }
+        if (!databaseFile.isFile || databaseFile.length() == 0L) {
+            throw IOException("当前数据库不存在或为空，无法建立恢复前安全副本")
+        }
         val safetyDatabase = File(safetyDir, "uhabits.db")
         val currentWal = File(databaseFile.absolutePath + "-wal")
         val safetyWal = File(safetyDatabase.absolutePath + "-wal")
-        if (databaseFile.isFile) databaseFile.copyTo(safetyDatabase, overwrite = true)
+        databaseFile.copyTo(safetyDatabase, overwrite = true)
+        if (!safetyDatabase.isFile || safetyDatabase.length() != databaseFile.length()) {
+            throw IOException("恢复前数据库安全副本校验失败，已取消恢复")
+        }
         if (currentWal.isFile && currentWal.length() > 0L) {
             currentWal.copyTo(safetyWal, overwrite = true)
+            if (!safetyWal.isFile || safetyWal.length() != currentWal.length()) {
+                throw IOException("恢复前 WAL 安全副本校验失败，已取消恢复")
+            }
         }
 
         val defaultPreferences = PreferenceManager.getDefaultSharedPreferences(context)
@@ -346,8 +360,9 @@ class FullBackupManager(private val context: Context) {
             runCatching { restoreWidgetLinks(safetyWidgetLinks) }
             File(context.filesDir, "full-backup-restore-failed.txt")
                 .writeText(error.message ?: "未知恢复错误")
-            pending.deleteRecursively()
-            throw IOException(error.message ?: "完整备份恢复失败，已尝试恢复原数据", error)
+            // Keep the staged archive so the user can retry after correcting the
+            // underlying issue; never discard the only copy of the requested restore.
+            throw IOException(error.message ?: "完整备份恢复失败，已尝试恢复原数据；待恢复备份仍保留", error)
         }
     }
 
