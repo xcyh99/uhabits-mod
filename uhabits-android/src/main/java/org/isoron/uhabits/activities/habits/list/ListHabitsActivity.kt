@@ -79,6 +79,30 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        if (savedInstanceState == null && intent?.action == Intent.ACTION_MAIN) {
+            val launchPrefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            val mode = launchPrefs.getString("startup_page_mode", "main") ?: "main"
+            val target = when (mode) {
+                "last" -> launchPrefs.getString("startup_page_last", "main") ?: "main"
+                "custom" -> launchPrefs.getString("startup_page_custom", "timeRecords") ?: "timeRecords"
+                else -> "main"
+            }
+            if (target != "main") {
+                val destination = when (target) {
+                    "timeRecords" -> Intent(this, org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java)
+                    "settings", "featureCenter" -> Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java).apply {
+                        if (target == "featureCenter") putExtra("open_feature_center", true)
+                    }
+                    else -> null
+                }
+                if (destination != null) {
+                    startActivity(destination)
+                    finish()
+                    return
+                }
+            }
+        }
+
         appComponent = (applicationContext as HabitsApplication).component
         component = HabitsActivityComponent::class.create(
             parent = appComponent,
@@ -101,6 +125,8 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
     }
 
     override fun onPause() {
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            .edit().putString("startup_page_last", "main").apply()
         midnightTimer.onPause()
         screen.onDetached()
         dismissCurrentDialog()
