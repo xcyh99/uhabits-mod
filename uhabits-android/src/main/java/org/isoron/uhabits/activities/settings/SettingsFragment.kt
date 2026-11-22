@@ -415,6 +415,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         // main-screen popup. After saving, return directly to the main app
         // instead of leaving the user on the Settings screen.
         requireActivity().finish()
+        requireActivity().overridePendingTransition(0, 0)
     }
 
     private fun createFullBackup(uri: Uri) {

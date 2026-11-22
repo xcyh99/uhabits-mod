@@ -129,6 +129,13 @@ class ListHabitsMenu(
     }
 
     private fun showShortcutsMenu() {
+        // Keep the menu anchored to the toolbar shortcut icon, as in the original
+        // interaction. PopupMenu also supports scrolling when the list is taller
+        // than the available screen area.
+        val actionView = activity.findViewById<android.view.View>(R.id.actionShortcuts)
+        val toolbar = activity.findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+        val anchor = actionView ?: toolbar ?: activity.window.decorView
+        val popup = PopupMenu(activity, anchor)
         val prefs = PreferenceManager.getDefaultSharedPreferences(activity)
         val savedOrder = prefs.getString("feature_shortcuts_order", null)
             ?.split("|")?.filter { it.isNotBlank() }
@@ -136,40 +143,35 @@ class ListHabitsMenu(
             ?: prefs.getStringSet("feature_shortcuts", emptySet())?.toList().orEmpty()
         val available = selected.mapNotNull { key -> shortcutTitle(key)?.let { key to it } }
 
-        // Use the platform dialog's scrollable list instead of PopupMenu. PopupMenu
-        // can be clipped by the toolbar's available display area on some devices,
-        // hiding the fifth configured shortcut.
-        val entries = listOf(activity.getString(R.string.configure_shortcuts)) +
-            if (available.isEmpty()) {
-                listOf(activity.getString(R.string.no_shortcuts_configured))
-            } else {
-                available.map { it.second }
-            }
-
-        androidx.appcompat.app.AlertDialog.Builder(activity)
-            .setTitle(R.string.shortcuts)
-            .setItems(entries.toTypedArray()) { _, which ->
-                if (which == 0) {
-                    activity.startActivity(
-                        Intent(activity, SettingsActivity::class.java)
-                            .putExtra("open_preference_key", "featureShortcuts")
-                    )
-                } else if (available.isNotEmpty()) {
-                    val key = available[which - 1].first
-                    if (key == "timeRecords") {
+        popup.menu.add(activity.getString(R.string.configure_shortcuts)).setOnMenuItemClickListener {
+            activity.startActivity(
+                Intent(activity, SettingsActivity::class.java)
+                    .putExtra("open_preference_key", "featureShortcuts")
+            )
+            true
+        }
+        if (available.isEmpty()) {
+            popup.menu.add(activity.getString(R.string.no_shortcuts_configured)).isEnabled = false
+        } else {
+            available.forEachIndexed { index, pair ->
+                popup.menu.add(0, index + 1, index, pair.second).setOnMenuItemClickListener {
+                    if (pair.first == "timeRecords") {
                         activity.startActivity(Intent(activity, TimeRecordsActivity::class.java))
                     } else {
                         activity.startActivity(
                             Intent(activity, SettingsActivity::class.java)
-                                .putExtra("open_preference_key", key)
+                                .putExtra("open_preference_key", pair.first)
                         )
                     }
+                    true
                 }
             }
-            .show()
+        }
+        popup.show()
     }
 
     private fun shortcutTitle(key: String): String? = when (key) {
+        "widgetManager" -> "桌面组件管理"
         "timeRecords" -> activity.getString(R.string.time_records)
         "createFullBackup" -> activity.getString(R.string.full_backup_create_title)
         "restoreFullBackup" -> activity.getString(R.string.full_backup_restore_title)
