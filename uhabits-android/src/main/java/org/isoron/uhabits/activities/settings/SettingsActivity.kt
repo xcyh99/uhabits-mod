@@ -51,9 +51,20 @@ class SettingsActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if (intent.getStringExtra("open_preference_key") == "widgetManager") {
-            (supportFragmentManager.findFragmentById(R.id.fragment) as? SettingsFragment)
-                ?.openBatchWidgetPicker(intent)
+    }
+
+    override fun onPostResume() {
+        super.onPostResume()
+        val launchIntent = intent
+        if (launchIntent.getStringExtra("open_preference_key") != "widgetManager") return
+
+        // Consume the request before showing the dialog so a later resume cannot
+        // accidentally open a second picker.
+        launchIntent.removeExtra("open_preference_key")
+        supportFragmentManager.executePendingTransactions()
+        val fragment = supportFragmentManager.findFragmentById(R.id.fragment) as? SettingsFragment
+        if (fragment?.isAdded == true && fragment.view != null) {
+            fragment.openBatchWidgetPicker(launchIntent)
         }
     }
 }

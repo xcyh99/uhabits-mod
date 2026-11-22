@@ -18,7 +18,11 @@ class BatchAddWidgetProvider : AppWidgetProvider() {
     ) {
         val intent = Intent(context, SettingsActivity::class.java).apply {
             putExtra("open_preference_key", "widgetManager")
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+            )
         }
         appWidgetIds.forEach { widgetId ->
             val views = RemoteViews(context.packageName, R.layout.widget_batch_add)

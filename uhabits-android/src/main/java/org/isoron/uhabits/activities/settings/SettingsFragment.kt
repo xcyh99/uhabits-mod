@@ -157,10 +157,6 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         super.onViewCreated(view, savedInstanceState)
         val targetPreference = requireActivity().intent.getStringExtra("open_preference_key")
         val openFeatureCenter = requireActivity().intent.getBooleanExtra("open_feature_center", false)
-        if (targetPreference == "widgetManager") {
-            openBatchWidgetPicker(requireActivity().intent)
-            return
-        }
         if (targetPreference != null || openFeatureCenter) {
             view.post {
                 val key = targetPreference ?: "featureCenterCategory"
@@ -291,11 +287,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
 
 
     fun openBatchWidgetPicker(intent: Intent) {
-        val pendingQueue = intent.getStringArrayListExtra("resume_widget_pin_queue")
-        showWidgetManager(pendingQueue ?: emptyList())
+        showWidgetManager()
     }
 
-    private fun showWidgetManager(preselectedProviders: List<String> = emptyList()) {
+    private fun showWidgetManager() {
         val context = requireContext()
         val widgets = listOf(
             "历史" to org.isoron.uhabits.widgets.HistoryWidgetProvider::class.java,
@@ -309,66 +304,45 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             "批量添加" to org.isoron.uhabits.widgets.BatchAddWidgetProvider::class.java
         )
         val labels = widgets.map { it.first }.toTypedArray()
-        val selected = linkedSetOf<Int>()
-        preselectedProviders.forEach { name ->
-            widgets.indexOfFirst { it.second.name == name }.takeIf { it >= 0 }?.let(selected::add)
-        }
-        val checked = BooleanArray(widgets.size) { it in selected }
+        var selectedIndex = -1
         var positiveButton: Button? = null
         val dialog = AlertDialog.Builder(context)
-            .setTitle(if (preselectedProviders.isEmpty()) "选择要添加的桌面组件（可多选）" else "继续添加剩余桌面组件")
-            .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
-                if (isChecked) selected.add(which) else selected.remove(which)
-                positiveButton?.isEnabled = selected.isNotEmpty()
+            .setTitle("选择要添加的桌面组件（单选）")
+            .setSingleChoiceItems(labels, -1) { _, which ->
+                selectedIndex = which
+                positiveButton?.isEnabled = true
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(if (preselectedProviders.isEmpty()) "开始添加" else "继续添加") { _, _ ->
+            .setPositiveButton("开始添加") { _, _ ->
                 val manager = android.appwidget.AppWidgetManager.getInstance(context)
                 if (!manager.isRequestPinAppWidgetSupported) {
                     Toast.makeText(context, "当前桌面不支持应用内添加组件，请到桌面长按空白处添加。", Toast.LENGTH_LONG).show()
                     return@setPositiveButton
                 }
-                if (selected.isEmpty()) {
-                    Toast.makeText(context, "请先选择要添加的组件。", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-                val queue = selected.sorted().map { widgets[it].second.name }
+                if (selectedIndex !in widgets.indices) return@setPositiveButton
+
+                val provider = widgets[selectedIndex].second
                 val store = PreferenceManager.getDefaultSharedPreferences(context)
-                store.edit().putString("widget_pin_queue", queue.joinToString("|")).apply()
-                val provider = widgets.firstOrNull { it.second.name == queue.first() }?.second
-                if (provider == null) {
-                    store.edit().remove("widget_pin_queue").apply()
-                    Toast.makeText(context, "无法识别待添加的组件。", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-                // Return to the app after the launcher confirms each widget.
-                // The remaining providers are passed to the picker so the user can
-                // continue the batch instead of being stranded on the home screen.
-                val remaining = ArrayList(queue.drop(1))
-                val callbackIntent = if (remaining.isEmpty()) {
-                    Intent(context, ListHabitsActivity::class.java)
-                } else {
-                    Intent(context, SettingsActivity::class.java).apply {
-                        putExtra("open_preference_key", "widgetManager")
-                        putStringArrayListExtra("resume_widget_pin_queue", remaining)
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                    }
+                store.edit().remove("widget_pin_queue").apply()
+                val callbackIntent = Intent(context, ListHabitsActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 }
                 val callback = android.app.PendingIntent.getActivity(
-                    context, queue.first().hashCode(), callbackIntent,
+                    context, provider.name.hashCode(), callbackIntent,
                     android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
                 )
-                if (manager.requestPinAppWidget(android.content.ComponentName(context, provider), null, callback)) {
-                    Toast.makeText(context, "已请求添加第 1 个组件。请在桌面确认，成功后将返回继续添加。", Toast.LENGTH_LONG).show()
+                if (manager.requestPinAppWidget(
+                        android.content.ComponentName(context, provider), null, callback
+                    )) {
+                    Toast.makeText(context, "已请求添加组件。请在桌面确认。", Toast.LENGTH_LONG).show()
                 } else {
-                    store.edit().remove("widget_pin_queue").apply()
                     Toast.makeText(context, "桌面未接受添加请求。", Toast.LENGTH_LONG).show()
                 }
             }
             .create()
         dialog.setOnShowListener {
             positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-            positiveButton?.isEnabled = selected.isNotEmpty()
+            positiveButton?.isEnabled = selectedIndex in widgets.indices
         }
         dialog.show()
     }
