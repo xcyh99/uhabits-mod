@@ -158,11 +158,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         val targetPreference = requireActivity().intent.getStringExtra("open_preference_key")
         val openFeatureCenter = requireActivity().intent.getBooleanExtra("open_feature_center", false)
         if (targetPreference == "widgetManager") {
-            val pendingQueue = requireActivity().intent.getStringArrayListExtra("resume_widget_pin_queue")
-            // Open the picker directly. Relying on Preference.performClick() here
-            // can silently do nothing when the preference is not present in this
-            // settings configuration, leaving the user on the settings home page.
-            showWidgetManager(pendingQueue ?: emptyList())
+            openBatchWidgetPicker(requireActivity().intent)
             return
         }
         if (targetPreference != null || openFeatureCenter) {
@@ -293,6 +289,11 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         findPreference("reminderSound").isVisible = false
     }
 
+
+    fun openBatchWidgetPicker(intent: Intent) {
+        val pendingQueue = intent.getStringArrayListExtra("resume_widget_pin_queue")
+        showWidgetManager(pendingQueue ?: emptyList())
+    }
 
     private fun showWidgetManager(preselectedProviders: List<String> = emptyList()) {
         val context = requireContext()
