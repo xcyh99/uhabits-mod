@@ -308,4 +308,5 @@
     <string name="time_records_widget_create_first">请先在时间记录页面创建正计时或倒计时。</string>
     <string name="time_records_widget_choose_record">选择要显示的时间记录</string>
 
+    <string name="time_records_pin_not_supported">当前桌面启动器不支持从应用内直接添加组件，请在桌面组件列表中添加。</string>
 </resources>
