@@ -211,6 +211,27 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         setIntent(intent)
+
+        // A launcher tap can bring an existing task to the foreground instead of
+        // creating the activity again. Re-apply the configured startup destination
+        // whenever the launcher delivers a new MAIN intent to this singleTask root.
+        if (intent?.action == Intent.ACTION_MAIN) {
+            val launchPrefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            val mode = launchPrefs.getString("startup_page_mode", "main") ?: "main"
+            val target = when (mode) {
+                "last" -> launchPrefs.getString("startup_page_last", "main") ?: "main"
+                "custom" -> launchPrefs.getString("startup_page_custom", "timeRecords") ?: "timeRecords"
+                else -> "main"
+            }
+            val destination = when (target) {
+                "timeRecords" -> Intent(this, org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java)
+                "settings", "featureCenter" -> Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java).apply {
+                    if (target == "featureCenter") putExtra("open_feature_center", true)
+                }
+                else -> null
+            }
+            if (destination != null) startActivity(destination)
+        }
     }
 
     companion object {
