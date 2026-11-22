@@ -120,8 +120,11 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
         widgetCategory.addPreference(Preference(context).apply {
             title = getString(R.string.time_records_widget_title)
             summary = getString(R.string.time_records_widget_summary)
-            isSelectable = false
             isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                pinTimeRecordWidget()
+                true
+            }
         })
         preferenceScreen = screen
     }
@@ -131,6 +134,18 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
         val provider = ComponentName(
             requireContext(),
             org.isoron.uhabits.widgets.DaysSinceLastCheckinWidgetProvider::class.java
+        )
+        val pinned = manager.requestPinAppWidget(provider, null, null)
+        if (!pinned) {
+            Toast.makeText(requireContext(), R.string.time_records_pin_not_supported, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun pinTimeRecordWidget() {
+        val manager = AppWidgetManager.getInstance(requireContext())
+        val provider = ComponentName(
+            requireContext(),
+            TimeRecordWidgetProvider::class.java
         )
         val pinned = manager.requestPinAppWidget(provider, null, null)
         if (!pinned) {
