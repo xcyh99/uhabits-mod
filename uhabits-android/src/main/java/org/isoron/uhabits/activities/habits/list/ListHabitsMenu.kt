@@ -129,12 +129,12 @@ class ListHabitsMenu(
     }
 
     private fun showShortcutsMenu() {
-        // Keep the menu anchored to the toolbar shortcut icon, as in the original
-        // interaction. PopupMenu also supports scrolling when the list is taller
-        // than the available screen area.
-        val actionView = activity.findViewById<android.view.View>(R.id.actionShortcuts)
+        // Restore the original toolbar-anchored PopupMenu (before the centered
+        // AlertDialog experiment). Keep the action item as the primary anchor.
         val toolbar = activity.findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
-        val anchor = actionView ?: toolbar ?: activity.window.decorView
+        val anchor = toolbar?.findViewById<android.view.View>(R.id.actionShortcuts)
+            ?: toolbar
+            ?: activity.window.decorView
         val popup = PopupMenu(activity, anchor)
         val prefs = PreferenceManager.getDefaultSharedPreferences(activity)
         val savedOrder = prefs.getString("feature_shortcuts_order", null)
@@ -142,14 +142,6 @@ class ListHabitsMenu(
         val selected = savedOrder?.takeIf { it.isNotEmpty() }
             ?: prefs.getStringSet("feature_shortcuts", emptySet())?.toList().orEmpty()
         val available = selected.mapNotNull { key -> shortcutTitle(key)?.let { key to it } }
-
-        popup.menu.add(activity.getString(R.string.configure_shortcuts)).setOnMenuItemClickListener {
-            activity.startActivity(
-                Intent(activity, SettingsActivity::class.java)
-                    .putExtra("open_preference_key", "featureShortcuts")
-            )
-            true
-        }
         if (available.isEmpty()) {
             popup.menu.add(activity.getString(R.string.no_shortcuts_configured)).isEnabled = false
         } else {
@@ -166,6 +158,13 @@ class ListHabitsMenu(
                     true
                 }
             }
+        }
+        popup.menu.add(activity.getString(R.string.configure_shortcuts)).setOnMenuItemClickListener {
+            activity.startActivity(
+                Intent(activity, SettingsActivity::class.java)
+                    .putExtra("open_preference_key", "featureShortcuts")
+            )
+            true
         }
         popup.show()
     }
