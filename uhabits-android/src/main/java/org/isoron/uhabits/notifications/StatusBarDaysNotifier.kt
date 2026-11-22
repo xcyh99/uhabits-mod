@@ -6,14 +6,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Typeface
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import androidx.core.graphics.drawable.IconCompat
 import androidx.core.app.NotificationManagerCompat
 import org.isoron.platform.time.getToday
 import org.isoron.uhabits.HabitsApplication
@@ -68,9 +62,12 @@ object StatusBarDaysNotifier {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val icon = IconCompat.createWithBitmap(drawNumberIcon(app, result.days.toString()))
+        val dayValue = result.days.coerceIn(0L, 99L).toInt()
+        val iconName = "status_days_" + dayValue.toString().padStart(2, '0')
+        val iconRes = app.resources.getIdentifier(iconName, "drawable", app.packageName)
+            .takeIf { it != 0 } ?: R.drawable.ic_notification
         val notification = NotificationCompat.Builder(app, CHANNEL_ID)
-            .setSmallIcon(icon)
+            .setSmallIcon(iconRes)
             .setContentTitle(result.description)
             .setContentText(result.projectName)
             .setContentIntent(openApp)
@@ -113,27 +110,6 @@ object StatusBarDaysNotifier {
             }
             else -> null
         }
-    }
-
-    private fun drawNumberIcon(context: Context, value: String): Bitmap {
-        val size = (24 * context.resources.displayMetrics.density).toInt().coerceAtLeast(48)
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
-            textAlign = Paint.Align.CENTER
-            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
-        }
-        var textSize = size * if (value.length <= 2) 0.76f else 0.62f
-        paint.textSize = textSize
-        while (paint.measureText(value) > size * 0.94f && textSize > size * 0.30f) {
-            textSize -= size * 0.025f
-            paint.textSize = textSize
-        }
-        val metrics = paint.fontMetrics
-        val baseline = size / 2f - (metrics.ascent + metrics.descent) / 2f
-        canvas.drawText(value, size / 2f, baseline, paint)
-        return bitmap
     }
 
     private fun scheduleDailyRefresh(context: Context) {
