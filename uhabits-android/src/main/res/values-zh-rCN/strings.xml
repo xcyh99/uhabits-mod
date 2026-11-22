@@ -96,6 +96,17 @@
     <string name="time_records_elapsed_summary">设置过去的起始日期，计算到今天已经经过多少天。</string>
     <string name="time_records_countdown">倒计时</string>
     <string name="time_records_countdown_summary">设置未来的目标日期，计算距离目标还有多少天。</string>
+    <string name="time_records_date_calculator">日期推算</string>
+    <string name="time_records_date_calculator_summary">选择一个基准日期，输入天数，推算往前或往后的具体日期。</string>
+    <string name="time_records_calculator_base_date">基准日期：%1$s（点击修改）</string>
+    <string name="time_records_calculator_days_hint">请输入相差天数</string>
+    <string name="time_records_calculator_direction">推算方向</string>
+    <string name="time_records_calculator_before">往前推</string>
+    <string name="time_records_calculator_after">往后推</string>
+    <string name="time_records_calculator_calculate">计算</string>
+    <string name="time_records_calculator_invalid_days">请输入有效的非负整数天数</string>
+    <string name="time_records_calculator_result">推算结果</string>
+    <string name="time_records_calculator_result_message">%1$s %2$s %3$d 天：\\n%4$s</string>
     <string name="time_records_coming_soon">这是时间记录页面的预览入口，具体配置功能将在后续版本接入。</string>
     <string name="select_snooze_delay">设定稍后提醒的时间间隔</string>
     <string name="hint_title">你知道吗？</string>
