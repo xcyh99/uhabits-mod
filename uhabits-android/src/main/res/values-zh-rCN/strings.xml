@@ -280,4 +280,32 @@
     <string name="clear_local_habit_data_done">本机习惯和打卡记录已清空。</string>
     <string name="next_step">下一步</string>
     <string name="confirm_clear">确认清空</string>
+
+    <string name="time_records_add_category">新建计时</string>
+    <string name="time_records_saved_category">我的时间记录</string>
+    <string name="time_records_empty_title">还没有时间记录</string>
+    <string name="time_records_empty_summary">选择上方的正计时或倒计时开始创建。</string>
+    <string name="time_records_title_hint">请输入标题</string>
+    <string name="time_records_start_date">起始日期：%1$s（点击修改）</string>
+    <string name="time_records_target_date">目标日期：%1$s（点击修改）</string>
+    <string name="time_records_edit_title">编辑时间记录</string>
+    <string name="time_records_add_elapsed">新建正计时</string>
+    <string name="time_records_add_countdown">新建倒计时</string>
+    <string name="time_records_title_required">请填写标题</string>
+    <string name="time_records_start_must_be_past">正计时的起始日期不能晚于今天。</string>
+    <string name="time_records_target_must_be_future">倒计时的目标日期必须晚于今天。</string>
+    <string name="time_records_delete_title">删除这条时间记录？</string>
+    <string name="time_records_delete_message">确定删除“%1$s”吗？此操作无法撤销。</string>
+    <string name="time_records_elapsed_days">已过去 %1$d 天</string>
+    <string name="time_records_remaining_days">还剩 %1$d 天</string>
+    <string name="time_records_overdue_days">已超期 %1$d 天</string>
+    <string name="time_records_widget_category">桌面小组件</string>
+    <string name="time_records_widget_title">正计时 / 倒计时组件</string>
+    <string name="time_records_widget_summary">在手机桌面添加“时间记录”组件；每个组件可单独选择一条记录。长按桌面空白处，从组件列表中添加。</string>
+    <string name="time_records_widget_name">正计时 / 倒计时</string>
+    <string name="time_records_widget_unconfigured">尚未选择记录</string>
+    <string name="time_records_widget_open_app">点击打开时间记录</string>
+    <string name="time_records_widget_create_first">请先在时间记录页面创建正计时或倒计时。</string>
+    <string name="time_records_widget_choose_record">选择要显示的时间记录</string>
+
 </resources>
