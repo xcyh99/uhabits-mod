@@ -184,7 +184,10 @@ open class Preferences(private val storage: Storage) {
         }
 
     open val midnightDelayHours: Int
-        get() = if (isMidnightDelayEnabled) MIDNIGHT_DELAY_HOURS else 0
+        get() = if (isMidnightDelayEnabled) {
+            storage.getString("pref_midnight_delay_hours", MIDNIGHT_DELAY_HOURS.toString())
+                .toIntOrNull()?.coerceIn(1, 23) ?: MIDNIGHT_DELAY_HOURS
+        } else 0
 
     companion object {
         const val MIDNIGHT_DELAY_HOURS = 3
