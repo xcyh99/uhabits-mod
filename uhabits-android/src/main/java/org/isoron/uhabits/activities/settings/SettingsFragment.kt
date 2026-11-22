@@ -216,6 +216,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 startActivity(Intent(requireContext(), org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
                 return true
             }
+            "widgetManager" -> {
+                showWidgetManager()
+                return true
+            }
             "featureShortcuts" -> {
                 showFeatureShortcutSettings()
                 return true
@@ -280,9 +284,52 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         findPreference("reminderSound").isVisible = false
     }
 
+
+    private fun showWidgetManager() {
+        val context = requireContext()
+        val widgets = listOf(
+            "历史" to org.isoron.uhabits.widgets.HistoryWidgetProvider::class.java,
+            "标记" to org.isoron.uhabits.widgets.CheckmarkWidgetProvider::class.java,
+            "得分" to org.isoron.uhabits.widgets.ScoreWidgetProvider::class.java,
+            "连续记录" to org.isoron.uhabits.widgets.StreakWidgetProvider::class.java,
+            "频率" to org.isoron.uhabits.widgets.FrequencyWidgetProvider::class.java,
+            "目标" to org.isoron.uhabits.widgets.TargetWidgetProvider::class.java,
+            "距离上次打卡" to org.isoron.uhabits.widgets.DaysSinceLastCheckinWidgetProvider::class.java,
+            "正计时 / 倒计时" to org.isoron.uhabits.widgets.TimeRecordWidgetProvider::class.java
+        )
+        val labels = widgets.map { it.first }.toTypedArray()
+        val checked = BooleanArray(widgets.size)
+        val selected = linkedSetOf<Int>()
+        AlertDialog.Builder(context)
+            .setTitle("桌面组件管理")
+            .setMessage("选择要添加到桌面的组件，可一次选择多种。点击添加后，系统桌面会逐项请求确认。")
+            .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
+                if (isChecked) selected.add(which) else selected.remove(which)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton("批量添加（${selected.size}）") { _, _ ->
+                val manager = android.appwidget.AppWidgetManager.getInstance(context)
+                if (!manager.isRequestPinAppWidgetSupported) {
+                    Toast.makeText(context, "当前桌面不支持应用内添加组件，请到桌面长按空白处添加。", Toast.LENGTH_LONG).show()
+                    return@setPositiveButton
+                }
+                var requested = 0
+                selected.forEach { index ->
+                    val provider = android.content.ComponentName(context, widgets[index].second)
+                    if (manager.requestPinAppWidget(provider, null, null)) requested++
+                }
+                Toast.makeText(
+                    context,
+                    if (requested > 0) "已向桌面发送 $requested 项添加请求，请按系统提示逐项确认。" else "桌面未接受添加请求。",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            .show()
+    }
+
     private fun showFeatureShortcutSettings() {
         val candidateKeys = arrayOf(
-            "timeRecords", "createFullBackup", "restoreFullBackup",
+            "timeRecords", "widgetManager", "createFullBackup", "restoreFullBackup",
             "exportDB", "exportLegacyDB", "exportCSV", "importData",
             "webDavSync", "settingsBackupRestore", "publicBackupFolder",
             "clearLocalHabitData", "pref_short_toggle", "pref_midnight_delay",
