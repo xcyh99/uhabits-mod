@@ -325,4 +325,9 @@
     <string name="time_records_widget_choose_record">Choose a time record</string>
     <string name="time_records_pin_not_supported">Your launcher does not support adding widgets from inside the app. Add it from the home screen widget list.</string>
 
+    <string name="full_backup_create_title">Create full backup</string>
+    <string name="full_backup_restore_title">Restore full backup</string>
+    <string name="shortcut_order_title">Reorder shortcuts</string>
+    <string name="shortcut_move_up">Move up</string>
+    <string name="shortcut_move_down">Move down</string>
 </resources>

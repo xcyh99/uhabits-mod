@@ -161,9 +161,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             view.post {
                 val key = targetPreference ?: "featureCenterCategory"
                 val directActionKeys = setOf(
-                    "timeRecords",
                     "createFullBackup",
                     "restoreFullBackup",
+                    "exportDB",
+                    "exportLegacyDB",
+                    "exportCSV",
+                    "importData",
                     "webDavSync",
                     "settingsBackupRestore",
                     "publicBackupFolder",
@@ -277,7 +280,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     }
 
     private fun showFeatureShortcutSettings() {
-        val keys = arrayOf(
+        val candidateKeys = arrayOf(
             "timeRecords", "createFullBackup", "restoreFullBackup",
             "exportDB", "exportLegacyDB", "exportCSV", "importData",
             "webDavSync", "settingsBackupRestore", "publicBackupFolder",
@@ -286,28 +289,73 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             "pref_pure_black", "pref_disable_animation", "pref_widget_opacity",
             "pref_first_weekday", "pref_sticky_notifications", "reminderCustomize"
         )
-        val labels = keys.map { key ->
-            findPreference(key)?.title?.toString() ?: key
-        }.toTypedArray()
+        val keys = candidateKeys.filter { findPreference<Preference>(it) != null }
+        val labels = keys.map { key -> findPreference<Preference>(key)?.title?.toString() ?: key }
+            .toTypedArray()
         val store = PreferenceManager.getDefaultSharedPreferences(requireContext())
-        val selected = store.getStringSet("feature_shortcuts", emptySet())
-            ?.toMutableSet() ?: mutableSetOf()
+        val savedOrder = store.getString("feature_shortcuts_order", null)
+            ?.split("|")?.filter { it in keys }
+        val legacySelection = store.getStringSet("feature_shortcuts", emptySet()).orEmpty()
+        val selected = (savedOrder?.takeIf { it.isNotEmpty() } ?: keys.filter { it in legacySelection })
+            .distinct().toMutableList()
         val checked = BooleanArray(keys.size) { keys[it] in selected }
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.shortcut_settings)
             .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
-                if (isChecked) selected.add(keys[which]) else selected.remove(keys[which])
+                val key = keys[which]
+                if (isChecked && key !in selected) selected.add(key)
+                if (!isChecked) selected.remove(key)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(android.R.string.ok) { _, _ ->
-                store.edit().putStringSet("feature_shortcuts", selected.toSet()).apply()
-                Toast.makeText(
-                    requireContext(),
-                    getString(R.string.shortcut_settings_saved, selected.size),
-                    Toast.LENGTH_SHORT
-                ).show()
+                showShortcutOrderDialog(selected, store)
             }
             .show()
+    }
+
+    private fun showShortcutOrderDialog(
+        selected: MutableList<String>,
+        store: SharedPreferences
+    ) {
+        if (selected.isEmpty()) {
+            saveShortcutOrder(selected, store)
+            return
+        }
+        var selectedIndex = 0
+        val labels = selected.map { key ->
+            findPreference<Preference>(key)?.title?.toString() ?: key
+        }.toTypedArray()
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.shortcut_order_title)
+            .setSingleChoiceItems(labels, 0) { _, which -> selectedIndex = which }
+            .setPositiveButton(R.string.shortcut_move_up) { _, _ ->
+                if (selectedIndex > 0) {
+                    val item = selected.removeAt(selectedIndex)
+                    selected.add(selectedIndex - 1, item)
+                }
+                showShortcutOrderDialog(selected, store)
+            }
+            .setNegativeButton(R.string.shortcut_move_down) { _, _ ->
+                if (selectedIndex < selected.lastIndex) {
+                    val item = selected.removeAt(selectedIndex)
+                    selected.add(selectedIndex + 1, item)
+                }
+                showShortcutOrderDialog(selected, store)
+            }
+            .setNeutralButton(android.R.string.ok) { _, _ -> saveShortcutOrder(selected, store) }
+            .show()
+    }
+
+    private fun saveShortcutOrder(selected: List<String>, store: SharedPreferences) {
+        store.edit()
+            .putString("feature_shortcuts_order", selected.joinToString("|"))
+            .putStringSet("feature_shortcuts", selected.toSet())
+            .apply()
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.shortcut_settings_saved, selected.size),
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     private fun createFullBackup(uri: Uri) {

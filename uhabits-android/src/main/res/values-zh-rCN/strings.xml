@@ -316,4 +316,9 @@
     <string name="time_records_widget_choose_record">选择要显示的时间记录</string>
 
     <string name="time_records_pin_not_supported">当前桌面启动器不支持从应用内直接添加组件，请在桌面组件列表中添加。</string>
+    <string name="full_backup_create_title">完整备份</string>
+    <string name="full_backup_restore_title">完整恢复</string>
+    <string name="shortcut_order_title">调整快捷入口顺序</string>
+    <string name="shortcut_move_up">上移</string>
+    <string name="shortcut_move_down">下移</string>
 </resources>

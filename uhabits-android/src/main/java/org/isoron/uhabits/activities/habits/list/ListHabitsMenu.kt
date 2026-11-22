@@ -27,6 +27,7 @@ import android.widget.PopupMenu
 import androidx.preference.PreferenceManager
 import android.content.Intent
 import org.isoron.uhabits.activities.settings.SettingsActivity
+import org.isoron.uhabits.activities.timerecords.TimeRecordsActivity
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import me.tatarka.inject.annotations.Inject
@@ -123,17 +124,24 @@ class ListHabitsMenu(
     private fun showShortcutsMenu() {
         val popup = PopupMenu(activity, activity.findViewById(R.id.actionShortcuts))
         val prefs = PreferenceManager.getDefaultSharedPreferences(activity)
-        val selected = prefs.getStringSet("feature_shortcuts", emptySet())?.toList().orEmpty()
+        val savedOrder = prefs.getString("feature_shortcuts_order", null)
+            ?.split("|")?.filter { it.isNotBlank() }
+        val selected = savedOrder?.takeIf { it.isNotEmpty() }
+            ?: prefs.getStringSet("feature_shortcuts", emptySet())?.toList().orEmpty()
         val available = selected.mapNotNull { key -> shortcutTitle(key)?.let { key to it } }
         if (available.isEmpty()) {
             popup.menu.add(activity.getString(R.string.no_shortcuts_configured)).isEnabled = false
         } else {
             available.forEachIndexed { index, pair ->
                 popup.menu.add(0, index + 1, index, pair.second).setOnMenuItemClickListener {
-                    activity.startActivity(
-                        Intent(activity, SettingsActivity::class.java)
-                            .putExtra("open_preference_key", pair.first)
-                    )
+                    if (pair.first == "timeRecords") {
+                        activity.startActivity(Intent(activity, TimeRecordsActivity::class.java))
+                    } else {
+                        activity.startActivity(
+                            Intent(activity, SettingsActivity::class.java)
+                                .putExtra("open_preference_key", pair.first)
+                        )
+                    }
                     true
                 }
             }
@@ -150,8 +158,8 @@ class ListHabitsMenu(
 
     private fun shortcutTitle(key: String): String? = when (key) {
         "timeRecords" -> activity.getString(R.string.time_records)
-        "createFullBackup" -> "完整备份"
-        "restoreFullBackup" -> "完整恢复"
+        "createFullBackup" -> activity.getString(R.string.full_backup_create_title)
+        "restoreFullBackup" -> activity.getString(R.string.full_backup_restore_title)
         "exportDB" -> activity.getString(R.string.export_full_backup)
         "exportLegacyDB" -> activity.getString(R.string.export_legacy_backup)
         "exportCSV" -> activity.getString(R.string.export_to_csv)
