@@ -176,6 +176,16 @@
             android:title="@string/pref_midnight_delay_title"
             app:iconSpaceReserved="false" />
 
+        <ListPreference
+            android:defaultValue="3"
+            android:dependency="pref_midnight_delay"
+            android:entries="@array/midnight_delay_hour_entries"
+            android:entryValues="@array/midnight_delay_hour_values"
+            android:key="pref_midnight_delay_hours"
+            android:summary="@string/pref_midnight_delay_hours_summary"
+            android:title="新的一天切换时间"
+            app:iconSpaceReserved="false" />
+
         <SwitchPreferenceCompat
             android:defaultValue="false"
             android:key="pref_skip_enabled"
