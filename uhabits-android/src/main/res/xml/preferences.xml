@@ -121,6 +121,12 @@
                 app:iconSpaceReserved="false" />
 
         <Preference
+                android:key="widgetManager"
+                android:title="桌面组件管理"
+                android:summary="选择多个组件，一次发起添加到手机桌面的请求。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
                 android:key="featureShortcuts"
                 android:title="@string/shortcut_settings"
                 android:summary="@string/shortcut_settings_summary"
