@@ -134,6 +134,8 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
     }
 
     override fun onResume() {
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            .edit().putString("startup_page_last", "main").apply()
         screen.refresh()
         screen.onAttached()
         rootView.postInvalidate()
