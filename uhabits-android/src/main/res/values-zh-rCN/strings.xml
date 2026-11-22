@@ -126,12 +126,12 @@
     <string name="file_not_recognized">无法识别文件</string>
     <string name="habits_imported">习惯导入成功</string>
     <string name="import_data">导入数据</string>
-    <string name="export_full_backup">导出完整备份</string>
-    <string name="import_data_summary">支持十字习惯完整备份、原版「习惯」导出的数据库备份，以及本应用导出的 CSV 压缩包；也支持 Tickmate、HabitBull 或 Rewire 的导出文件。</string>
+    <string name="export_full_backup">导出数据库（FULL）</string>
+    <string name="import_data_summary">导入数据库或 CSV 数据。数据库导入采用合并方式，不会删除本机未出现在导入文件中的习惯；完整备份请使用「完整恢复」。</string>
     <string name="export_as_csv_summary">生成可通过 Microsoft Excel 或 OpenOffice Calc 打开的 CSV 文件。此文件不能重新导入。</string>
-    <string name="export_full_backup_summary">生成十字习惯完整备份，保留所有自定义颜色，可重新导入十字习惯。</string>
-    <string name="export_legacy_backup">导出原版兼容备份</string>
-    <string name="export_legacy_backup_summary">生成可由原版「习惯」恢复的备份。自定义颜色会转换为原版支持的 20 种最接近颜色，不会改变十字习惯中的原始数据。</string>
+    <string name="export_full_backup_summary">仅导出主数据库文件（.db），不包含时间记录、软件设置和独立小组件配置；可通过「导入数据」合并导入。</string>
+    <string name="export_legacy_backup">导出原版兼容数据库</string>
+    <string name="export_legacy_backup_summary">导出原版「习惯」可识别的数据库文件。自定义颜色会映射到原版支持的 20 种颜色，不会改变本应用中的原始颜色。</string>
     <string name="bug_report_failed">错误报告生成失败</string>
     <string name="generate_bug_report">生成错误报告</string>
     <string name="troubleshooting">故障排除</string>
@@ -235,7 +235,7 @@
     <string name="backup_saved">备份已保存</string>
 
     <string name="webdav_sync">WebDAV 网络备份</string>
-    <string name="webdav_sync_summary">设置 WebDAV 服务器，测试连接、上传或下载备份。</string>
+    <string name="webdav_sync_summary">保留原有数据库上传、下载和数据库双向同步；另提供独立的完整备份包上传与下载。</string>
     <string name="webdav_server_hint">https://服务器地址/WebDAV/目录/</string>
     <string name="webdav_username">用户名</string>
     <string name="webdav_password">密码</string>
