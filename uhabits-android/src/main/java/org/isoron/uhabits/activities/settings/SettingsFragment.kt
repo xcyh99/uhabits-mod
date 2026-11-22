@@ -324,17 +324,16 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 val provider = widgets[selectedIndex].second
                 val store = PreferenceManager.getDefaultSharedPreferences(context)
                 store.edit().remove("widget_pin_queue").apply()
-                val callbackIntent = Intent(context, ListHabitsActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                }
-                val callback = android.app.PendingIntent.getActivity(
-                    context, provider.name.hashCode(), callbackIntent,
-                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-                )
                 if (manager.requestPinAppWidget(
-                        android.content.ComponentName(context, provider), null, callback
+                        android.content.ComponentName(context, provider), null, null
                     )) {
                     Toast.makeText(context, "已请求添加组件。请在桌面确认。", Toast.LENGTH_LONG).show()
+                    // The launcher must become foreground so its pin-confirmation UI
+                    // is not covered by this app. Do this after the selection dialog
+                    // has finished dismissing.
+                    requireActivity().window.decorView.post {
+                        requireActivity().moveTaskToBack(true)
+                    }
                 } else {
                     Toast.makeText(context, "桌面未接受添加请求。", Toast.LENGTH_LONG).show()
                 }
