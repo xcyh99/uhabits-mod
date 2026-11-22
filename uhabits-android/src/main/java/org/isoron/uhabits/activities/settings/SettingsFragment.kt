@@ -154,6 +154,9 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         val sr = StyledResources(context!!)
         view.setBackgroundColor(sr.getColor(R.attr.contrast0))
         super.onViewCreated(view, savedInstanceState)
+        if (requireActivity().intent.getBooleanExtra("open_feature_center", false)) {
+            view.post { scrollToPreference("featureCenterCategory") }
+        }
     }
 
     override fun onCreateRecyclerView(
