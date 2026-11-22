@@ -157,7 +157,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         super.onViewCreated(view, savedInstanceState)
         val targetPreference = requireActivity().intent.getStringExtra("open_preference_key")
         val openFeatureCenter = requireActivity().intent.getBooleanExtra("open_feature_center", false)
-        if (targetPreference != null || openFeatureCenter) {
+        if ((targetPreference != null && targetPreference != "widgetManager") || openFeatureCenter) {
             view.post {
                 val key = targetPreference ?: "featureCenterCategory"
                 val directActionKeys = setOf(
