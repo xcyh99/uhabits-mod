@@ -411,6 +411,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             getString(R.string.shortcut_settings_saved, selected.size),
             Toast.LENGTH_SHORT
         ).show()
+        // Shortcut configuration is launched as a focused task from the
+        // main-screen popup. After saving, return directly to the main app
+        // instead of leaving the user on the Settings screen.
+        requireActivity().finish()
     }
 
     private fun createFullBackup(uri: Uri) {
