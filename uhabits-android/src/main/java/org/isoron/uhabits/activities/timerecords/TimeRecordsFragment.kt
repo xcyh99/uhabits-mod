@@ -53,6 +53,10 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
         }
         screen.addPreference(addCategory)
         addCategory.addPreference(createAction(
+            getString(R.string.time_records_checkin),
+            getString(R.string.time_records_checkin_summary)
+        ) { pinCheckinWidget() })
+        addCategory.addPreference(createAction(
             getString(R.string.time_records_elapsed),
             getString(R.string.time_records_elapsed_summary)
         ) { showEditor(TimeRecord.ELAPSED) })
@@ -60,10 +64,6 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
             getString(R.string.time_records_countdown),
             getString(R.string.time_records_countdown_summary)
         ) { showEditor(TimeRecord.COUNTDOWN) })
-        addCategory.addPreference(createAction(
-            getString(R.string.time_records_checkin),
-            getString(R.string.time_records_checkin_summary)
-        ) { pinCheckinWidget() })
 
         val recordsCategory = PreferenceCategory(context).apply {
             title = getString(R.string.time_records_saved_category)
