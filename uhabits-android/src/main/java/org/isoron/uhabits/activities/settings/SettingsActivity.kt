@@ -19,6 +19,7 @@
 package org.isoron.uhabits.activities.settings
 
 import android.os.Bundle
+import android.content.Intent
 import android.view.LayoutInflater
 import androidx.appcompat.app.AppCompatActivity
 import org.isoron.uhabits.HabitsApplication
@@ -45,5 +46,14 @@ class SettingsActivity : AppCompatActivity() {
         )
         binding.root.applyRootViewInsets()
         setContentView(binding.root)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getStringExtra("open_preference_key") == "widgetManager") {
+            (supportFragmentManager.findFragmentById(R.id.fragment) as? SettingsFragment)
+                ?.openBatchWidgetPicker(intent)
+        }
     }
 }
