@@ -174,7 +174,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     "settingsBackupRestore",
                     "publicBackupFolder",
                     "clearLocalHabitData",
-                    "reminderCustomize"
+                    "reminderCustomize",
+                    "startupPage",
+                    "floatingTimer",
+                    "statusBarDays"
                 )
                 if (key in directActionKeys) {
                     findPreference(key)?.performClick()
@@ -479,18 +482,11 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         dialog.show()
     }
     private fun showFeatureShortcutSettings() {
-        val candidateKeys = arrayOf(
-            "timeRecords", "widgetManager", "createFullBackup", "restoreFullBackup",
-            "exportDB", "exportLegacyDB", "exportCSV", "importData",
-            "webDavSync", "settingsBackupRestore", "publicBackupFolder",
-            "clearLocalHabitData", "pref_short_toggle", "pref_midnight_delay",
-            "pref_skip_enabled", "pref_unknown_enabled", "pref_checkmark_reverse_order",
-            "pref_pure_black", "pref_disable_animation", "pref_widget_opacity",
-            "pref_first_weekday", "pref_sticky_notifications", "reminderCustomize"
-        )
-        val keys = candidateKeys.filter { findPreference(it) != null }
-        val labels = keys.map { key -> findPreference(key)?.title?.toString() ?: key }
-            .toTypedArray()
+        // Discover shortcut candidates from the same preference tree used by Settings.
+        // New user-facing entries in Feature Center or Settings appear here automatically.
+        val entries = FeatureShortcutCatalog.getEntries(requireContext())
+        val keys = entries.map { it.key }
+        val labels = entries.map { it.title }.toTypedArray()
         val store = PreferenceManager.getDefaultSharedPreferences(requireContext())
         val savedOrder = store.getString("feature_shortcuts_order", null)
             ?.split("|")?.filter { it in keys }
@@ -522,9 +518,8 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             return
         }
         var selectedIndex = initialSelectedIndex.coerceIn(0, selected.lastIndex)
-        val labels = selected.map { key ->
-            findPreference(key)?.title?.toString() ?: key
-        }.toTypedArray()
+        val titles = FeatureShortcutCatalog.getEntries(requireContext()).associate { it.key to it.title }
+        val labels = selected.map { key -> titles[key] ?: key }.toTypedArray()
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.shortcut_order_title)
             .setSingleChoiceItems(labels, selectedIndex) { _, which -> selectedIndex = which }

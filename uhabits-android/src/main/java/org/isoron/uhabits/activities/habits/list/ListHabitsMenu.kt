@@ -141,7 +141,8 @@ class ListHabitsMenu(
             ?.split("|")?.filter { it.isNotBlank() }
         val selected = savedOrder?.takeIf { it.isNotEmpty() }
             ?: prefs.getStringSet("feature_shortcuts", emptySet())?.toList().orEmpty()
-        val available = selected.mapNotNull { key -> shortcutTitle(key)?.let { key to it } }
+        val titles = FeatureShortcutCatalog.getEntries(activity).associate { it.key to it.title }
+        val available = selected.mapNotNull { key -> titles[key]?.let { key to it } }
 
         popup.menu.add(activity.getString(R.string.configure_shortcuts)).setOnMenuItemClickListener {
             activity.startActivity(
@@ -170,32 +171,8 @@ class ListHabitsMenu(
         popup.show()
     }
 
-    private fun shortcutTitle(key: String): String? = when (key) {
-        "widgetManager" -> "桌面组件管理"
-        "timeRecords" -> activity.getString(R.string.time_records)
-        "createFullBackup" -> activity.getString(R.string.full_backup_create_title)
-        "restoreFullBackup" -> activity.getString(R.string.full_backup_restore_title)
-        "exportDB" -> activity.getString(R.string.export_full_backup)
-        "exportLegacyDB" -> activity.getString(R.string.export_legacy_backup)
-        "exportCSV" -> activity.getString(R.string.export_to_csv)
-        "importData" -> activity.getString(R.string.import_data)
-        "webDavSync" -> activity.getString(R.string.webdav_sync)
-        "settingsBackupRestore" -> activity.getString(R.string.settings_backup_restore)
-        "publicBackupFolder" -> activity.getString(R.string.select_public_backup_folder)
-        "clearLocalHabitData" -> activity.getString(R.string.clear_local_habit_data)
-        "pref_short_toggle" -> activity.getString(R.string.pref_toggle_title)
-        "pref_midnight_delay" -> activity.getString(R.string.pref_midnight_delay_title)
-        "pref_skip_enabled" -> activity.getString(R.string.pref_skip_title)
-        "pref_unknown_enabled" -> activity.getString(R.string.pref_unknown_title)
-        "pref_checkmark_reverse_order" -> activity.getString(R.string.reverse_days)
-        "pref_pure_black" -> activity.getString(R.string.use_pure_black)
-        "pref_disable_animation" -> activity.getString(R.string.pref_animations_title)
-        "pref_widget_opacity" -> activity.getString(R.string.widget_opacity_title)
-        "pref_first_weekday" -> activity.getString(R.string.first_day_of_the_week)
-        "pref_sticky_notifications" -> activity.getString(R.string.sticky_notifications)
-        "reminderCustomize" -> activity.getString(R.string.customize_notification)
-        else -> null
-    }
+    private fun shortcutTitle(key: String): String? =
+        FeatureShortcutCatalog.getEntries(activity).firstOrNull { it.key == key }?.title
 
     fun onItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
