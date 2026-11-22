@@ -224,9 +224,30 @@ class FullBackupManager(private val context: Context) {
             val database = File(staging, "database/uhabits.db")
             if (!database.isFile || database.length() == 0L) throw IOException("备份中没有有效主数据库")
             validateDatabaseFile(database)
-            JSONObject(File(staging, "modules/time_records.json").readText())
-            JSONObject(File(staging, "widgets/time_record_widget_links.json").readText())
-            JSONObject(File(staging, "settings/preferences.json").readText())
+            val recordsDocument = JSONObject(File(staging, "modules/time_records.json").readText())
+            if (recordsDocument.optString("format") != "SHIZI_TIME_RECORDS" ||
+                recordsDocument.optInt("version", -1) != 1 ||
+                recordsDocument.optJSONArray("records") == null
+            ) throw IOException("时间记录备份格式不受支持")
+            val linksDocument = JSONObject(File(staging, "widgets/time_record_widget_links.json").readText())
+            if (linksDocument.optString("format") != "SHIZI_WIDGET_LINKS" ||
+                linksDocument.optInt("version", -1) != 1 ||
+                linksDocument.optJSONObject("values") == null
+            ) throw IOException("小组件配置备份格式不受支持")
+            val settingsDocument = JSONObject(File(staging, "settings/preferences.json").readText())
+            val settings = settingsDocument.optJSONObject("values")
+            if (settingsDocument.optString("format") != "SHIZI_PREFERENCES" ||
+                settingsDocument.optInt("version", -1) != 1 || settings == null
+            ) throw IOException("软件设置备份格式不受支持")
+            settings.keys().forEach { key ->
+                val type = settings.getJSONObject(key).optString("type")
+                if (type !in setOf("boolean", "int", "long", "float", "string", "string_set")) {
+                    throw IOException("备份包含不支持的软件设置类型：$type")
+                }
+            }
+            if (readDatabaseVersion(database) != info.databaseVersion) {
+                throw IOException("备份说明中的数据库版本与实际数据库不一致")
+            }
 
             val pending = File(context.filesDir, PENDING_RESTORE_DIR)
             pending.deleteRecursively()
