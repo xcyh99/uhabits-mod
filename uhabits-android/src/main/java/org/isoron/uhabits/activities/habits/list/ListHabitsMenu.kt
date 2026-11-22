@@ -27,6 +27,7 @@ import android.widget.PopupMenu
 import androidx.preference.PreferenceManager
 import android.content.Intent
 import org.isoron.uhabits.activities.settings.SettingsActivity
+import org.isoron.uhabits.activities.settings.FeatureShortcutCatalog
 import org.isoron.uhabits.activities.timerecords.TimeRecordsActivity
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
