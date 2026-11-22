@@ -19,6 +19,7 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import org.isoron.uhabits.R
+import org.isoron.uhabits.widgets.TimeRecordWidgetProvider
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
