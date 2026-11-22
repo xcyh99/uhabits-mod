@@ -353,6 +353,15 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
             .setTitle("日期推算")
             .setView(container)
             .setNegativeButton(R.string.clear_label, null)
+            .setNeutralButton("按天数推算") { _, _ ->
+                showDateCalculator(LocalDate.now(), true) { calculated ->
+                    AlertDialog.Builder(context)
+                        .setTitle("推算结果")
+                        .setMessage(calculated.format(DateTimeFormatter.ofPattern("yyyy年M月d日 EEEE", Locale.CHINA)))
+                        .setPositiveButton("完成", null)
+                        .show()
+                }
+            }
             .setPositiveButton("计算跨度", null)
             .create().also { dialog ->
                 dialog.setOnShowListener {
@@ -370,13 +379,13 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
                         val totalYears = ChronoUnit.YEARS.between(earlier, later)
                         val direction = if (start <= end) "结束时间晚于开始时间" else "结束时间早于开始时间"
                         val resultText = buildString {
-                            append(direction).append("\\n")
-                            append("日历跨度：${period.years}年${period.months}个月${period.days}天").append("\\n\\n")
-                            append("总年数：${totalYears}年（完整年）").append("\\n")
-                            append("总月数：${totalMonths}个月（完整月）").append("\\n")
-                            append("总星期：${totalWeeks}周${remainingDays}天").append("\\n")
-                            append("总天数：${totalDays}天").append("\\n")
-                            append("总小时：${totalHours}小时").append("\\n")
+                            append(direction).append("\n")
+                            append("日历跨度：${period.years}年${period.months}个月${period.days}天").append("\n\n")
+                            append("总年数：${totalYears}年（完整年）").append("\n")
+                            append("总月数：${totalMonths}个月（完整月）").append("\n")
+                            append("总星期：${totalWeeks}周${remainingDays}天").append("\n")
+                            append("总天数：${totalDays}天").append("\n")
+                            append("总小时：${totalHours}小时").append("\n")
                             append("总分钟：${totalMinutes}分钟")
                         }
                         AlertDialog.Builder(context)
