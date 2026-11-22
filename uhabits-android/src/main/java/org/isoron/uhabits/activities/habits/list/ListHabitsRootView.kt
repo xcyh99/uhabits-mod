@@ -20,14 +20,18 @@
 package org.isoron.uhabits.activities.habits.list
 
 import android.content.Context
+import android.content.Intent
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import me.tatarka.inject.annotations.Inject
 import nl.dionsegijn.konfetti.xml.KonfettiView
 import org.isoron.uhabits.R
 import org.isoron.uhabits.activities.common.views.ScrollableChart
 import org.isoron.uhabits.activities.common.views.TaskProgressBar
+import org.isoron.uhabits.activities.settings.SettingsActivity
 import org.isoron.uhabits.activities.habits.list.views.EmptyListView
 import org.isoron.uhabits.activities.habits.list.views.EmptyListViewState
 import org.isoron.uhabits.activities.habits.list.views.EmptyMode
@@ -95,7 +99,34 @@ class ListHabitsRootView(
             addBelow(progressBar, header) {
                 it.topMargin = dp(-6.0f).toInt()
             }
-            addAtBottom(hintView)
+
+            val featureCenterButton = Button(context).apply {
+                text = resources.getString(R.string.feature_center)
+                isAllCaps = false
+                setOnClickListener {
+                    context.startActivity(
+                        Intent(context, SettingsActivity::class.java)
+                            .putExtra("open_feature_center", true)
+                    )
+                }
+            }
+            val footer = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(12.0f).toInt(), dp(4.0f).toInt(), dp(12.0f).toInt(), dp(4.0f).toInt())
+                addView(
+                    featureCenterButton,
+                    LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
+                )
+                addView(hintView, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+            }
+            listView.setPadding(
+                listView.paddingLeft,
+                listView.paddingTop,
+                listView.paddingRight,
+                dp(64.0f).toInt()
+            )
+            listView.clipToPadding = false
+            addAtBottom(footer)
         }
         rootView.setupToolbar(
             toolbar = tbar,
