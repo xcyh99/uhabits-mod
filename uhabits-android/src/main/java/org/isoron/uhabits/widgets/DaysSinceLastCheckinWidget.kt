@@ -70,7 +70,7 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         style = Paint.Style.STROKE
         color = Color.WHITE
         textAlign = Paint.Align.LEFT
-        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        typeface = Typeface.create("sans-serif-condensed", Typeface.NORMAL)
     }
     private val cardRect = RectF()
 
