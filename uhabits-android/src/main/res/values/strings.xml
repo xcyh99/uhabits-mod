@@ -289,4 +289,33 @@
     <string name="clear_local_habit_data_done">Local habits and check-in records have been cleared.</string>
     <string name="next_step">Next</string>
     <string name="confirm_clear">Clear data</string>
+
+    <string name="time_records_add_category">Create a timer</string>
+    <string name="time_records_saved_category">My time records</string>
+    <string name="time_records_empty_title">No time records yet</string>
+    <string name="time_records_empty_summary">Choose elapsed time or countdown above to create one.</string>
+    <string name="time_records_title_hint">Enter a title</string>
+    <string name="time_records_start_date">Start date: %1$s (tap to change)</string>
+    <string name="time_records_target_date">Target date: %1$s (tap to change)</string>
+    <string name="time_records_edit_title">Edit time record</string>
+    <string name="time_records_add_elapsed">New elapsed timer</string>
+    <string name="time_records_add_countdown">New countdown</string>
+    <string name="time_records_title_required">Please enter a title.</string>
+    <string name="time_records_start_must_be_past">The elapsed timer start date cannot be after today.</string>
+    <string name="time_records_target_must_be_future">The countdown target date must be after today.</string>
+    <string name="time_records_delete_title">Delete this time record?</string>
+    <string name="time_records_delete_message">Delete “%1$s”? This cannot be undone.</string>
+    <string name="time_records_elapsed_days">%1$d days elapsed</string>
+    <string name="time_records_remaining_days">%1$d days remaining</string>
+    <string name="time_records_overdue_days">%1$d days overdue</string>
+    <string name="time_records_widget_category">Home screen widget</string>
+    <string name="time_records_widget_title">Elapsed / countdown widget</string>
+    <string name="time_records_widget_summary">Add the Time Record widget from your home screen. Each widget can display a different saved record.</string>
+    <string name="time_records_widget_name">Elapsed / Countdown</string>
+    <string name="time_records_widget_unconfigured">No record selected</string>
+    <string name="time_records_widget_open_app">Tap to open Time Records</string>
+    <string name="time_records_widget_create_first">Create an elapsed timer or countdown in Time Records first.</string>
+    <string name="time_records_widget_choose_record">Choose a time record</string>
+    <string name="time_records_pin_not_supported">Your launcher does not support adding widgets from inside the app. Add it from the home screen widget list.</string>
+
 </resources>
