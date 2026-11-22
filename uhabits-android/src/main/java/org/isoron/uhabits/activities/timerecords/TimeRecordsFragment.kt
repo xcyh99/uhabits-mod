@@ -121,7 +121,10 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
 
     private fun pinCheckinWidget() {
         val manager = AppWidgetManager.getInstance(requireContext())
-        val provider = ComponentName(\n            requireContext(),\n            org.isoron.uhabits.widgets.DaysSinceLastCheckinWidgetProvider::class.java\n        )
+        val provider = ComponentName(
+            requireContext(),
+            org.isoron.uhabits.widgets.DaysSinceLastCheckinWidgetProvider::class.java
+        )
         val pinned = manager.requestPinAppWidget(provider, null, null)
         if (!pinned) {
             Toast.makeText(requireContext(), R.string.time_records_pin_not_supported, Toast.LENGTH_LONG).show()
