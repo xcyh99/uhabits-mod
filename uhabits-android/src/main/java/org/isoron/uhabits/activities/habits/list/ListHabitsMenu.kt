@@ -65,8 +65,12 @@ class ListHabitsMenu(
         val nightModeItem = menu.findItem(R.id.actionToggleNightMode)
         val hideArchivedItem = menu.findItem(R.id.actionHideArchived)
         val hideCompletedItem = menu.findItem(R.id.actionHideCompleted)
-        // Shortcut clicks are dispatched through onOptionsItemSelected so the
-        // Activity does not replace the options menu while the popup is opening.
+        // Handle this action directly on the MenuItem. In this custom toolbar
+        // setup the Activity options callback is not consistently reached.
+        menu.findItem(R.id.actionShortcuts).setOnMenuItemClickListener {
+            showShortcutsMenu()
+            true
+        }
         nightModeItem.isChecked = themeSwitcher.isNightMode
         hideArchivedItem.isChecked = !preferences.showArchived
         hideCompletedItem.isChecked = !preferences.showCompleted
