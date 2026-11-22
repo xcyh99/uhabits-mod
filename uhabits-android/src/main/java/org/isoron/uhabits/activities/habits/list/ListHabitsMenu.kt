@@ -129,44 +129,44 @@ class ListHabitsMenu(
     }
 
     private fun showShortcutsMenu() {
-        // Prefer the actual toolbar action view as the popup anchor. The
-        // action item is not guaranteed to be a child of the Toolbar when
-        // AppCompat rebuilds the options menu, so retain safe fallbacks.
-        val actionView = activity.findViewById<android.view.View>(R.id.actionShortcuts)
-        val toolbar = activity.findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
-        val anchor = actionView ?: toolbar ?: activity.window.decorView
-        val popup = PopupMenu(activity, anchor)
         val prefs = PreferenceManager.getDefaultSharedPreferences(activity)
         val savedOrder = prefs.getString("feature_shortcuts_order", null)
             ?.split("|")?.filter { it.isNotBlank() }
         val selected = savedOrder?.takeIf { it.isNotEmpty() }
             ?: prefs.getStringSet("feature_shortcuts", emptySet())?.toList().orEmpty()
         val available = selected.mapNotNull { key -> shortcutTitle(key)?.let { key to it } }
-        popup.menu.add(activity.getString(R.string.configure_shortcuts)).setOnMenuItemClickListener {
-            activity.startActivity(
-                Intent(activity, SettingsActivity::class.java)
-                    .putExtra("open_preference_key", "featureShortcuts")
-            )
-            true
-        }
-        if (available.isEmpty()) {
-            popup.menu.add(activity.getString(R.string.no_shortcuts_configured)).isEnabled = false
-        } else {
-            available.forEachIndexed { index, pair ->
-                popup.menu.add(0, index + 1, index, pair.second).setOnMenuItemClickListener {
-                    if (pair.first == "timeRecords") {
+
+        // Use the platform dialog's scrollable list instead of PopupMenu. PopupMenu
+        // can be clipped by the toolbar's available display area on some devices,
+        // hiding the fifth configured shortcut.
+        val entries = listOf(activity.getString(R.string.configure_shortcuts)) +
+            if (available.isEmpty()) {
+                listOf(activity.getString(R.string.no_shortcuts_configured))
+            } else {
+                available.map { it.second }
+            }
+
+        androidx.appcompat.app.AlertDialog.Builder(activity)
+            .setTitle(R.string.shortcuts)
+            .setItems(entries.toTypedArray()) { _, which ->
+                if (which == 0) {
+                    activity.startActivity(
+                        Intent(activity, SettingsActivity::class.java)
+                            .putExtra("open_preference_key", "featureShortcuts")
+                    )
+                } else if (available.isNotEmpty()) {
+                    val key = available[which - 1].first
+                    if (key == "timeRecords") {
                         activity.startActivity(Intent(activity, TimeRecordsActivity::class.java))
                     } else {
                         activity.startActivity(
                             Intent(activity, SettingsActivity::class.java)
-                                .putExtra("open_preference_key", pair.first)
+                                .putExtra("open_preference_key", key)
                         )
                     }
-                    true
                 }
             }
-        }
-        popup.show()
+            .show()
     }
 
     private fun shortcutTitle(key: String): String? = when (key) {
