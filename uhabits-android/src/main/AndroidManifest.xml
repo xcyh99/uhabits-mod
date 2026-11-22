@@ -83,6 +83,15 @@
         </activity>
 
         <activity
+            android:name="org.isoron.uhabits.widgets.TimeRecordWidgetConfigureActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.Light.Dialog.Alert">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name="org.isoron.uhabits.activities.settings.SettingsActivity"
             android:label="@string/settings">
             <meta-data
@@ -179,6 +188,18 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_score_info" />
+        </receiver>
+
+        <receiver
+            android:name="org.isoron.uhabits.widgets.TimeRecordWidgetProvider"
+            android:exported="true"
+            android:label="@string/time_records_widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_time_record_info" />
         </receiver>
 
         <receiver
