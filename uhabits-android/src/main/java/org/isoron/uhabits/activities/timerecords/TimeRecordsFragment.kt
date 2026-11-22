@@ -11,9 +11,9 @@ import android.os.Bundle
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
@@ -120,7 +120,7 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
 
     private fun pinCheckinWidget() {
         val manager = AppWidgetManager.getInstance(requireContext())
-        val provider = ComponentName(requireContext(), org.isoron.uhabits.widgets.DaysSinceLastCheckinWidgetProvider::class.java)
+        val provider = ComponentName(\n            requireContext(),\n            org.isoron.uhabits.widgets.DaysSinceLastCheckinWidgetProvider::class.java\n        )
         val pinned = manager.requestPinAppWidget(provider, null, null)
         if (!pinned) {
             Toast.makeText(requireContext(), R.string.time_records_pin_not_supported, Toast.LENGTH_LONG).show()
@@ -236,7 +236,7 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
                     AlertDialog.Builder(context)
                         .setTitle(R.string.time_records_delete_title)
                         .setMessage(getString(R.string.time_records_delete_message, existing.title))
-                        .setNegativeButton(R.string.cancel, null)
+                        .setNegativeButton(R.string.clear_label, null)
                         .setPositiveButton(R.string.delete) { _, _ ->
                             TimeRecordStore.delete(context, existing.id)
                             TimeRecordWidgetProvider.updateAll(context)
