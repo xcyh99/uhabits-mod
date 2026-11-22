@@ -13,7 +13,7 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import androidx.core.graphics.drawable.IconCompat
+import android.graphics.drawable.Icon
 import androidx.core.app.NotificationManagerCompat
 import org.isoron.platform.time.getToday
 import org.isoron.uhabits.HabitsApplication
@@ -68,7 +68,7 @@ object StatusBarDaysNotifier {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val icon = IconCompat.createWithBitmap(drawNumberIcon(app, result.days.toString()))
+        val icon = Icon.createWithBitmap(drawNumberIcon(app, result.days.toString()))
         val notification = NotificationCompat.Builder(app, CHANNEL_ID)
             .setSmallIcon(icon)
             .setContentTitle(result.description)
