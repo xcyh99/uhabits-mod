@@ -312,10 +312,6 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
             text = getString(R.string.time_records_calculator_open)
             textSize = 14f
             setPadding(0, 0, 0, dp(12))
-            setTextColor(androidx.core.content.ContextCompat.getColor(
-                context,
-                androidx.preference.R.color.preference_fallback_accent_color
-            ))
             setOnClickListener {
                 showDateCalculator(
                     selectedDate,
