@@ -122,7 +122,11 @@ class ListHabitsMenu(
     }
 
     private fun showShortcutsMenu() {
-        val popup = PopupMenu(activity, activity.findViewById(R.id.actionShortcuts))
+        val toolbar = activity.findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+        val anchor = toolbar?.findViewById<android.view.View>(R.id.actionShortcuts)
+            ?: toolbar
+            ?: activity.window.decorView
+        val popup = PopupMenu(activity, anchor)
         val prefs = PreferenceManager.getDefaultSharedPreferences(activity)
         val savedOrder = prefs.getString("feature_shortcuts_order", null)
             ?.split("|")?.filter { it.isNotBlank() }
