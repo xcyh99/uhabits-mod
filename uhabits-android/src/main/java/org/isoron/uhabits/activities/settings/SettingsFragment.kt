@@ -159,8 +159,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         val openFeatureCenter = requireActivity().intent.getBooleanExtra("open_feature_center", false)
         if (targetPreference == "widgetManager") {
             val pendingQueue = requireActivity().intent.getStringArrayListExtra("resume_widget_pin_queue")
-            if (pendingQueue != null) showWidgetManager(pendingQueue)
-            else findPreference("widgetManager")?.performClick()
+            // Open the picker directly. Relying on Preference.performClick() here
+            // can silently do nothing when the preference is not present in this
+            // settings configuration, leaving the user on the settings home page.
+            showWidgetManager(pendingQueue ?: emptyList())
             return
         }
         if (targetPreference != null || openFeatureCenter) {
