@@ -149,7 +149,7 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         val availableNumberHeight = (numberBottomLimit - numberTopLimit).coerceAtLeast(1f)
 
         val baseNumberSize = min(width * 0.82f, height * 0.58f)
-        var numberSize = min(baseNumberSize, availableNumberHeight / 1.05f)
+        var numberSize = min(baseNumberSize, availableNumberHeight / 1.18f)
         // Short counts use a fuller width; longer counts progressively return to / narrow
         // the condensed face. Font height is independent of digit count.
         val digitWidthScale = when (number.length) {
@@ -193,7 +193,6 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         val colorLum = Color.luminance(activeColor)
         val drawOutline = ColorOutline.shouldUseLightOutline(bgLum.toDouble(), colorLum.toDouble())
         val numberMetrics = numberPaint.fontMetrics
-        val numberGlyphHeight = numberMetrics.descent - numberMetrics.ascent
         val numberCenterY = (numberTopLimit + numberBottomLimit) / 2f
         val numberBaseline = numberCenterY - (numberMetrics.ascent + numberMetrics.descent) / 2f
         var numberX = (width - totalNumberWidth) / 2f
