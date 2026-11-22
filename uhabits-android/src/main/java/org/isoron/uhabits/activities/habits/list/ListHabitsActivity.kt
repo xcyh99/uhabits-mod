@@ -33,9 +33,6 @@ import androidx.core.content.ContextCompat.checkSelfPermission
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.isoron.platform.time.LocalDate
-import org.isoron.platform.time.computeToday
-import org.isoron.platform.time.getToday
-import org.isoron.platform.time.setToday
 import org.isoron.uhabits.BaseExceptionHandler
 import org.isoron.uhabits.HabitsApplication
 import org.isoron.uhabits.core.preferences.Preferences
@@ -140,11 +137,6 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
     override fun onResume() {
         androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
             .edit().putString("startup_page_last", "main").apply()
-        val adjustedToday = computeToday(prefs.midnightDelayHours, 0)
-        if (adjustedToday != getToday()) {
-            setToday(adjustedToday)
-            for (habit in appComponent.habitList) habit.recompute()
-        }
         screen.refresh()
         org.isoron.uhabits.notifications.StatusBarDaysNotifier.update(this)
         screen.onAttached()
