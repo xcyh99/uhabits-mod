@@ -48,6 +48,18 @@ class SettingsActivity : AppCompatActivity() {
         setContentView(binding.root)
     }
 
+    override fun onResume() {
+        super.onResume()
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            .edit().putString("startup_page_last", "settings").apply()
+    }
+
+    override fun onPause() {
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            .edit().putString("startup_page_last", "settings").apply()
+        super.onPause()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
