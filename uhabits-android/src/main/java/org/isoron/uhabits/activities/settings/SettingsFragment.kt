@@ -21,6 +21,7 @@ package org.isoron.uhabits.activities.settings
 import androidx.appcompat.app.AlertDialog
 import android.app.backup.BackupManager
 import android.content.Intent
+import androidx.preference.PreferenceManager
 import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.net.Uri
@@ -154,8 +155,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         val sr = StyledResources(context!!)
         view.setBackgroundColor(sr.getColor(R.attr.contrast0))
         super.onViewCreated(view, savedInstanceState)
-        if (requireActivity().intent.getBooleanExtra("open_feature_center", false)) {
-            view.post { scrollToPreference("featureCenterCategory") }
+        val targetPreference = requireActivity().intent.getStringExtra("open_preference_key")
+        val openFeatureCenter = requireActivity().intent.getBooleanExtra("open_feature_center", false)
+        if (targetPreference != null || openFeatureCenter) {
+            view.post {
+                scrollToPreference(targetPreference ?: "featureCenterCategory")
+            }
         }
     }
 
@@ -190,6 +195,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             }
             "timeRecords" -> {
                 startActivity(Intent(requireContext(), org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
+                return true
+            }
+            "featureShortcuts" -> {
+                showFeatureShortcutSettings()
                 return true
             }
             "reminderSound" -> {
@@ -250,6 +259,40 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         findPreference("webDavSync").title =
             "☆ " + getString(R.string.webdav_sync)
         findPreference("reminderSound").isVisible = false
+    }
+
+    private fun showFeatureShortcutSettings() {
+        val keys = arrayOf(
+            "timeRecords", "createFullBackup", "restoreFullBackup",
+            "exportDB", "exportLegacyDB", "exportCSV", "importData",
+            "webDavSync", "settingsBackupRestore", "publicBackupFolder",
+            "clearLocalHabitData", "pref_short_toggle", "pref_midnight_delay",
+            "pref_skip_enabled", "pref_unknown_enabled", "pref_checkmark_reverse_order",
+            "pref_pure_black", "pref_disable_animation", "pref_widget_opacity",
+            "pref_first_weekday", "pref_sticky_notifications", "reminderCustomize"
+        )
+        val labels = keys.map { key ->
+            findPreference<Preference>(key)?.title?.toString() ?: key
+        }.toTypedArray()
+        val store = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val selected = store.getStringSet("feature_shortcuts", emptySet())
+            ?.toMutableSet() ?: mutableSetOf()
+        val checked = BooleanArray(keys.size) { keys[it] in selected }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.shortcut_settings)
+            .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
+                if (isChecked) selected.add(keys[which]) else selected.remove(keys[which])
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                store.edit().putStringSet("feature_shortcuts", selected.toSet()).apply()
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.shortcut_settings_saved, selected.size),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            .show()
     }
 
     private fun createFullBackup(uri: Uri) {

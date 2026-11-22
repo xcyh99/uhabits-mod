@@ -30,6 +30,12 @@
                 android:summary="@string/time_records_summary"
                 app:iconSpaceReserved="false" />
 
+        <Preference
+                android:key="featureShortcuts"
+                android:title="@string/shortcut_settings"
+                android:summary="@string/shortcut_settings_summary"
+                app:iconSpaceReserved="false" />
+
     </PreferenceCategory>
 
 

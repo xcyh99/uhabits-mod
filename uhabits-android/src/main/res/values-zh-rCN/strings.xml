@@ -79,6 +79,12 @@
     <string name="name">习惯标题</string>
     <string name="settings">设置</string>
     <string name="feature_center">功能中心</string>
+    <string name="shortcuts">快捷入口</string>
+    <string name="shortcut_settings">快捷入口设置</string>
+    <string name="shortcut_settings_summary">设置主界面右上角快捷入口中显示的功能。</string>
+    <string name="no_shortcuts_configured">尚未设置快捷入口</string>
+    <string name="configure_shortcuts">设置快捷入口</string>
+    <string name="shortcut_settings_saved">已保存 %1$d 个快捷入口</string>
     <string name="time_records">时间记录</string>
     <string name="time_records_summary">打卡间隔、正计时和倒计时</string>
     <string name="time_records_intro_title">记录过去，也记录未来</string>

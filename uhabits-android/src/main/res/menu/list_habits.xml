@@ -30,6 +30,12 @@
 
     <group android:id="@+id/actionItems">
         <item
+            android:id="@+id/actionShortcuts"
+            android:icon="@drawable/ic_shortcuts"
+            android:orderInCategory="5"
+            android:title="@string/shortcuts"
+            app:showAsAction="always" />
+        <item
             android:id="@+id/actionCreateHabit"
             android:enabled="true"
             android:icon="?iconAdd"

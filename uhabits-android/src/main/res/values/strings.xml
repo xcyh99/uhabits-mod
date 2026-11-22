@@ -89,6 +89,12 @@
     <string name="name">Name</string>
     <string name="settings">Settings</string>
     <string name="feature_center">Feature Center</string>
+    <string name="shortcuts">Shortcuts</string>
+    <string name="shortcut_settings">Shortcut settings</string>
+    <string name="shortcut_settings_summary">Choose which settings and tools appear in the home screen shortcut menu.</string>
+    <string name="no_shortcuts_configured">No shortcuts configured</string>
+    <string name="configure_shortcuts">Configure shortcuts</string>
+    <string name="shortcut_settings_saved">Saved %1$d shortcuts</string>
     <string name="time_records">Time Records</string>
     <string name="time_records_summary">Check-in interval, elapsed time and countdown</string>
     <string name="time_records_intro_title">Keep track of the past and the future</string>

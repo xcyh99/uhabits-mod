@@ -23,6 +23,10 @@ import android.content.Context
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
+import android.widget.PopupMenu
+import androidx.preference.PreferenceManager
+import android.content.Intent
+import org.isoron.uhabits.activities.settings.SettingsActivity
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import me.tatarka.inject.annotations.Inject
@@ -116,6 +120,60 @@ class ListHabitsMenu(
         }
     }
 
+    private fun showShortcutsMenu() {
+        val popup = PopupMenu(activity, activity.findViewById(R.id.actionShortcuts))
+        val prefs = PreferenceManager.getDefaultSharedPreferences(activity)
+        val selected = prefs.getStringSet("feature_shortcuts", emptySet())?.toList().orEmpty()
+        val available = selected.mapNotNull { key -> shortcutTitle(key)?.let { key to it } }
+        if (available.isEmpty()) {
+            popup.menu.add(activity.getString(R.string.no_shortcuts_configured)).isEnabled = false
+        } else {
+            available.forEachIndexed { index, pair ->
+                popup.menu.add(0, index + 1, index, pair.second).setOnMenuItemClickListener {
+                    activity.startActivity(
+                        Intent(activity, SettingsActivity::class.java)
+                            .putExtra("open_preference_key", pair.first)
+                    )
+                    true
+                }
+            }
+        }
+        popup.menu.add(activity.getString(R.string.configure_shortcuts)).setOnMenuItemClickListener {
+            activity.startActivity(
+                Intent(activity, SettingsActivity::class.java)
+                    .putExtra("open_preference_key", "featureShortcuts")
+            )
+            true
+        }
+        popup.show()
+    }
+
+    private fun shortcutTitle(key: String): String? = when (key) {
+        "timeRecords" -> activity.getString(R.string.time_records)
+        "createFullBackup" -> "完整备份"
+        "restoreFullBackup" -> "完整恢复"
+        "exportDB" -> activity.getString(R.string.export_full_backup)
+        "exportLegacyDB" -> activity.getString(R.string.export_legacy_backup)
+        "exportCSV" -> activity.getString(R.string.export_to_csv)
+        "importData" -> activity.getString(R.string.import_data)
+        "webDavSync" -> activity.getString(R.string.webdav_sync)
+        "settingsBackupRestore" -> activity.getString(R.string.settings_backup_restore)
+        "publicBackupFolder" -> activity.getString(R.string.select_public_backup_folder)
+        "clearLocalHabitData" -> activity.getString(R.string.clear_local_habit_data)
+        "pref_short_toggle" -> activity.getString(R.string.pref_toggle_title)
+        "pref_midnight_delay" -> activity.getString(R.string.pref_midnight_delay_title)
+        "pref_skip_enabled" -> activity.getString(R.string.pref_skip_title)
+        "pref_unknown_enabled" -> activity.getString(R.string.pref_unknown_title)
+        "pref_checkmark_reverse_order" -> activity.getString(R.string.reverse_days)
+        "pref_pure_black" -> activity.getString(R.string.use_pure_black)
+        "pref_disable_animation" -> activity.getString(R.string.pref_animations_title)
+        "pref_widget_opacity" -> activity.getString(R.string.widget_opacity_title)
+        "pref_first_weekday" -> activity.getString(R.string.first_day_of_the_week)
+        "pref_sticky_notifications" -> activity.getString(R.string.sticky_notifications)
+        "reminderCustomize" -> activity.getString(R.string.customize_notification)
+        else -> null
+    }
+
     fun onItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.actionToggleNightMode -> {
@@ -177,6 +235,11 @@ class ListHabitsMenu(
 
             R.id.actionSortStatus -> {
                 behavior.onSortByStatus()
+                return true
+            }
+
+            R.id.actionShortcuts -> {
+                showShortcutsMenu()
                 return true
             }
 
