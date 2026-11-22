@@ -56,7 +56,7 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
 
     private val numberPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.LEFT
-        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        typeface = Typeface.create("sans-serif-condensed", Typeface.NORMAL)
     }
     private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.CENTER
