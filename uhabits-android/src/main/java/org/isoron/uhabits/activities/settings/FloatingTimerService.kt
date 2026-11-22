@@ -243,8 +243,9 @@ class FloatingTimerService : Service() {
     }
 
     private fun AlertDialog.Builder.showOverlayDialog(): AlertDialog {
-        val dialog = show()
+        val dialog = create()
         dialog.window?.setType(if (Build.VERSION.SDK_INT >= 26) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE)
+        dialog.show()
         return dialog
     }
 
