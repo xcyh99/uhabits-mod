@@ -21,26 +21,6 @@
         xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory
-            android:key="featureCenterCategory"
-            android:title="@string/feature_center">
-
-        <Preference
-                android:key="timeRecords"
-                android:title="@string/time_records"
-                android:summary="@string/time_records_summary"
-                app:iconSpaceReserved="false" />
-
-        <Preference
-                android:key="featureShortcuts"
-                android:title="@string/shortcut_settings"
-                android:summary="@string/shortcut_settings_summary"
-                app:iconSpaceReserved="false" />
-
-    </PreferenceCategory>
-
-
-
-    <PreferenceCategory
             android:key="importExportCategory"
             android:title="数据导入与导出">
 
@@ -70,7 +50,7 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory
+<PreferenceCategory
             android:key="webDavCategory"
             android:title="WebDAV 云端管理">
 
@@ -88,7 +68,7 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory
+<PreferenceCategory
             android:key="backupCategory"
             android:title="备份与恢复">
 
@@ -112,7 +92,7 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory
+<PreferenceCategory
             android:key="dataSafetyCategory"
             android:title="数据与安全">
 
@@ -124,8 +104,37 @@
 
     </PreferenceCategory>
 
+    <Preference
+            android:key="sectionDivider"
+            android:selectable="false"
+            android:layout="@layout/preference_section_divider"
+            app:iconSpaceReserved="false" />
 
-    <PreferenceCategory
+<PreferenceCategory
+            android:key="featureCenterCategory"
+            android:title="@string/feature_center">
+
+        <Preference
+                android:key="timeRecords"
+                android:title="@string/time_records"
+                android:summary="@string/time_records_summary"
+                app:iconSpaceReserved="false" />
+
+        <Preference
+                android:key="featureShortcuts"
+                android:title="@string/shortcut_settings"
+                android:summary="@string/shortcut_settings_summary"
+                app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <Preference
+            android:key="sectionDivider"
+            android:selectable="false"
+            android:layout="@layout/preference_section_divider"
+            app:iconSpaceReserved="false" />
+
+<PreferenceCategory
             android:key="interfaceCategory"
             android:title="@string/interface_preferences">
 
@@ -195,7 +204,7 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory
+<PreferenceCategory
             android:key="reminderCategory"
             android:title="@string/reminder">
 
@@ -219,9 +228,13 @@
 
     </PreferenceCategory>
 
+    <Preference
+            android:key="sectionDivider"
+            android:selectable="false"
+            android:layout="@layout/preference_section_divider"
+            app:iconSpaceReserved="false" />
 
-
-    <PreferenceCategory
+<PreferenceCategory
             android:key="pref_key_debug"
             android:title="@string/troubleshooting">
 
@@ -237,7 +250,7 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory
+<PreferenceCategory
             android:key="linksCategory"
             android:title="@string/links">
 
@@ -266,7 +279,7 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory
+<PreferenceCategory
             android:key="devCategory"
             android:title="Development">
 
@@ -298,5 +311,6 @@
             />
 
     </PreferenceCategory>
+
 
 </PreferenceScreen>
