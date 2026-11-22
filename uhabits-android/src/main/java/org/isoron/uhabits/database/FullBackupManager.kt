@@ -285,7 +285,12 @@ class FullBackupManager(private val context: Context) {
             "restore-safety/${BackupFileName.timestamp()}"
         ).apply { mkdirs() }
         val safetyDatabase = File(safetyDir, "uhabits.db")
+        val currentWal = File(databaseFile.absolutePath + "-wal")
+        val safetyWal = File(safetyDatabase.absolutePath + "-wal")
         if (databaseFile.isFile) databaseFile.copyTo(safetyDatabase, overwrite = true)
+        if (currentWal.isFile && currentWal.length() > 0L) {
+            currentWal.copyTo(safetyWal, overwrite = true)
+        }
 
         val defaultPreferences = PreferenceManager.getDefaultSharedPreferences(context)
         val safetyPreferences = encodePreferences(defaultPreferences).toString()
@@ -324,7 +329,12 @@ class FullBackupManager(private val context: Context) {
         } catch (error: Exception) {
             if (safetyDatabase.isFile) {
                 databaseFile.delete()
+                File(databaseFile.absolutePath + "-wal").delete()
+                File(databaseFile.absolutePath + "-shm").delete()
                 safetyDatabase.copyTo(databaseFile, overwrite = true)
+                if (safetyWal.isFile) {
+                    safetyWal.copyTo(File(databaseFile.absolutePath + "-wal"), overwrite = true)
+                }
             }
             runCatching { restorePreferences(safetyPreferences) }
             runCatching {
