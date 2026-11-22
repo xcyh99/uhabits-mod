@@ -64,6 +64,7 @@ import org.isoron.uhabits.core.preferences.Preferences
 import org.isoron.uhabits.core.models.sqlite.SQLiteHabitList
 import org.isoron.uhabits.database.WebDavSync
 import org.isoron.uhabits.database.FullBackupManager
+import org.isoron.uhabits.database.WebDavFullBackup
 import org.isoron.uhabits.database.WebDavSettingsBackup
 import org.isoron.uhabits.database.TwoWaySyncPreview
 import org.isoron.uhabits.database.DatabaseSyncMergeWriter
@@ -543,6 +544,18 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             "#2E7D32"
         )
 
+        val fullUploadButton = actionButton("完整备份上传", "#6A1B9A")
+        val fullDownloadButton = actionButton("完整备份下载", "#00838F")
+        val fullBackupRow = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(fullUploadButton, LinearLayout.LayoutParams(0, dp(52), 1f).apply {
+                marginEnd = dp(6)
+            })
+            addView(fullDownloadButton, LinearLayout.LayoutParams(0, dp(52), 1f).apply {
+                marginStart = dp(6)
+            })
+        }
+
         val previewButton = actionButton(
             "双向同步",
             "#1565C0"
@@ -574,6 +587,9 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             addView(actionRow, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(52)
             ))
+            addView(fullBackupRow, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(52)
+            ).apply { topMargin = dp(10) })
             addView(previewButton, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(48)
             ).apply { topMargin = dp(10) })
@@ -594,12 +610,89 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         downloadButton.setOnClickListener {
             runWebDavAction(server, username, password, prefs, 2)
         }
+        fullUploadButton.setOnClickListener {
+            runWebDavFullBackupAction(server, username, password, true)
+        }
+        fullDownloadButton.setOnClickListener {
+            runWebDavFullBackupAction(server, username, password, false)
+        }
         previewButton.setOnClickListener {
             runTwoWaySyncPreview(server, username, password, prefs)
         }
         dialog.show()
     }
 
+
+    private fun runWebDavFullBackupAction(
+        server: EditText,
+        username: EditText,
+        password: EditText,
+        upload: Boolean
+    ) {
+        val url = server.text.toString().trim()
+        val user = username.text.toString().trim()
+        val pass = password.text.toString()
+        if (!url.startsWith("https://") || user.isBlank() || pass.isBlank()) {
+            Toast.makeText(requireContext(), R.string.webdav_https_required, Toast.LENGTH_LONG).show()
+            return
+        }
+        try {
+            WebDavCredentialsStore(requireContext()).save(url, user, pass)
+        } catch (error: Exception) {
+            Toast.makeText(requireContext(), error.message ?: "WebDAV 凭据保存失败", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val appContext = requireContext().applicationContext
+        val config = WebDavSync.Config(url, user, pass)
+        Thread {
+            val transport = WebDavFullBackup(appContext)
+            if (upload) {
+                val result = runCatching { transport.upload(config) }
+                activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
+                    val message = result.fold(
+                        { "完整备份已上传：$it" },
+                        { it.message ?: "完整备份上传失败" }
+                    )
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                }
+            } else {
+                val result = runCatching { transport.listBackupFiles(config) }
+                activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
+                    result.fold(
+                        { files ->
+                            if (files.isEmpty()) {
+                                Toast.makeText(requireContext(), "云端没有完整备份文件", Toast.LENGTH_LONG).show()
+                            } else {
+                                showRemoteFilePicker(files, "选择云端完整备份", "下载完整备份") { selected ->
+                                    Thread {
+                                        val downloaded = runCatching { transport.download(config, selected) }
+                                        activity?.runOnUiThread {
+                                            if (!isAdded) return@runOnUiThread
+                                            val message = downloaded.fold(
+                                                { "完整备份已下载：$it" },
+                                                { it.message ?: "完整备份下载失败" }
+                                            )
+                                            Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                                        }
+                                    }.start()
+                                }
+                            }
+                        },
+                        { error ->
+                            Toast.makeText(
+                                requireContext(),
+                                error.message ?: "读取云端完整备份失败",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    )
+                }
+            }
+        }.start()
+    }
 
     private fun runTwoWaySyncPreview(
         server: EditText,
