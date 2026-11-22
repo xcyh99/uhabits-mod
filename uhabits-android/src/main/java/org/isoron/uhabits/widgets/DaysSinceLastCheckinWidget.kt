@@ -27,7 +27,7 @@ class DaysSinceLastCheckinWidget(
     override val defaultWidth: Int = 80
 
     override fun getOnClickPendingIntent(context: Context): PendingIntent =
-        pendingIntentFactory.showHabitWithWidgetManagerDoubleTap(habit)
+        pendingIntentFactory.showHabit(habit)
 
     override fun refreshData(widgetView: View) {
         (widgetView as DaysSinceLastCheckinView).apply {
