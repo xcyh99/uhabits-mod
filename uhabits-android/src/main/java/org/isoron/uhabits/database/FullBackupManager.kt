@@ -59,12 +59,11 @@ class FullBackupManager(private val context: Context) {
             "主数据库不存在或为空"
         }
 
-        checkpointAndValidateDatabase(databaseFile)
         val tempDir = File(context.cacheDir, "full-backup-staging").apply {
             if (!exists() && !mkdirs()) throw IOException("无法创建完整备份临时目录")
         }
         val stagedDatabase = File(tempDir, "uhabits.db")
-        databaseFile.copyTo(stagedDatabase, overwrite = true)
+        copyConsistentDatabaseSnapshot(databaseFile, stagedDatabase)
         if (stagedDatabase.length() == 0L) throw IOException("主数据库备份为空")
 
         val payloads = linkedMapOf<String, File>()
@@ -356,8 +355,12 @@ class FullBackupManager(private val context: Context) {
     private fun isDeviceLocalPreference(key: String): Boolean =
         key.startsWith("webdav_") || key == "publicBackupFolder" || key == "reminderSound"
 
-    private fun checkpointAndValidateDatabase(file: File) {
-        val db = SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READWRITE)
+    private fun copyConsistentDatabaseSnapshot(source: File, destination: File) {
+        val db = SQLiteDatabase.openDatabase(
+            source.absolutePath,
+            null,
+            SQLiteDatabase.OPEN_READWRITE
+        )
         try {
             db.rawQuery("PRAGMA wal_checkpoint(FULL)", null).use { cursor ->
                 if (cursor.moveToFirst() && cursor.getInt(0) != 0) {
@@ -368,6 +371,16 @@ class FullBackupManager(private val context: Context) {
                 if (!cursor.moveToFirst() || cursor.getString(0) != "ok") {
                     throw IOException("主数据库完整性检查未通过")
                 }
+            }
+
+            // Hold a SQLite write reservation while copying so another app
+            // connection cannot change the database halfway through the copy.
+            db.beginTransactionNonExclusive()
+            try {
+                source.copyTo(destination, overwrite = true)
+                db.setTransactionSuccessful()
+            } finally {
+                db.endTransaction()
             }
         } finally {
             db.close()
