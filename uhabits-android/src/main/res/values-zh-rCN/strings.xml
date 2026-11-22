@@ -78,6 +78,7 @@
     <string name="links">链接</string>
     <string name="name">习惯标题</string>
     <string name="settings">设置</string>
+    <string name="feature_center">功能中心</string>
     <string name="time_records">时间记录</string>
     <string name="time_records_summary">打卡间隔、正计时和倒计时</string>
     <string name="time_records_intro_title">记录过去，也记录未来</string>
