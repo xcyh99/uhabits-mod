@@ -21,7 +21,7 @@ import java.time.temporal.ChronoUnit
 import kotlin.math.min
 
 object StatusBarDaysNotifier {
-    private const val CHANNEL_ID = "STATUS_BAR_DAYS_V2"
+    private const val CHANNEL_ID = "STATUS_BAR_DAYS_V3"
     private const val NOTIFICATION_ID = 7405
     private const val PREFS = "status_bar_days"
     private const val ACTION_UPDATE = "org.isoron.uhabits.action.UPDATE_STATUS_BAR_DAYS"
@@ -48,7 +48,7 @@ object StatusBarDaysNotifier {
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "状态栏天数", NotificationManager.IMPORTANCE_LOW).apply {
+                NotificationChannel(CHANNEL_ID, "状态栏天数", NotificationManager.IMPORTANCE_DEFAULT).apply {
                     description = "仅显示当前选择项目的天数"
                     setShowBadge(false)
                     enableVibration(false)
@@ -58,8 +58,9 @@ object StatusBarDaysNotifier {
             )
         }
         val openApp = PendingIntent.getActivity(
-            app, 7405, Intent(app, ListHabitsActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            app, 7405, Intent.makeMainActivity(android.content.ComponentName(app, ListHabitsActivity::class.java)).apply {
+                action = "org.isoron.uhabits.action.OPEN_STATUS_BAR_DAYS"
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val dayValue = result.days.coerceIn(0L, 99L).toInt()
@@ -74,6 +75,7 @@ object StatusBarDaysNotifier {
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setShowWhen(false)
+            .setSilent(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .build()
