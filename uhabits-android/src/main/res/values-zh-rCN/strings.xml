@@ -127,7 +127,7 @@
     <string name="habits_imported">习惯导入成功</string>
     <string name="import_data">导入数据</string>
     <string name="export_full_backup">导出数据库（FULL）</string>
-    <string name="import_data_summary">导入数据库或 CSV 数据。数据库导入采用合并方式，不会删除本机未出现在导入文件中的习惯；完整备份请使用「完整恢复」。</string>
+    <string name="import_data_summary">支持本应用数据库、CSV，以及 Tickmate、HabitBull、Rewire 等导出文件。数据库导入采用合并方式，不会删除本机未出现在导入文件中的习惯；完整备份请使用「完整恢复」。</string>
     <string name="export_as_csv_summary">生成可通过 Microsoft Excel 或 OpenOffice Calc 打开的 CSV 文件。此文件不能重新导入。</string>
     <string name="export_full_backup_summary">仅导出主数据库文件（.db），不包含时间记录、软件设置和独立小组件配置；可通过「导入数据」合并导入。</string>
     <string name="export_legacy_backup">导出原版兼容数据库</string>
