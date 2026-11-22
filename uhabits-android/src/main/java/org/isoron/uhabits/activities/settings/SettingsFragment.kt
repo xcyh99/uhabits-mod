@@ -338,9 +338,20 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     Toast.makeText(context, "无法识别待添加的组件。", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
-                val callbackIntent = Intent(context, org.isoron.uhabits.widgets.WidgetPinQueueReceiver::class.java)
-                    .setAction(org.isoron.uhabits.widgets.WidgetPinQueueReceiver.ACTION_WIDGET_PINNED)
-                val callback = android.app.PendingIntent.getBroadcast(
+                // Return to the app after the launcher confirms each widget.
+                // The remaining providers are passed to the picker so the user can
+                // continue the batch instead of being stranded on the home screen.
+                val remaining = ArrayList(queue.drop(1))
+                val callbackIntent = if (remaining.isEmpty()) {
+                    Intent(context, ListHabitsActivity::class.java)
+                } else {
+                    Intent(context, SettingsActivity::class.java).apply {
+                        putExtra("open_preference_key", "widgetManager")
+                        putStringArrayListExtra("resume_widget_pin_queue", remaining)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    }
+                }
+                val callback = android.app.PendingIntent.getActivity(
                     context, queue.first().hashCode(), callbackIntent,
                     android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
                 )
