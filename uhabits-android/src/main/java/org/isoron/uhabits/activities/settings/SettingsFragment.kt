@@ -54,6 +54,7 @@ import org.isoron.platform.time.JavaLocalDateFormatter
 import org.isoron.uhabits.HabitsApplication
 import org.isoron.uhabits.R
 import org.isoron.uhabits.activities.habits.list.RESULT_BUG_REPORT
+import org.isoron.uhabits.activities.habits.list.ListHabitsActivity
 import org.isoron.uhabits.activities.habits.list.RESULT_EXPORT_CSV
 import org.isoron.uhabits.activities.habits.list.RESULT_EXPORT_DB
 import org.isoron.uhabits.activities.habits.list.RESULT_EXPORT_LEGACY_DB
@@ -113,6 +114,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 createFullBackup(uri)
                 return
             }
+            FULL_BACKUP_RESTORE_REQUEST_CODE -> {
+                if (resultCode != android.app.Activity.RESULT_OK) return
+                val uri = data?.data ?: return
+                inspectAndConfirmRestore(uri)
+                return
+            }
         }
         super.onActivityResult(requestCode, resultCode, data)
     }
@@ -167,6 +174,14 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     putExtra(Intent.EXTRA_TITLE, FullBackupManager(requireContext()).suggestedFileName())
                 }
                 startActivityForResult(intent, FULL_BACKUP_CREATE_REQUEST_CODE)
+                return true
+            }
+            "restoreFullBackup" -> {
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "application/octet-stream"
+                }
+                startActivityForResult(intent, FULL_BACKUP_RESTORE_REQUEST_CODE)
                 return true
             }
             "timeRecords" -> {
@@ -248,6 +263,69 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                         Toast.makeText(
                             requireContext(),
                             error.message ?: "完整备份创建失败",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                )
+            }
+        }.start()
+    }
+
+    private fun inspectAndConfirmRestore(uri: Uri) {
+        val appContext = requireContext().applicationContext
+        Toast.makeText(requireContext(), "正在检查完整备份…", Toast.LENGTH_SHORT).show()
+        Thread {
+            val result = runCatching { FullBackupManager(appContext).inspectBackup(uri) }
+            activity?.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+                result.fold(
+                    { info ->
+                        val details = "备份版本：${info.appVersion}\n数据库版本：${info.databaseVersion}\n\n包含内容：\n" +
+                            info.entries.sorted().joinToString("\n")
+                        AlertDialog.Builder(requireContext())
+                            .setTitle("确认完整恢复")
+                            .setMessage("恢复将替换本机主数据库、时间记录和相关设置。当前数据会先保存一份安全副本。\n\n$details")
+                            .setNegativeButton("取消", null)
+                            .setPositiveButton("确认恢复") { _, _ ->
+                                prepareAndRestartForRestore(uri, appContext)
+                            }
+                            .show()
+                    },
+                    { error ->
+                        Toast.makeText(
+                            requireContext(),
+                            error.message ?: "备份文件检查失败",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                )
+            }
+        }.start()
+    }
+
+    private fun prepareAndRestartForRestore(
+        uri: Uri,
+        appContext: android.content.Context
+    ) {
+        Toast.makeText(requireContext(), "正在准备恢复数据…", Toast.LENGTH_SHORT).show()
+        Thread {
+            val result = runCatching { FullBackupManager(appContext).prepareRestore(uri) }
+            activity?.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+                result.fold(
+                    {
+                        Toast.makeText(requireContext(), "备份已验证，正在重启并恢复…", Toast.LENGTH_LONG).show()
+                        val intent = Intent(requireContext(), ListHabitsActivity::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                        }
+                        startActivity(intent)
+                        requireActivity().finishAffinity()
+                        android.os.Process.killProcess(android.os.Process.myPid())
+                    },
+                    { error ->
+                        Toast.makeText(
+                            requireContext(),
+                            error.message ?: "恢复准备失败，原数据未更改",
                             Toast.LENGTH_LONG
                         ).show()
                     }
@@ -1104,5 +1182,6 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         private const val RINGTONE_REQUEST_CODE = 1
         private const val PUBLIC_BACKUP_REQUEST_CODE = 2
         private const val FULL_BACKUP_CREATE_REQUEST_CODE = 3
+        private const val FULL_BACKUP_RESTORE_REQUEST_CODE = 4
     }
 }
