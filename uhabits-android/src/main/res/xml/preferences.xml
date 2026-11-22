@@ -35,13 +35,13 @@
         <Preference
                 android:key="createFullBackup"
                 android:title="完整备份"
-                android:summary="创建包含主数据库、时间记录、软件设置和时间记录小组件配置的备份包（.uhabitsbackup）"
+                android:summary="备份主数据库、时间记录、软件设置和小组件配置；不包含桌面布局及设备专属权限。"
                 app:iconSpaceReserved="false" />
 
         <Preference
                 android:key="restoreFullBackup"
                 android:title="完整恢复"
-                android:summary="从 .uhabitsbackup 文件恢复主数据库、时间记录和软件设置"
+                android:summary="从 .uhabitsbackup 恢复数据；恢复前保存本机安全副本，并重启应用。"
                 app:iconSpaceReserved="false" />
 
         <Preference
