@@ -159,7 +159,22 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         val openFeatureCenter = requireActivity().intent.getBooleanExtra("open_feature_center", false)
         if (targetPreference != null || openFeatureCenter) {
             view.post {
-                scrollToPreference(targetPreference ?: "featureCenterCategory")
+                val key = targetPreference ?: "featureCenterCategory"
+                val directActionKeys = setOf(
+                    "timeRecords",
+                    "createFullBackup",
+                    "restoreFullBackup",
+                    "webDavSync",
+                    "settingsBackupRestore",
+                    "publicBackupFolder",
+                    "clearLocalHabitData",
+                    "reminderCustomize"
+                )
+                if (key in directActionKeys) {
+                    findPreference(key)?.performClick()
+                } else {
+                    scrollToPreference(key)
+                }
             }
         }
     }
@@ -272,7 +287,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             "pref_first_weekday", "pref_sticky_notifications", "reminderCustomize"
         )
         val labels = keys.map { key ->
-            findPreference<Preference>(key)?.title?.toString() ?: key
+            findPreference(key)?.title?.toString() ?: key
         }.toTypedArray()
         val store = PreferenceManager.getDefaultSharedPreferences(requireContext())
         val selected = store.getStringSet("feature_shortcuts", emptySet())
