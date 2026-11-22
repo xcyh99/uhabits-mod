@@ -29,8 +29,8 @@
 
 
     <PreferenceCategory
-            android:key="databaseCategory"
-            android:title="@string/database">
+            android:key="backupCategory"
+            android:title="备份与恢复">
 
         <Preference
                 android:key="createFullBackup"
@@ -44,6 +44,17 @@
                 android:summary="从 .uhabitsbackup 文件恢复主数据库、时间记录和软件设置"
                 app:iconSpaceReserved="false" />
 
+        <Preference
+                android:key="publicBackupFolder"
+                android:title="@string/select_public_backup_folder"
+                android:summary="@string/no_public_backup_folder_selected"
+                app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+            android:key="importExportCategory"
+            android:title="数据导入与导出">
 
         <Preference
                 android:key="exportDB"
@@ -68,17 +79,17 @@
                 android:summary="@string/import_data_summary"
                 android:title="@string/import_data"
                 app:iconSpaceReserved="false" />
-<Preference
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+            android:key="webDavCategory"
+            android:title="WebDAV 云端管理">
+
+        <Preference
                 android:key="webDavSync"
                 android:title="@string/webdav_sync"
                 android:summary="@string/webdav_sync_summary"
-                app:iconSpaceReserved="false" />
-
-
-        <Preference
-                android:key="publicBackupFolder"
-                android:title="@string/select_public_backup_folder"
-                android:summary="@string/no_public_backup_folder_selected"
                 app:iconSpaceReserved="false" />
 
         <Preference
@@ -86,6 +97,12 @@
                 android:title="@string/settings_backup_restore"
                 android:summary="@string/settings_backup_restore_summary"
                 app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+            android:key="dataSafetyCategory"
+            android:title="数据与安全">
 
         <Preference
                 android:key="clearLocalHabitData"
