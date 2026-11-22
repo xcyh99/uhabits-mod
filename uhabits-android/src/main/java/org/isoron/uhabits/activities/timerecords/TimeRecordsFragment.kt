@@ -10,6 +10,8 @@ import android.app.DatePickerDialog
 import android.os.Bundle
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.TextView
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
@@ -23,6 +25,7 @@ import org.isoron.uhabits.widgets.TimeRecordWidgetProvider
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
+import java.util.Locale
 import java.util.UUID
 
 class TimeRecordsFragment : PreferenceFragmentCompat() {
@@ -65,6 +68,10 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
             getString(R.string.time_records_countdown),
             getString(R.string.time_records_countdown_summary)
         ) { showEditor(TimeRecord.COUNTDOWN) })
+        addCategory.addPreference(createAction(
+            getString(R.string.time_records_date_calculator),
+            getString(R.string.time_records_date_calculator_summary)
+        ) { showDateCalculator() })
 
         val recordsCategory = PreferenceCategory(context).apply {
             title = getString(R.string.time_records_saved_category)
@@ -141,6 +148,117 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
                 true
             }
         }
+
+    private fun showDateCalculator() {
+        val context = requireContext()
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+        var baseDate = LocalDate.now()
+
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(8), dp(24), 0)
+        }
+        val dateButton = TextView(context).apply {
+            textSize = 16f
+            setPadding(0, dp(12), 0, dp(16))
+        }
+        fun updateDateLabel() {
+            dateButton.text = getString(
+                R.string.time_records_calculator_base_date,
+                baseDate.format(dateFormatter)
+            )
+        }
+        updateDateLabel()
+        dateButton.setOnClickListener {
+            DatePickerDialog(
+                context,
+                { _, year, month, day ->
+                    baseDate = LocalDate.of(year, month + 1, day)
+                    updateDateLabel()
+                },
+                baseDate.year,
+                baseDate.monthValue - 1,
+                baseDate.dayOfMonth
+            ).show()
+        }
+
+        val daysInput = EditText(context).apply {
+            hint = getString(R.string.time_records_calculator_days_hint)
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            setSingleLine(true)
+            setText("100")
+        }
+        val directionLabel = TextView(context).apply {
+            text = getString(R.string.time_records_calculator_direction)
+            textSize = 14f
+            setPadding(0, dp(12), 0, dp(4))
+        }
+        val directionGroup = RadioGroup(context).apply {
+            orientation = RadioGroup.HORIZONTAL
+        }
+        val beforeButton = RadioButton(context).apply {
+            id = 1
+            text = getString(R.string.time_records_calculator_before)
+        }
+        val afterButton = RadioButton(context).apply {
+            id = 2
+            text = getString(R.string.time_records_calculator_after)
+        }
+        directionGroup.addView(beforeButton)
+        directionGroup.addView(afterButton)
+        directionGroup.check(beforeButton.id)
+
+        container.addView(dateButton)
+        container.addView(daysInput)
+        container.addView(directionLabel)
+        container.addView(directionGroup)
+
+        val dialog = AlertDialog.Builder(context)
+            .setTitle(R.string.time_records_date_calculator)
+            .setView(container)
+            .setNegativeButton(R.string.clear_label, null)
+            .setPositiveButton(R.string.time_records_calculator_calculate, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val days = daysInput.text.toString().trim().toLongOrNull()
+                if (days == null || days < 0L) {
+                    daysInput.error = getString(R.string.time_records_calculator_invalid_days)
+                    return@setOnClickListener
+                }
+                val result = try {
+                    if (directionGroup.checkedRadioButtonId == afterButton.id) {
+                        baseDate.plusDays(days)
+                    } else {
+                        baseDate.minusDays(days)
+                    }
+                } catch (_: java.time.DateTimeException) {
+                    daysInput.error = getString(R.string.time_records_calculator_invalid_days)
+                    return@setOnClickListener
+                }
+                val direction = if (directionGroup.checkedRadioButtonId == afterButton.id) {
+                    getString(R.string.time_records_calculator_after)
+                } else {
+                    getString(R.string.time_records_calculator_before)
+                }
+                val resultFormatter = DateTimeFormatter.ofPattern("yyyy年M月d日 EEEE", Locale.CHINA)
+                AlertDialog.Builder(context)
+                    .setTitle(R.string.time_records_calculator_result)
+                    .setMessage(getString(
+                        R.string.time_records_calculator_result_message,
+                        baseDate.format(dateFormatter),
+                        direction,
+                        days,
+                        result.format(resultFormatter)
+                    ))
+                    .setPositiveButton(R.string.done_label, null)
+                    .show()
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
+    }
 
     private fun showEditor(type: String, existing: TimeRecord? = null) {
         val context = requireContext()
