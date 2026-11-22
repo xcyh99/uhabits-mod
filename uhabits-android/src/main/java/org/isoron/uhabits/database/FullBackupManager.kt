@@ -14,6 +14,7 @@ import org.isoron.uhabits.utils.BackupFileName
 import org.isoron.uhabits.utils.DatabaseUtils
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -135,11 +136,19 @@ class FullBackupManager(private val context: Context) {
                     val name = entry.name
                     requireSafeEntryName(name)
                     if (name in files) throw IOException("备份包包含重复文件：$name")
-                    val bytes = zip.readBytes()
-                    if (bytes.size > MAX_ENTRY_BYTES) throw IOException("备份文件过大：$name")
-                    totalBytes += bytes.size
-                    if (totalBytes > MAX_TOTAL_BYTES) throw IOException("备份包总大小超过允许范围")
-                    files[name] = bytes
+                    val output = ByteArrayOutputStream()
+                    val buffer = ByteArray(8192)
+                    var entryBytes = 0L
+                    while (true) {
+                        val count = zip.read(buffer)
+                        if (count < 0) break
+                        entryBytes += count
+                        totalBytes += count
+                        if (entryBytes > MAX_ENTRY_BYTES) throw IOException("备份文件过大：$name")
+                        if (totalBytes > MAX_TOTAL_BYTES) throw IOException("备份包总大小超过允许范围")
+                        output.write(buffer, 0, count)
+                    }
+                    files[name] = output.toByteArray()
                 }
                 zip.closeEntry()
                 entry = zip.nextEntry
@@ -421,17 +430,19 @@ class FullBackupManager(private val context: Context) {
                     throw IOException("主数据库正在写入，暂时无法生成一致的备份")
                 }
             }
-            db.rawQuery("PRAGMA integrity_check", null).use { cursor ->
-                if (!cursor.moveToFirst() || cursor.getString(0) != "ok") {
-                    throw IOException("主数据库完整性检查未通过")
-                }
-            }
 
-            // Hold a SQLite write reservation while copying so another app
-            // connection cannot change the database halfway through the copy.
+            // A write reservation prevents another connection from changing
+            // the main database or WAL while both files are copied.
             db.beginTransactionNonExclusive()
             try {
                 source.copyTo(destination, overwrite = true)
+                val sourceWal = File(source.absolutePath + "-wal")
+                val destinationWal = File(destination.absolutePath + "-wal")
+                if (sourceWal.isFile && sourceWal.length() > 0L) {
+                    sourceWal.copyTo(destinationWal, overwrite = true)
+                } else {
+                    destinationWal.delete()
+                }
                 db.setTransactionSuccessful()
             } finally {
                 db.endTransaction()
@@ -439,6 +450,30 @@ class FullBackupManager(private val context: Context) {
         } finally {
             db.close()
         }
+
+        // Replay any frames copied from WAL into the staged database, leaving
+        // a single self-contained SQLite file in the archive.
+        val staged = SQLiteDatabase.openDatabase(
+            destination.absolutePath,
+            null,
+            SQLiteDatabase.OPEN_READWRITE
+        )
+        try {
+            staged.rawQuery("PRAGMA wal_checkpoint(TRUNCATE)", null).use { cursor ->
+                if (cursor.moveToFirst() && cursor.getInt(0) != 0) {
+                    throw IOException("备份暂存数据库的 WAL 无法完成检查点")
+                }
+            }
+            staged.rawQuery("PRAGMA integrity_check", null).use { cursor ->
+                if (!cursor.moveToFirst() || cursor.getString(0) != "ok") {
+                    throw IOException("备份数据库完整性检查未通过")
+                }
+            }
+        } finally {
+            staged.close()
+        }
+        File(destination.absolutePath + "-wal").delete()
+        File(destination.absolutePath + "-shm").delete()
     }
 
     private fun readDatabaseVersion(file: File): Int {
@@ -512,7 +547,7 @@ class FullBackupManager(private val context: Context) {
     }
 
     private fun sha256(bytes: ByteArray): String =
-        MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+        MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 0xff) }
 
     private fun requireSafeEntryName(name: String) {
         if (name.startsWith("/") || name.contains("\\") || name.split('/').any { it == ".." || it.isBlank() }) {
