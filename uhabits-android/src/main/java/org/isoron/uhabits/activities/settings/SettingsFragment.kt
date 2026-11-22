@@ -290,8 +290,8 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             "pref_pure_black", "pref_disable_animation", "pref_widget_opacity",
             "pref_first_weekday", "pref_sticky_notifications", "reminderCustomize"
         )
-        val keys = candidateKeys.filter { findPreference<Preference>(it) != null }
-        val labels = keys.map { key -> findPreference<Preference>(key)?.title?.toString() ?: key }
+        val keys = candidateKeys.filter { findPreference(it) != null }
+        val labels = keys.map { key -> findPreference(key)?.title?.toString() ?: key }
             .toTypedArray()
         val store = PreferenceManager.getDefaultSharedPreferences(requireContext())
         val savedOrder = store.getString("feature_shortcuts_order", null)
@@ -324,7 +324,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         }
         var selectedIndex = 0
         val labels = selected.map { key ->
-            findPreference<Preference>(key)?.title?.toString() ?: key
+            findPreference(key)?.title?.toString() ?: key
         }.toTypedArray()
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.shortcut_order_title)
