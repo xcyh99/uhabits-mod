@@ -308,10 +308,14 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 if (isChecked) selected.add(which) else selected.remove(which)
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton("批量添加（${selected.size}）") { _, _ ->
+            .setPositiveButton("批量添加") { _, _ ->
                 val manager = android.appwidget.AppWidgetManager.getInstance(context)
                 if (!manager.isRequestPinAppWidgetSupported) {
                     Toast.makeText(context, "当前桌面不支持应用内添加组件，请到桌面长按空白处添加。", Toast.LENGTH_LONG).show()
+                    return@setPositiveButton
+                }
+                if (selected.isEmpty()) {
+                    Toast.makeText(context, "请先选择要添加的组件。", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
                 var requested = 0
