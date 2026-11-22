@@ -134,11 +134,11 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
 
         // Fit the number into the vertical space between the title and bottom label.
         // Keep a small, deliberate gap from both text areas while maximizing digit height.
-        val titleBottom = if (titleLines.isEmpty()) 0f else {
-            val lastBaseline = if (titleLines.size == 1) height * 0.18f
-                else height * (0.12f + (titleLines.size - 1) * 0.13f)
-            lastBaseline + titlePaint.descent()
-        }
+        // Always reserve the full two-line title slot, even when the title
+        // currently renders as one line or is empty. This keeps the number's
+        // vertical position and size stable across title changes.
+        val reservedTitleLastBaseline = height * 0.25f
+        val titleBottom = reservedTitleLastBaseline + titlePaint.descent()
         labelPaint.textSize = 6.5f * density
         labelPaint.color = activeColor
         val labelBaseline = height * 0.94f
