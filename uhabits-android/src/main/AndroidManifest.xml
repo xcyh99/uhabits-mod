@@ -92,6 +92,13 @@
         </activity>
 
         <activity
+            android:name="org.isoron.uhabits.widgets.WidgetTapRouterActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <activity
             android:name="org.isoron.uhabits.activities.settings.SettingsActivity"
             android:label="@string/settings">
             <meta-data

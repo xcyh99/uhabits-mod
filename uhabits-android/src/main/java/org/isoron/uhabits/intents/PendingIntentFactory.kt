@@ -92,6 +92,19 @@ class PendingIntentFactory(
             )
             .getPendingIntent(0, FLAG_IMMUTABLE or FLAG_UPDATE_CURRENT)!!
 
+    /**
+     * Routes taps from the compact days-since-check-in widget through a short
+     * tap window: one tap opens the habit; two quick taps open widget management.
+     */
+    fun showHabitWithWidgetManagerDoubleTap(habit: Habit): PendingIntent =
+        getActivity(
+            context,
+            (habit.id!! % Integer.MAX_VALUE).toInt() + 10000,
+            Intent(context, org.isoron.uhabits.widgets.WidgetTapRouterActivity::class.java)
+                .putExtra(org.isoron.uhabits.widgets.WidgetTapRouterActivity.EXTRA_HABIT_ID, habit.id),
+            FLAG_IMMUTABLE or FLAG_UPDATE_CURRENT
+        )
+
     fun showHabitTemplate(): PendingIntent {
         return getActivity(
             context,
