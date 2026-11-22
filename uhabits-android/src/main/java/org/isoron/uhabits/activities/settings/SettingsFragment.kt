@@ -302,7 +302,8 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             "频率" to org.isoron.uhabits.widgets.FrequencyWidgetProvider::class.java,
             "目标" to org.isoron.uhabits.widgets.TargetWidgetProvider::class.java,
             "距离上次打卡" to org.isoron.uhabits.widgets.DaysSinceLastCheckinWidgetProvider::class.java,
-            "正计时 / 倒计时" to org.isoron.uhabits.widgets.TimeRecordWidgetProvider::class.java
+            "正计时 / 倒计时" to org.isoron.uhabits.widgets.TimeRecordWidgetProvider::class.java,
+            "批量添加" to org.isoron.uhabits.widgets.BatchAddWidgetProvider::class.java
         )
         val labels = widgets.map { it.first }.toTypedArray()
         val selected = linkedSetOf<Int>()
