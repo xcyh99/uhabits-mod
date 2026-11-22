@@ -38,6 +38,12 @@
                 android:summary="创建包含主数据库、时间记录、软件设置和时间记录小组件配置的备份包（.uhabitsbackup）"
                 app:iconSpaceReserved="false" />
 
+        <Preference
+                android:key="restoreFullBackup"
+                android:title="完整恢复"
+                android:summary="从 .uhabitsbackup 文件恢复主数据库、时间记录和软件设置"
+                app:iconSpaceReserved="false" />
+
 
         <Preference
                 android:key="exportDB"
