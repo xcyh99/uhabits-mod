@@ -4,11 +4,26 @@
     android:height="108dp"
     android:viewportWidth="100"
     android:viewportHeight="100">
-    <group android:scaleX="0.72" android:scaleY="0.72" android:translateX="14" android:translateY="14">
-        <path android:fillColor="#FFFFFF" android:pathData="M50,2 A48,48 0,1 1 50,98 A48,48 0,1 1 50,2 Z"/>
-        <path android:fillColor="#7E57C2" android:pathData="M50,2 A48,48 0,0 1 50,98 A24,24 0,0 0 50,50 A24,24 0,0 1 50,2 Z"/>
-        <path android:fillColor="#FFFFFF" android:pathData="M50,18.5 A7.5,7.5 0,1 1 50,33.5 A7.5,7.5 0,1 1 50,18.5 Z"/>
-        <path android:fillColor="#7E57C2" android:pathData="M50,66.5 A7.5,7.5 0,1 1 50,81.5 A7.5,7.5 0,1 1 50,66.5 Z"/>
-        <path android:fillColor="#FFFFFF" android:strokeColor="#FFFFFF" android:strokeWidth="2" android:fillType="evenOdd" android:pathData="M50,2 A48,48 0,1 1 50,98 A48,48 0,1 1 50,2 Z M50,2 A48,48 0,0 1 50,98 A24,24 0,0 0 50,50 A24,24 0,0 1 50,2 Z"/>
+    <group
+        android:scaleX="0.72"
+        android:scaleY="0.72"
+        android:translateX="14"
+        android:translateY="14">
+        <!-- Complete circular white base -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M50,2 A48,48 0,1 1 50,98 A48,48 0,1 1 50,2 Z" />
+        <!-- Purple half of the taiji -->
+        <path
+            android:fillColor="#7E57C2"
+            android:pathData="M50,2 A48,48 0,0 1 50,98 A24,24 0,0 0 50,50 A24,24 0,0 1 50,2 Z" />
+        <!-- White dot in the purple half -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M50,18.5 A7.5,7.5 0,1 1 50,33.5 A7.5,7.5 0,1 1 50,18.5 Z" />
+        <!-- Purple dot in the white half -->
+        <path
+            android:fillColor="#7E57C2"
+            android:pathData="M50,66.5 A7.5,7.5 0,1 1 50,81.5 A7.5,7.5 0,1 1 50,66.5 Z" />
     </group>
 </vector>
