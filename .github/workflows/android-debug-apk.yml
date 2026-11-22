@@ -12,6 +12,7 @@ on:
       - feature/unified-full-backup
       - feature/date-calculator
       - feature/time-record-widget-entry
+      - feature/date-calculator-in-editor
   pull_request:
     branches:
       - dev

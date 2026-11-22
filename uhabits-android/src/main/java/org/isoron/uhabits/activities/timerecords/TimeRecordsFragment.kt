@@ -68,11 +68,6 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
             getString(R.string.time_records_countdown),
             getString(R.string.time_records_countdown_summary)
         ) { showEditor(TimeRecord.COUNTDOWN) })
-        addCategory.addPreference(createAction(
-            getString(R.string.time_records_date_calculator),
-            getString(R.string.time_records_date_calculator_summary)
-        ) { showDateCalculator() })
-
         val recordsCategory = PreferenceCategory(context).apply {
             title = getString(R.string.time_records_saved_category)
         }
@@ -164,11 +159,20 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
             }
         }
 
-    private fun showDateCalculator() {
+    /**
+     * Opens the date calculator as an assistant to the current elapsed/countdown
+     * editor. The calculated date is returned to that editor, not saved as a
+     * separate time record.
+     */
+    private fun showDateCalculator(
+        initialDate: LocalDate,
+        defaultAfter: Boolean,
+        onDateSelected: (LocalDate) -> Unit
+    ) {
         val context = requireContext()
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
-        var baseDate = LocalDate.now()
+        var baseDate = initialDate
 
         val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -222,7 +226,7 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
         }
         directionGroup.addView(beforeButton)
         directionGroup.addView(afterButton)
-        directionGroup.check(beforeButton.id)
+        directionGroup.check(if (defaultAfter) afterButton.id else beforeButton.id)
 
         container.addView(dateButton)
         container.addView(daysInput)
@@ -267,7 +271,10 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
                         days,
                         result.format(resultFormatter)
                     ))
-                    .setPositiveButton(R.string.done_label, null)
+                    .setNegativeButton(R.string.clear_label, null)
+                    .setPositiveButton(R.string.time_records_calculator_use_date) { _, _ ->
+                        onDateSelected(result)
+                    }
                     .show()
                 dialog.dismiss()
             }
@@ -301,6 +308,20 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
             )
         }
         updateDateLabel()
+        val calculateDateButton = TextView(context).apply {
+            text = getString(R.string.time_records_calculator_open)
+            textSize = 14f
+            setPadding(0, 0, 0, dp(12))
+            setOnClickListener {
+                showDateCalculator(
+                    selectedDate,
+                    type == TimeRecord.COUNTDOWN
+                ) { calculatedDate ->
+                    selectedDate = calculatedDate
+                    updateDateLabel()
+                }
+            }
+        }
         dateButton.setOnClickListener {
             val initial = selectedDate
             val picker = DatePickerDialog(
@@ -329,6 +350,7 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
         }
         container.addView(titleInput)
         container.addView(dateButton)
+        container.addView(calculateDateButton)
 
         val dialog = AlertDialog.Builder(context)
             .setTitle(
