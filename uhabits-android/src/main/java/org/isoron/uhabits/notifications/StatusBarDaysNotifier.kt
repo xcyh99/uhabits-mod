@@ -27,7 +27,7 @@ import java.time.temporal.ChronoUnit
 import kotlin.math.min
 
 object StatusBarDaysNotifier {
-    private const val CHANNEL_ID = "STATUS_BAR_DAYS_MAX"
+    private const val CHANNEL_ID = "STATUS_BAR_DAYS_QUIET"
     private const val NOTIFICATION_ID = 7405
     private const val PREFS = "status_bar_days"
     private const val ACTION_UPDATE = "org.isoron.uhabits.action.UPDATE_STATUS_BAR_DAYS"
@@ -54,7 +54,7 @@ object StatusBarDaysNotifier {
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "状态栏天数", NotificationManager.IMPORTANCE_MAX).apply {
+                NotificationChannel(CHANNEL_ID, "状态栏天数", NotificationManager.IMPORTANCE_DEFAULT).apply {
                     description = "仅显示当前选择项目的天数"
                     setShowBadge(false)
                     enableVibration(false)
@@ -78,7 +78,7 @@ object StatusBarDaysNotifier {
             .setOnlyAlertOnce(true)
             .setSilent(true)
             .setShowWhen(false)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .build()
         runCatching { manager.notify(NOTIFICATION_ID, notification) }
