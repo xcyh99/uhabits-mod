@@ -92,21 +92,44 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         val horizontalPadding = 7f * density
         val maxTextWidth = (width - horizontalPadding * 2f).coerceAtLeast(1f)
 
-        // Habit name occupies the previously unused top area; long names are safely ellipsized.
+        // Habit name may wrap to at most two centered lines; truncate the second line if needed.
         titlePaint.textSize = 9f * density
         titlePaint.color = activeColor
-        var title = habitName
-        while (title.isNotEmpty() && titlePaint.measureText(title) > maxTextWidth) {
-            title = title.dropLast(1)
-        }
-        if (title != habitName && title.isNotEmpty()) {
-            while (title.isNotEmpty() && titlePaint.measureText("$title…") > maxTextWidth) {
-                title = title.dropLast(1)
+        val titleLines = mutableListOf<String>()
+        var remainingTitle = habitName
+        while (remainingTitle.isNotEmpty() && titleLines.size < 2) {
+            var end = 0
+            while (end < remainingTitle.length &&
+                titlePaint.measureText(remainingTitle.substring(0, end + 1)) <= maxTextWidth
+            ) {
+                end++
             }
-            title += "…"
+            if (end == 0) end = 1
+            var line = remainingTitle.substring(0, end)
+            remainingTitle = remainingTitle.substring(end)
+            if (remainingTitle.isNotEmpty() && titleLines.size == 1) {
+                while (line.isNotEmpty() &&
+                    titlePaint.measureText("$line…") > maxTextWidth
+                ) {
+                    line = line.dropLast(1)
+                }
+                line += "…"
+            }
+            titleLines.add(line)
         }
-        if (title.isNotEmpty()) {
-            canvas.drawText(title, width / 2f, height * 0.18f, titlePaint)
+        if (remainingTitle.isNotEmpty() && titleLines.size == 2) {
+            var line = titleLines[1]
+            while (line.isNotEmpty() &&
+                titlePaint.measureText("$line…") > maxTextWidth
+            ) {
+                line = line.dropLast(1)
+            }
+            titleLines[1] = "$line…"
+        }
+        titleLines.forEachIndexed { index, line ->
+            val baseline = if (titleLines.size == 1) height * 0.18f
+                else height * (0.12f + index * 0.13f)
+            canvas.drawText(line, width / 2f, baseline, titlePaint)
         }
 
         // Keep the original font size whenever possible: tighten digit spacing first,
