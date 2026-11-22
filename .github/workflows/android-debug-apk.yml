@@ -9,6 +9,7 @@ on:
       - fix/empty-history-import-oom
       - feature/webdav-backup-sync
       - feature/two-way-sync
+      - feature/unified-full-backup
   pull_request:
     branches:
       - dev
