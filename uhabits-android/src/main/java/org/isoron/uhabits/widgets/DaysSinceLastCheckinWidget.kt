@@ -31,6 +31,7 @@ class DaysSinceLastCheckinWidget(
 
     override fun refreshData(widgetView: View) {
         (widgetView as DaysSinceLastCheckinView).apply {
+            habitName = habit.name
             dayCount = habit.computedEntries.getKnown()
                 .filter { it.completed && it.value != Entry.SKIP }
                 .maxByOrNull { it.date }
@@ -48,11 +49,16 @@ class DaysSinceLastCheckinWidget(
 
 private class DaysSinceLastCheckinView(context: Context) : View(context) {
     var dayCount: Int? = null
+    var habitName: String = ""
     var activeColor: Int = Color.WHITE
     var cardBackgroundColor: Int = Color.DKGRAY
     var backgroundAlpha: Int = 255
 
     private val numberPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textAlign = Paint.Align.CENTER
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    }
+    private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.CENTER
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
@@ -83,22 +89,48 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         canvas.drawRoundRect(cardRect, 12f * density, 12f * density, bgPaint)
 
         val number = dayCount?.toString() ?: "—"
-        val numberSize = min(width * 0.62f, height * 0.58f)
+        val horizontalPadding = 7f * density
+        val maxTextWidth = (width - horizontalPadding * 2f).coerceAtLeast(1f)
+
+        // Habit name occupies the previously unused top area; long names are safely ellipsized.
+        titlePaint.textSize = 9f * density
+        titlePaint.color = activeColor
+        var title = habitName
+        while (title.isNotEmpty() && titlePaint.measureText(title) > maxTextWidth) {
+            title = title.dropLast(1)
+        }
+        if (title != habitName && title.isNotEmpty()) {
+            while (title.isNotEmpty() && titlePaint.measureText("$title…") > maxTextWidth) {
+                title = title.dropLast(1)
+            }
+            title += "…"
+        }
+        if (title.isNotEmpty()) {
+            canvas.drawText(title, width / 2f, height * 0.22f, titlePaint)
+        }
+
+        // Shrink the number only as much as needed, so 3–4 digit counts stay inside the card.
+        var numberSize = min(width * 0.62f, height * 0.52f)
         numberPaint.textSize = numberSize
+        val measuredNumberWidth = numberPaint.measureText(number)
+        if (measuredNumberWidth > maxTextWidth) {
+            numberSize *= maxTextWidth / measuredNumberWidth
+            numberPaint.textSize = numberSize
+        }
         numberPaint.color = activeColor
-        labelPaint.textSize = 10f * density
+        labelPaint.textSize = 8f * density
         labelPaint.color = activeColor
         outlinePaint.textSize = numberSize
 
         val bgLum = Color.luminance(cardBackgroundColor)
         val colorLum = Color.luminance(activeColor)
         val drawOutline = ColorOutline.shouldUseLightOutline(bgLum.toDouble(), colorLum.toDouble())
-        val numberBaseline = height * 0.56f - (numberPaint.ascent() + numberPaint.descent()) / 2f
+        val numberBaseline = height * 0.61f - (numberPaint.ascent() + numberPaint.descent()) / 2f
         if (drawOutline) {
             outlinePaint.strokeWidth = 0.6f * density
             canvas.drawText(number, width / 2f, numberBaseline, outlinePaint)
         }
         canvas.drawText(number, width / 2f, numberBaseline, numberPaint)
-        canvas.drawText("天未打卡", width / 2f, height * 0.82f, labelPaint)
+        canvas.drawText("天未打卡", width / 2f, height * 0.87f, labelPaint)
     }
 }
