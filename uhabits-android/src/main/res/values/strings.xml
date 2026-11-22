@@ -23,6 +23,22 @@
     tools:ignore="MissingTranslation">
 
     <string name="app_name" >Loop Habit Tracker</string>
+
+    <!-- Date calculator strings are also declared in the default resource set so Kotlin R references are generated in every build variant. -->
+    <string name="time_records_date_calculator">Date calculator</string>
+    <string name="time_records_date_calculator_summary">Calculate a date by adding or subtracting days from a selected base date.</string>
+    <string name="time_records_calculator_open">Date calculator (by days)</string>
+    <string name="time_records_calculator_use_date">Use this date</string>
+    <string name="time_records_calculator_base_date">Base date: %1$s (tap to change)</string>
+    <string name="time_records_calculator_days_hint">Enter number of days</string>
+    <string name="time_records_calculator_direction">Direction</string>
+    <string name="time_records_calculator_before">Earlier</string>
+    <string name="time_records_calculator_after">Later</string>
+    <string name="time_records_calculator_calculate">Calculate</string>
+    <string name="time_records_calculator_invalid_days">Enter a valid non-negative whole number of days</string>
+    <string name="time_records_calculator_result">Calculated date</string>
+    <string name="time_records_calculator_result_message">%1$s %2$s %3$d days:\\n%4$s</string>
+
     <string name="main_activity_title">十字习惯</string>
     <string name="action_settings">Settings</string>
     <string name="edit">Edit</string>
