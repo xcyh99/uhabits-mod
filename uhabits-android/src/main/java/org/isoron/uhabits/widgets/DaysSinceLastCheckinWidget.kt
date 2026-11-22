@@ -132,43 +132,70 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
             canvas.drawText(line, width / 2f, baseline, titlePaint)
         }
 
-        // Keep the original font size whenever possible: tighten digit spacing first,
-        // and only scale the whole number down if the minimum spacing still cannot fit.
-        var numberSize = min(width * 0.82f, height * 0.58f)
-        // Widen short counts slightly; keep three-or-more digits in the original condensed style.
+        // Fit the number into the vertical space between the title and bottom label.
+        // Keep a small, deliberate gap from both text areas while maximizing digit height.
+        val titleBottom = if (titleLines.isEmpty()) 0f else {
+            val lastBaseline = if (titleLines.size == 1) height * 0.18f
+                else height * (0.12f + (titleLines.size - 1) * 0.13f)
+            lastBaseline + titlePaint.descent()
+        }
+        labelPaint.textSize = 6.5f * density
+        labelPaint.color = activeColor
+        val labelBaseline = height * 0.94f
+        val labelTop = labelBaseline + labelPaint.ascent()
+        val verticalGap = 4f * density
+        val numberTopLimit = titleBottom + verticalGap
+        val numberBottomLimit = labelTop - verticalGap
+        val availableNumberHeight = (numberBottomLimit - numberTopLimit).coerceAtLeast(1f)
+
+        val baseNumberSize = min(width * 0.82f, height * 0.58f)
+        var numberSize = min(baseNumberSize, availableNumberHeight / 1.05f)
+        // Short counts use a fuller width; longer counts progressively return to / narrow
+        // the condensed face. Font height is independent of digit count.
         val digitWidthScale = when (number.length) {
             1 -> 1.18f
             2 -> 1.10f
-            else -> 1.0f
+            3 -> 1.0f
+            else -> 0.92f
         }
         numberPaint.textScaleX = digitWidthScale
         outlinePaint.textScaleX = digitWidthScale
         numberPaint.textSize = numberSize
         var glyphWidths = number.map { numberPaint.measureText(it.toString()) }
-        val glyphWidth = glyphWidths.sum()
         val gapCount = (number.length - 1).coerceAtLeast(0)
-        val minDigitSpacing = -1.5f * density
-        var digitSpacing = if (gapCount > 0) {
-            ((maxTextWidth - glyphWidth) / gapCount).coerceAtMost(0f)
-                .coerceAtLeast(minDigitSpacing)
-        } else 0f
-        var totalNumberWidth = glyphWidth + digitSpacing * gapCount
-        if (totalNumberWidth > maxTextWidth) {
-            numberSize *= maxTextWidth / totalNumberWidth
-            numberPaint.textSize = numberSize
-            glyphWidths = number.map { numberPaint.measureText(it.toString()) }
-            digitSpacing = minDigitSpacing * (numberSize / min(width * 0.82f, height * 0.58f))
-            totalNumberWidth = glyphWidths.sum() + digitSpacing * gapCount
+        val baseSpacing = when (number.length) {
+            1 -> 0f
+            2 -> -0.5f * density
+            3 -> -1.0f * density
+            else -> -1.5f * density
         }
-        numberPaint.color = activeColor
-        labelPaint.textSize = 6.5f * density
-        labelPaint.color = activeColor
-        outlinePaint.textSize = numberSize
+        var digitSpacing = baseSpacing
+        var totalNumberWidth = glyphWidths.sum() + digitSpacing * gapCount
+        if (totalNumberWidth > maxTextWidth) {
+            // Preserve height: compress width and spacing rather than shrinking the digits.
+            val targetSpacing = if (gapCount > 0) {
+                ((maxTextWidth - glyphWidths.sum()) / gapCount).coerceAtMost(baseSpacing)
+            } else 0f
+            digitSpacing = targetSpacing
+            totalNumberWidth = glyphWidths.sum() + digitSpacing * gapCount
+            if (totalNumberWidth > maxTextWidth) {
+                val fitScale = maxTextWidth / totalNumberWidth
+                numberPaint.textScaleX = digitWidthScale * fitScale
+                outlinePaint.textScaleX = digitWidthScale * fitScale
+                glyphWidths = number.map { numberPaint.measureText(it.toString()) }
+                totalNumberWidth = glyphWidths.sum() + digitSpacing * gapCount
+            }
+        }
 
+        numberPaint.color = activeColor
+        outlinePaint.textSize = numberSize
         val bgLum = Color.luminance(cardBackgroundColor)
         val colorLum = Color.luminance(activeColor)
         val drawOutline = ColorOutline.shouldUseLightOutline(bgLum.toDouble(), colorLum.toDouble())
-        val numberBaseline = height * 0.55f - (numberPaint.ascent() + numberPaint.descent()) / 2f
+        val numberMetrics = numberPaint.fontMetrics
+        val numberGlyphHeight = numberMetrics.descent - numberMetrics.ascent
+        val numberCenterY = (numberTopLimit + numberBottomLimit) / 2f
+        val numberBaseline = numberCenterY - (numberMetrics.ascent + numberMetrics.descent) / 2f
         var numberX = (width - totalNumberWidth) / 2f
         if (drawOutline) outlinePaint.strokeWidth = 0.6f * density
         number.forEachIndexed { index, character ->
@@ -181,6 +208,6 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
             numberPaint.clearShadowLayer()
             numberX += glyphWidths[index] + digitSpacing
         }
-        canvas.drawText("天未打卡", width / 2f, height * 0.94f, labelPaint)
+        canvas.drawText("天未打卡", width / 2f, labelBaseline, labelPaint)
     }
 }
