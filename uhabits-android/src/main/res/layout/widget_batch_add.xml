@@ -5,16 +5,19 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:padding="5dp"
-    android:background="@drawable/widget_background">
+    android:padding="3dp"
+    android:background="@drawable/widget_batch_add_background">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
-        android:maxLines="2"
-        android:text="批量添加"
+        android:padding="2dp"
+        android:maxLines="3"
+        android:ellipsize="none"
+        android:text="十字习惯组件批量添加"
         android:textColor="#FFFFFFFF"
-        android:textSize="12sp"
+        android:textSize="10sp"
+        android:lineSpacingExtra="0dp"
         android:textStyle="bold" />
 </LinearLayout>
