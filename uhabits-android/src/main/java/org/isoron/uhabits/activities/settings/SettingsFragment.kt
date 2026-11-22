@@ -221,6 +221,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 showWidgetManager()
                 return true
             }
+            "startupPage" -> {
+                showStartupPageSettings()
+                return true
+            }
             "featureShortcuts" -> {
                 showFeatureShortcutSettings()
                 return true
@@ -288,6 +292,44 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
 
     fun openBatchWidgetPicker(intent: Intent) {
         showWidgetManager()
+    }
+
+
+    private fun showStartupPageSettings() {
+        val store = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val modes = arrayOf("主界面", "上次打开的界面", "指定其他界面")
+        val current = store.getString("startup_page_mode", "main") ?: "main"
+        val selected = when (current) { "last" -> 1; "custom" -> 2; else -> 0 }
+        AlertDialog.Builder(requireContext())
+            .setTitle("启动首页设置")
+            .setSingleChoiceItems(modes, selected) { dialog, which ->
+                when (which) {
+                    0 -> store.edit().putString("startup_page_mode", "main").apply()
+                    1 -> store.edit().putString("startup_page_mode", "last").apply()
+                    2 -> {
+                        val pages = arrayOf("时间记录", "设置页面", "功能中心")
+                        val values = arrayOf("timeRecords", "settings", "featureCenter")
+                        val currentPage = store.getString("startup_page_custom", "timeRecords")
+                        val pageIndex = values.indexOf(currentPage).let { if (it < 0) 0 else it }
+                        AlertDialog.Builder(requireContext())
+                            .setTitle("选择启动页面")
+                            .setSingleChoiceItems(pages, pageIndex) { pageDialog, pageWhich ->
+                                store.edit()
+                                    .putString("startup_page_mode", "custom")
+                                    .putString("startup_page_custom", values[pageWhich])
+                                    .apply()
+                                Toast.makeText(requireContext(), "启动首页已设置为：${pages[pageWhich]}", Toast.LENGTH_SHORT).show()
+                                pageDialog.dismiss()
+                            }
+                            .setNegativeButton(android.R.string.cancel, null)
+                            .show()
+                    }
+                }
+                if (which != 2) Toast.makeText(requireContext(), "启动首页已设置为：${modes[which]}", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun showWidgetManager() {
