@@ -167,6 +167,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     "exportLegacyDB",
                     "exportCSV",
                     "importData",
+                    "featureShortcuts",
                     "webDavSync",
                     "settingsBackupRestore",
                     "publicBackupFolder",
