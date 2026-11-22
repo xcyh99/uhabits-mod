@@ -26,23 +26,27 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.preference.PreferenceManager
 import org.isoron.platform.time.DateUtils
 import org.isoron.uhabits.AndroidDirFinder
-import org.isoron.uhabits.utils.DatabaseUtils
+import org.isoron.uhabits.utils.BackupFileName
 import java.io.File
 
+/**
+ * Daily full-app backups. Legacy .db backups are left untouched; retention only
+ * applies to archives created by this manager.
+ */
 class AutoBackup(private val context: Context) {
 
-    private val backupPattern = Regex("^Loop Habits Backup .+\\.db$")
+    private val backupPattern = Regex("^Shizi_Full_Backup_\\d{8}_\\d{6}_\\d{3}\\.uhabitsbackup$")
 
     fun run(keep: Int = 5) {
-        Log.i("AutoBackup", "Starting automatic backups...")
-        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-        val uriString = prefs.getString("publicBackupFolder", null)
+        Log.i("AutoBackup", "Checking automatic full backups...")
+        val uriString = PreferenceManager.getDefaultSharedPreferences(context)
+            .getString("publicBackupFolder", null)
         if (uriString != null) {
             val uri = Uri.parse(uriString)
             val dir = if (uri.scheme == "content") {
                 DocumentFile.fromTreeUri(context, uri)
             } else {
-                DocumentFile.fromFile(File(uri.path!!))
+                File(uri.path ?: return).let { DocumentFile.fromFile(it) }
             }
             if (dir != null) {
                 runInPublicDir(dir, keep)
@@ -55,45 +59,58 @@ class AutoBackup(private val context: Context) {
     }
 
     private fun runInPrivateDir(dir: File, keep: Int) {
-        val files = dir.listFiles()?.toMutableList() ?: mutableListOf()
-        files.sortBy { it.lastModified() }
+        val files = dir.listFiles()
+            ?.filter { it.isFile && backupPattern.matches(it.name) }
+            ?.sortedBy { it.lastModified() }
+            ?: emptyList()
         val newestTimestamp = files.lastOrNull()?.lastModified() ?: 0L
-        removeOldestPrivate(files, keep)
-        val now = System.currentTimeMillis()
-        if (now - newestTimestamp > DateUtils.DAY_LENGTH) {
-            DatabaseUtils.saveDatabaseCopy(context, dir)
+        removeOldestPrivate(files, (keep - 1).coerceAtLeast(0))
+        if (System.currentTimeMillis() - newestTimestamp > DateUtils.DAY_LENGTH) {
+            val target = File(dir, "Shizi_Full_Backup_${BackupFileName.timestamp()}.uhabitsbackup")
+            runCatching { FullBackupManager(context).createBackup(target) }
+                .onFailure {
+                    target.delete()
+                    Log.e("AutoBackup", "Unable to create automatic full backup", it)
+                }
         } else {
-            Log.i("AutoBackup", "Fresh backup found (timestamp=$newestTimestamp)")
+            Log.i("AutoBackup", "Fresh full backup found (timestamp=$newestTimestamp)")
         }
     }
 
     private fun runInPublicDir(dir: DocumentFile, keep: Int) {
         val files = dir.listFiles()
-            .filter { it.isFile && it.name?.matches(backupPattern) == true }
+            .filter { it.isFile && it.name?.let(backupPattern::matches) == true }
             .sortedBy { it.lastModified() }
         val newestTimestamp = files.lastOrNull()?.lastModified() ?: 0L
-        removeOldestPublic(files, keep)
-        val now = System.currentTimeMillis()
-        if (now - newestTimestamp > DateUtils.DAY_LENGTH) {
-            DatabaseUtils.saveDatabaseCopy(context, dir)
+        removeOldestPublic(files, (keep - 1).coerceAtLeast(0))
+        if (System.currentTimeMillis() - newestTimestamp > DateUtils.DAY_LENGTH) {
+            val name = "Shizi_Full_Backup_${BackupFileName.timestamp()}.uhabitsbackup"
+            val target = dir.createFile("application/octet-stream", name)
+            if (target == null) {
+                Log.e("AutoBackup", "Unable to create automatic full backup file")
+                return
+            }
+            runCatching { FullBackupManager(context).createBackup(target.uri) }
+                .onFailure {
+                    target.delete()
+                    Log.e("AutoBackup", "Unable to create automatic full backup", it)
+                }
         } else {
-            Log.i("AutoBackup", "Fresh backup found (timestamp=$newestTimestamp)")
+            Log.i("AutoBackup", "Fresh full backup found (timestamp=$newestTimestamp)")
         }
     }
 
     private fun removeOldestPrivate(files: List<File>, keep: Int) {
-        for (k in 0 until (files.size - keep)) {
-            val file = files[k]
-            Log.i("AutoBackup", "Removing $file")
-            file.delete()
+        for (index in 0 until (files.size - keep).coerceAtLeast(0)) {
+            Log.i("AutoBackup", "Removing old full backup ${files[index]}")
+            files[index].delete()
         }
     }
 
     private fun removeOldestPublic(files: List<DocumentFile>, keep: Int) {
-        for (k in 0 until (files.size - keep)) {
-            val file = files[k]
-            Log.i("AutoBackup", "Removing ${file.uri}")
-            file.delete()
+        for (index in 0 until (files.size - keep).coerceAtLeast(0)) {
+            Log.i("AutoBackup", "Removing old full backup ${files[index].uri}")
+            files[index].delete()
         }
     }
 }
