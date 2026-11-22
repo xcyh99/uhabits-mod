@@ -92,63 +92,29 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         val horizontalPadding = 7f * density
         val maxTextWidth = (width - horizontalPadding * 2f).coerceAtLeast(1f)
 
-        // Habit name may wrap to at most two centered lines; truncate the second line if needed.
+        // Keep the habit title on one centered line; truncate with an ellipsis if needed.
         titlePaint.textSize = 9f * density
         titlePaint.color = activeColor
-        val titleLines = mutableListOf<String>()
-        var remainingTitle = habitName
-        while (remainingTitle.isNotEmpty() && titleLines.size < 2) {
-            var end = 0
-            while (end < remainingTitle.length &&
-                titlePaint.measureText(remainingTitle.substring(0, end + 1)) <= maxTextWidth
-            ) {
-                end++
-            }
-            if (end == 0) end = 1
-            var line = remainingTitle.substring(0, end)
-            remainingTitle = remainingTitle.substring(end)
-            if (remainingTitle.isNotEmpty() && titleLines.size == 1) {
-                while (line.isNotEmpty() &&
-                    titlePaint.measureText("$line…") > maxTextWidth
-                ) {
-                    line = line.dropLast(1)
-                }
-                line += "…"
-            }
-            titleLines.add(line)
+        var title = habitName
+        while (title.isNotEmpty() && titlePaint.measureText("$title…") > maxTextWidth) {
+            title = title.dropLast(1)
         }
-        if (remainingTitle.isNotEmpty() && titleLines.size == 2) {
-            var line = titleLines[1]
-            while (line.isNotEmpty() &&
-                titlePaint.measureText("$line…") > maxTextWidth
-            ) {
-                line = line.dropLast(1)
-            }
-            titleLines[1] = "$line…"
-        }
-        titleLines.forEachIndexed { index, line ->
-            val baseline = if (titleLines.size == 1) height * 0.18f
-                else height * (0.12f + index * 0.115f)
-            canvas.drawText(line, width / 2f, baseline, titlePaint)
-        }
+        if (title != habitName) title += "…"
+        val titleBaseline = height * 0.18f
+        canvas.drawText(title, width / 2f, titleBaseline, titlePaint)
 
-        // Fit the number into the vertical space between the title and bottom label.
-        // Keep a small, deliberate gap from both text areas while maximizing digit height.
-        // Always reserve the full two-line title slot, even when the title
-        // currently renders as one line or is empty. This keeps the number's
-        // vertical position and size stable across title changes.
-        val reservedTitleLastBaseline = height * 0.235f
-        val titleBottom = reservedTitleLastBaseline + titlePaint.descent()
+        // Use the actual single-line title boundary so the number can grow vertically.
+        val titleBottom = titleBaseline + titlePaint.descent()
         labelPaint.textSize = 6.5f * density
         labelPaint.color = activeColor
         val labelBaseline = height * 0.97f
         val labelTop = labelBaseline + labelPaint.ascent()
-        val verticalGap = 1.6f * density
+        val verticalGap = 0.5f * density
         val numberTopLimit = titleBottom + verticalGap
         val numberBottomLimit = labelTop - verticalGap
         val availableNumberHeight = (numberBottomLimit - numberTopLimit).coerceAtLeast(1f)
 
-        val baseNumberSize = min(width * 0.86f, height * 0.82f)
+        val baseNumberSize = min(width * 0.86f, height * 0.94f)
         var numberSize = min(baseNumberSize, availableNumberHeight / 1.12f)
         // Short counts use a fuller width; longer counts progressively return to / narrow
         // the condensed face. Font height is independent of digit count.
