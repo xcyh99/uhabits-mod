@@ -115,7 +115,8 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         val availableNumberHeight = (numberBottomLimit - numberTopLimit).coerceAtLeast(1f)
 
         val baseNumberSize = min(width * 0.86f, height * 0.94f)
-        var numberSize = min(baseNumberSize, availableNumberHeight / 1.12f)
+        // Let the enlarged digits use nearly the full vertical space between the title and label.
+        var numberSize = min(baseNumberSize, availableNumberHeight / 1.0f)
         // Short counts use a fuller width; longer counts progressively return to / narrow
         // the condensed face. Font height is independent of digit count.
         val digitWidthScale = when (number.length) {
