@@ -106,7 +106,7 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
             title += "…"
         }
         if (title.isNotEmpty()) {
-            canvas.drawText(title, width / 2f, height * 0.22f, titlePaint)
+            canvas.drawText(title, width / 2f, height * 0.18f, titlePaint)
         }
 
         // Shrink the number only as much as needed, so 3–4 digit counts stay inside the card.
@@ -125,12 +125,12 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         val bgLum = Color.luminance(cardBackgroundColor)
         val colorLum = Color.luminance(activeColor)
         val drawOutline = ColorOutline.shouldUseLightOutline(bgLum.toDouble(), colorLum.toDouble())
-        val numberBaseline = height * 0.61f - (numberPaint.ascent() + numberPaint.descent()) / 2f
+        val numberBaseline = height * 0.55f - (numberPaint.ascent() + numberPaint.descent()) / 2f
         if (drawOutline) {
             outlinePaint.strokeWidth = 0.6f * density
             canvas.drawText(number, width / 2f, numberBaseline, outlinePaint)
         }
         canvas.drawText(number, width / 2f, numberBaseline, numberPaint)
-        canvas.drawText("天未打卡", width / 2f, height * 0.87f, labelPaint)
+        canvas.drawText("天未打卡", width / 2f, height * 0.94f, labelPaint)
     }
 }
