@@ -111,7 +111,7 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
 
         // Keep the original font size whenever possible: tighten digit spacing first,
         // and only scale the whole number down if the minimum spacing still cannot fit.
-        var numberSize = min(width * 0.62f, height * 0.52f)
+        var numberSize = min(width * 0.82f, height * 0.58f)
         numberPaint.textSize = numberSize
         var glyphWidths = number.map { numberPaint.measureText(it.toString()) }
         val glyphWidth = glyphWidths.sum()
@@ -126,7 +126,7 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
             numberSize *= maxTextWidth / totalNumberWidth
             numberPaint.textSize = numberSize
             glyphWidths = number.map { numberPaint.measureText(it.toString()) }
-            digitSpacing = minDigitSpacing * (numberSize / min(width * 0.62f, height * 0.52f))
+            digitSpacing = minDigitSpacing * (numberSize / min(width * 0.82f, height * 0.58f))
             totalNumberWidth = glyphWidths.sum() + digitSpacing * gapCount
         }
         numberPaint.color = activeColor
