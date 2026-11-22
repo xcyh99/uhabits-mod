@@ -158,10 +158,9 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         val targetPreference = requireActivity().intent.getStringExtra("open_preference_key")
         val openFeatureCenter = requireActivity().intent.getBooleanExtra("open_feature_center", false)
         if (targetPreference == "widgetManager") {
-            // Show the widget picker before the Settings screen can draw. This
-            // avoids a visible Settings/main-screen flash between the router
-            // activity and the batch-add dialog.
-            findPreference("widgetManager")?.performClick()
+            val pendingQueue = requireActivity().intent.getStringArrayListExtra("resume_widget_pin_queue")
+            if (pendingQueue != null) showWidgetManager(pendingQueue)
+            else findPreference("widgetManager")?.performClick()
             return
         }
         if (targetPreference != null || openFeatureCenter) {
@@ -293,7 +292,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     }
 
 
-    private fun showWidgetManager() {
+    private fun showWidgetManager(preselectedProviders: List<String> = emptyList()) {
         val context = requireContext()
         val widgets = listOf(
             "历史" to org.isoron.uhabits.widgets.HistoryWidgetProvider::class.java,
@@ -306,15 +305,18 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             "正计时 / 倒计时" to org.isoron.uhabits.widgets.TimeRecordWidgetProvider::class.java
         )
         val labels = widgets.map { it.first }.toTypedArray()
-        val checked = BooleanArray(widgets.size)
         val selected = linkedSetOf<Int>()
+        preselectedProviders.forEach { name ->
+            widgets.indexOfFirst { it.second.name == name }.takeIf { it >= 0 }?.let(selected::add)
+        }
+        val checked = BooleanArray(widgets.size) { it in selected }
         AlertDialog.Builder(context)
-            .setTitle("选择要添加的桌面组件（可多选）")
+            .setTitle(if (preselectedProviders.isEmpty()) "选择要添加的桌面组件（可多选）" else "继续添加剩余桌面组件")
             .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
                 if (isChecked) selected.add(which) else selected.remove(which)
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton("批量添加") { _, _ ->
+            .setPositiveButton(if (preselectedProviders.isEmpty()) "开始添加" else "继续添加") { _, _ ->
                 val manager = android.appwidget.AppWidgetManager.getInstance(context)
                 if (!manager.isRequestPinAppWidgetSupported) {
                     Toast.makeText(context, "当前桌面不支持应用内添加组件，请到桌面长按空白处添加。", Toast.LENGTH_LONG).show()
@@ -324,20 +326,30 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     Toast.makeText(context, "请先选择要添加的组件。", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
-                var requested = 0
-                selected.forEach { index ->
-                    val provider = android.content.ComponentName(context, widgets[index].second)
-                    if (manager.requestPinAppWidget(provider, null, null)) requested++
+                val queue = selected.sorted().map { widgets[it].second.name }
+                val store = PreferenceManager.getDefaultSharedPreferences(context)
+                store.edit().putString("widget_pin_queue", queue.joinToString("|")).apply()
+                val provider = widgets.firstOrNull { it.second.name == queue.first() }?.second
+                if (provider == null) {
+                    store.edit().remove("widget_pin_queue").apply()
+                    Toast.makeText(context, "无法识别待添加的组件。", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
                 }
-                Toast.makeText(
-                    context,
-                    if (requested > 0) "已向桌面发送 $requested 项添加请求，请按系统提示逐项确认。" else "桌面未接受添加请求。",
-                    Toast.LENGTH_LONG
-                ).show()
+                val callbackIntent = Intent(context, org.isoron.uhabits.widgets.WidgetPinQueueReceiver::class.java)
+                    .setAction(org.isoron.uhabits.widgets.WidgetPinQueueReceiver.ACTION_WIDGET_PINNED)
+                val callback = android.app.PendingIntent.getBroadcast(
+                    context, queue.first().hashCode(), callbackIntent,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                )
+                if (manager.requestPinAppWidget(android.content.ComponentName(context, provider), null, callback)) {
+                    Toast.makeText(context, "已请求添加第 1 个组件。请在桌面确认，成功后将返回继续添加。", Toast.LENGTH_LONG).show()
+                } else {
+                    store.edit().remove("widget_pin_queue").apply()
+                    Toast.makeText(context, "桌面未接受添加请求。", Toast.LENGTH_LONG).show()
+                }
             }
             .show()
     }
-
     private fun showFeatureShortcutSettings() {
         val candidateKeys = arrayOf(
             "timeRecords", "widgetManager", "createFullBackup", "restoreFullBackup",

@@ -211,6 +211,10 @@
         </receiver>
 
         <receiver
+            android:name="org.isoron.uhabits.widgets.WidgetPinQueueReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name="org.isoron.uhabits.widgets.DaysSinceLastCheckinWidgetProvider"
             android:exported="true"
             android:label="@string/days_since_last_checkin">
