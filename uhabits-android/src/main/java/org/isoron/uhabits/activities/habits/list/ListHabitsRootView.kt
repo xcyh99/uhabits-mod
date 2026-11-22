@@ -22,6 +22,7 @@ package org.isoron.uhabits.activities.habits.list
 import android.content.Context
 import android.content.Intent
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
