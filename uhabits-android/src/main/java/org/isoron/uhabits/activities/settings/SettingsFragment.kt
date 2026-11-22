@@ -157,6 +157,13 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         super.onViewCreated(view, savedInstanceState)
         val targetPreference = requireActivity().intent.getStringExtra("open_preference_key")
         val openFeatureCenter = requireActivity().intent.getBooleanExtra("open_feature_center", false)
+        if (targetPreference == "widgetManager") {
+            // Show the widget picker before the Settings screen can draw. This
+            // avoids a visible Settings/main-screen flash between the router
+            // activity and the batch-add dialog.
+            findPreference("widgetManager")?.performClick()
+            return
+        }
         if (targetPreference != null || openFeatureCenter) {
             view.post {
                 val key = targetPreference ?: "featureCenterCategory"

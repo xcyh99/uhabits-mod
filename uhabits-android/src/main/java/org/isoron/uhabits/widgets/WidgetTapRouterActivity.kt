@@ -27,12 +27,16 @@ class WidgetTapRouterActivity : Activity() {
         val intent = Intent(this, ShowHabitActivity::class.java).apply {
             data = Uri.parse("content://org.isoron.uhabits/habit/$habitId")
         }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         startActivity(intent)
+        overridePendingTransition(0, 0)
         finish()
+        overridePendingTransition(0, 0)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        overridePendingTransition(0, 0)
         habitId = intent.getLongExtra(EXTRA_HABIT_ID, -1L)
         handler.postDelayed(singleTapAction, DOUBLE_TAP_WINDOW_MS)
     }
@@ -40,14 +44,17 @@ class WidgetTapRouterActivity : Activity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        overridePendingTransition(0, 0)
         if (handled) return
         handled = true
         handler.removeCallbacks(singleTapAction)
-        startActivity(
-            Intent(this, SettingsActivity::class.java)
-                .putExtra("open_preference_key", "widgetManager")
-        )
+        val target = Intent(this, SettingsActivity::class.java)
+            .putExtra("open_preference_key", "widgetManager")
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        startActivity(target)
+        overridePendingTransition(0, 0)
         finish()
+        overridePendingTransition(0, 0)
     }
 
     override fun onDestroy() {

@@ -95,8 +95,9 @@
             android:name="org.isoron.uhabits.widgets.WidgetTapRouterActivity"
             android:excludeFromRecents="true"
             android:exported="false"
-            android:launchMode="singleTop"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+            android:launchMode="singleTask"
+            android:taskAffinity="${applicationId}.widgettap"
+            android:theme="@style/Theme.Transparent" />
 
         <activity
             android:name="org.isoron.uhabits.activities.settings.SettingsActivity"
