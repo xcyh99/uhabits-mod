@@ -28,8 +28,12 @@
         android:includeFontPadding="false"
         android:maxLines="1"
         android:textColor="#FFFFFFFF"
-        android:textSize="42sp"
-        android:textStyle="bold" />
+        android:fontFamily="sans-serif-condensed"
+        android:autoSizeTextType="uniform"
+        android:autoSizeMinTextSize="26sp"
+        android:autoSizeMaxTextSize="44sp"
+        android:autoSizeStepGranularity="1sp"
+        android:textSize="44sp" />
 
     <TextView
         android:id="@+id/time_record_caption"
