@@ -8,11 +8,12 @@ package org.isoron.uhabits.activities.timerecords
 
 import android.app.DatePickerDialog
 import android.os.Bundle
-import android.view.View
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import androidx.appcompat.app.AlertDialog
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
@@ -59,6 +60,10 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
             getString(R.string.time_records_countdown),
             getString(R.string.time_records_countdown_summary)
         ) { showEditor(TimeRecord.COUNTDOWN) })
+        addCategory.addPreference(createAction(
+            getString(R.string.time_records_checkin),
+            getString(R.string.time_records_checkin_summary)
+        ) { pinCheckinWidget() })
 
         val recordsCategory = PreferenceCategory(context).apply {
             title = getString(R.string.time_records_saved_category)
@@ -113,6 +118,15 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
         preferenceScreen = screen
     }
 
+    private fun pinCheckinWidget() {
+        val manager = AppWidgetManager.getInstance(requireContext())
+        val provider = ComponentName(requireContext(), org.isoron.uhabits.widgets.DaysSinceLastCheckinWidgetProvider::class.java)
+        val pinned = manager.requestPinAppWidget(provider, null, null)
+        if (!pinned) {
+            Toast.makeText(requireContext(), R.string.time_records_pin_not_supported, Toast.LENGTH_LONG).show()
+        }
+    }
+
     private fun createAction(title: String, summary: String, action: () -> Unit) =
         Preference(requireContext()).apply {
             this.title = title
@@ -162,12 +176,17 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
                 initial.monthValue - 1,
                 initial.dayOfMonth
             )
-            val today = Calendar.getInstance()
-            val todayMillis = today.timeInMillis
+            val boundary = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+                if (type == TimeRecord.COUNTDOWN) add(Calendar.DAY_OF_MONTH, 1)
+            }
             if (type == TimeRecord.ELAPSED) {
-                picker.datePicker.maxDate = todayMillis
+                picker.datePicker.maxDate = boundary.timeInMillis + 24L * 60L * 60L * 1000L - 1L
             } else {
-                picker.datePicker.minDate = todayMillis + 24L * 60L * 60L * 1000L
+                picker.datePicker.minDate = boundary.timeInMillis
             }
             picker.show()
         }
@@ -180,7 +199,7 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
                     ?: getString(if (type == TimeRecord.ELAPSED) R.string.time_records_add_elapsed else R.string.time_records_add_countdown)
             )
             .setView(container)
-            .setNegativeButton(R.string.cancel, null)
+            .setNegativeButton(R.string.clear_label, null)
             .setPositiveButton(R.string.save, null)
             .apply {
                 if (existing != null) {
