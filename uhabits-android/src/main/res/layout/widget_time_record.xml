@@ -13,10 +13,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:maxLines="2"
+        android:maxLines="1"
         android:ellipsize="end"
         android:textColor="#FFFFFFFF"
-        android:textSize="11sp"
+        android:textSize="9sp"
         android:textStyle="bold" />
 
     <TextView
@@ -36,21 +36,12 @@
         android:textSize="44sp" />
 
     <TextView
-        android:id="@+id/time_record_caption"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:textColor="#FFFFFFFF"
-        android:textSize="10sp" />
-
-    <TextView
         android:id="@+id/time_record_date"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
         android:maxLines="1"
+        android:ellipsize="end"
         android:textColor="#CCFFFFFF"
         android:textSize="9sp" />
 </LinearLayout>
