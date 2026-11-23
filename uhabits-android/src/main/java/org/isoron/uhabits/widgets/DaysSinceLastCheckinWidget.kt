@@ -121,15 +121,9 @@ internal class DaysSinceLastCheckinView(context: Context) : View(context) {
         val baseNumberSize = min(width * 0.86f, height * 0.94f)
         // Let the enlarged digits use nearly the full vertical space between the title and label.
         var numberSize = min(baseNumberSize, availableNumberHeight / 1.0f)
-        // Short counts use a fuller width; longer counts progressively return to / narrow
-        // the condensed face. Font height is independent of digit count.
-        val digitWidthScale = when (number.length) {
-            1 -> 1.18f
-            2 -> 0.98f
-            3 -> 0.92f
-            4 -> 0.86f
-            else -> (0.86f - (number.length - 4) * 0.04f).coerceAtLeast(0.70f)
-        }
+        // Keep each digit at the same natural width regardless of digit count.
+        // Only the final safety-fit below may uniformly scale the whole number if it cannot fit.
+        val digitWidthScale = 1.18f
         numberPaint.textScaleX = digitWidthScale
         outlinePaint.textScaleX = digitWidthScale
         numberPaint.textSize = numberSize
@@ -137,7 +131,7 @@ internal class DaysSinceLastCheckinView(context: Context) : View(context) {
         val gapCount = (number.length - 1).coerceAtLeast(0)
         // Keep a small positive gap between digits. If the full number is too wide,
         // narrow the glyphs further while preserving both the gap and the font height.
-        val digitSpacing = if (gapCount > 0) 0.4f * density else 0f
+        val digitSpacing = 0f
         var totalNumberWidth = glyphWidths.sum() + digitSpacing * gapCount
         if (totalNumberWidth > maxTextWidth) {
             val availableGlyphWidth = (maxTextWidth - digitSpacing * gapCount).coerceAtLeast(1f)
