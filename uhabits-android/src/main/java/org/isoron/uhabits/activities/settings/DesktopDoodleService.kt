@@ -157,7 +157,7 @@ class DesktopDoodleService : Service() {
         dragHandle.setOnTouchListener { view, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    view.tag = floatArrayOf(event.rawX, event.rawY, view.translationX, view.translationY)
+                    view.tag = floatArrayOf(event.rawX, event.rawY, tools.translationX, tools.translationY)
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -188,6 +188,7 @@ class DesktopDoodleService : Service() {
         tools.addView(toolButton("↶", "撤销") { canvas.undo() }, buttonLayout())
         tools.addView(toolButton("色", "切换颜色") {
             currentColorIndex = (currentColorIndex + 1) % colors.size
+            eraserEnabled = false
             canvas.setColor(colors[currentColorIndex])
             updateToolLabels()
         }, buttonLayout())
