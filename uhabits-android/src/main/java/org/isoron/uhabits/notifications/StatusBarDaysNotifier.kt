@@ -99,18 +99,51 @@ object StatusBarDaysNotifier {
                 app, notificationId, contentIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            val notification = NotificationCompat.Builder(app, CHANNEL_ID)
-                .setSmallIcon(createDaysIcon(result.days, result.color))
-                .setContentTitle(result.description)
-                .setContentText(result.projectName)
-                .setContentIntent(openApp)
-                .setOngoing(true)
-                .setOnlyAlertOnce(true)
-                .setShowWhen(false)
-                .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setCategory(NotificationCompat.CATEGORY_SERVICE)
-                .build()
-            runCatching { manager.notify(notificationId, notification) }
+            // Try the dynamic day-number icon first. Some Android-derived systems may
+            // reject or fail to render bitmap small icons; never leave an older arrow icon
+            // silently stuck in the notification shade in that case.
+            val posted = runCatching {
+                val notification = NotificationCompat.Builder(app, CHANNEL_ID)
+                    .setSmallIcon(createDaysIcon(result.days, result.color))
+                    .setContentTitle(result.description)
+                    .setContentText(result.projectName)
+                    .setContentIntent(openApp)
+                    .setOngoing(true)
+                    .setOnlyAlertOnce(true)
+                    .setShowWhen(false)
+                    .setPriority(NotificationCompat.PRIORITY_MAX)
+                    .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                    .build()
+                manager.notify(notificationId, notification)
+            }.onFailure {
+                android.util.Log.e("StatusBarDaysNotifier", "Unable to post day-number notification", it)
+            }.isSuccess
+
+            if (posted) {
+                activeIds.add(notificationId)
+            } else {
+                // The bundled notification resource is the current Taiji glyph, not the
+                // legacy curved arrow. Use it as a safe fallback if bitmap icons fail.
+                val fallbackPosted = runCatching {
+                    val fallback = NotificationCompat.Builder(app, CHANNEL_ID)
+                        .setSmallIcon(R.drawable.ic_notification)
+                        .setContentTitle(result.description)
+                        .setContentText(result.projectName)
+                        .setContentIntent(openApp)
+                        .setOngoing(true)
+                        .setOnlyAlertOnce(true)
+                        .setShowWhen(false)
+                        .setPriority(NotificationCompat.PRIORITY_MAX)
+                        .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                        .build()
+                    manager.notify(notificationId, fallback)
+                }.onFailure {
+                    android.util.Log.e("StatusBarDaysNotifier", "Unable to post fallback notification", it)
+                }.isSuccess
+
+                if (fallbackPosted) activeIds.add(notificationId)
+                else manager.cancel(notificationId)
+            }
         }
         (previousIds - activeIds).forEach { manager.cancel(it) }
         if (activeIds.none { it == NOTIFICATION_ID }) manager.cancel(NOTIFICATION_ID)
