@@ -1,11 +1,11 @@
 package org.isoron.uhabits.activities.timerecords
 
 import android.content.Context
+import org.json.JSONArray
+import org.json.JSONObject
 
 private fun defaultTimeRecordColor(type: String): Int =
     if (type == TimeRecord.ELAPSED) 0xFF269B65.toInt() else 0xFFE59A23.toInt()
-import org.json.JSONArray
-import org.json.JSONObject
 
 data class TimeRecord(
     val id: String,
