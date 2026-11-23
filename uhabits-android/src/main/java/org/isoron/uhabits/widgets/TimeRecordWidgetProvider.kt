@@ -74,7 +74,10 @@ class TimeRecordWidgetProvider : AppWidgetProvider() {
                     if (record.type == TimeRecord.ELAPSED) 0xFF2EAD67.toInt() else 0xFFE69A32.toInt()
                 )
             }
-            val intent = Intent(context, TimeRecordsActivity::class.java)
+            val intent = Intent(context, TimeRecordsActivity::class.java).apply {
+                putExtra(TimeRecordsActivity.EXTRA_EDIT_RECORD_ID, record?.id)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
             val pending = PendingIntent.getActivity(
                 context,
                 widgetId,
