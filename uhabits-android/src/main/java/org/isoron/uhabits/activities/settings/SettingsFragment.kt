@@ -460,6 +460,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                             Toast.LENGTH_SHORT
                         ).show()
                         pickDialog.dismiss()
+                        // Keep the add flow open: after saving this category, show the
+                        // category chooser again so the user can add another kind of item.
+                        if (selectedNow.any { it }) {
+                            dialog.dismiss()
+                            showStatusBarDaysSettings()
+                        }
                     }
                     .show()
                 dialog.dismiss()
