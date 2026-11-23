@@ -162,7 +162,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         val openFeatureCenter = requireActivity().intent.getBooleanExtra("open_feature_center", false)
         if ((targetPreference != null && targetPreference != "widgetManager") || openFeatureCenter) {
             view.post {
-                val key = targetPreference ?: "featureCenterCategory"
+                val key = when (targetPreference) {
+                    "autoBackupNow", "autoBackupStatus", "publicBackupFolder" -> "autoBackup"
+                    else -> targetPreference ?: "featureCenterCategory"
+                }
                 val directActionKeys = setOf(
                     "createFullBackup",
                     "restoreFullBackup",
