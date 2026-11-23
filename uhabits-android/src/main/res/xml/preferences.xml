@@ -75,7 +75,7 @@
         <Preference
                 android:key="createFullBackup"
                 android:title="完整备份"
-                android:summary="备份主数据库、时间记录、软件设置和小组件配置；不包含桌面布局及设备专属权限。"
+                android:summary="备份主数据库、时间记录、软件设置、小组件关联和悬浮计时器；不包含设备专属授权、铃声 URI 及桌面摆放位置。"
                 app:iconSpaceReserved="false" />
 
         <Preference
