@@ -341,7 +341,8 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
         }
         baseGroup.addView(targetBaseButton)
         baseGroup.addView(todayBaseButton)
-        baseGroup.check(targetBaseButton.id)
+        // Default to today's date; users can still switch to the record's target date.
+        baseGroup.check(todayBaseButton.id)
 
         val dateButton = TextView(context).apply {
             textSize = 16f
