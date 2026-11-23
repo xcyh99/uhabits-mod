@@ -27,9 +27,11 @@ import org.isoron.platform.time.DayOfWeek
 import org.isoron.platform.time.LocalDate
 import org.isoron.platform.time.LocalDateFormatter
 import org.isoron.uhabits.core.models.PaletteColor
+import org.isoron.uhabits.core.ui.views.DarkTheme
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
 import kotlin.math.round
 
 interface OnDateClickedListener {
@@ -298,14 +300,19 @@ class HistoryChart(
         val textColor = if (
             value == Square.ON && theme.cardBackgroundColor == Color.TRANSPARENT
         ) {
-            // Restore the original adaptive contrast choice for completed squares.
-            // Compare the actual contrast of white and dark gray against this square.
-            val lightText = Color(0xFFFFFF)
-            val darkText = Color(0x202020)
-            if (squareColor.contrast(lightText) >= squareColor.contrast(darkText)) {
-                lightText
+            // Use luminance thresholds for the expanded custom-color range.
+            val luminance = fun(channel: Double): Double {
+                return if (channel <= 0.04045) channel / 12.92
+                else ((channel + 0.055) / 1.055).pow(2.4)
+            }
+            val backgroundLuminance =
+                0.2126 * luminance(squareColor.red) +
+                0.7152 * luminance(squareColor.green) +
+                0.0722 * luminance(squareColor.blue)
+            if (theme is DarkTheme) {
+                if (backgroundLuminance >= 0.70) Color.BLACK else Color.WHITE
             } else {
-                darkText
+                if (backgroundLuminance <= 0.18) Color.WHITE else Color.BLACK
             }
         } else if (theme.cardBackgroundColor == Color.TRANSPARENT) {
             theme.highContrastTextColor
