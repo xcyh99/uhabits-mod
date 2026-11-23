@@ -6,8 +6,13 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.graphics.drawable.IconCompat
 import androidx.core.app.NotificationManagerCompat
 import org.isoron.platform.time.getToday
 import org.isoron.uhabits.HabitsApplication
@@ -95,7 +100,7 @@ object StatusBarDaysNotifier {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             val notification = NotificationCompat.Builder(app, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_notification)
+                .setSmallIcon(createDaysIcon(result.days))
                 .setContentTitle(result.description)
                 .setContentText(result.projectName)
                 .setContentIntent(openApp)
@@ -111,6 +116,28 @@ object StatusBarDaysNotifier {
         if (activeIds.none { it == NOTIFICATION_ID }) manager.cancel(NOTIFICATION_ID)
         prefs.edit().putStringSet("status_bar_days_active_ids", activeIds.map { it.toString() }.toSet()).apply()
         if (activeIds.isEmpty()) cancelDailyRefresh(app) else scheduleDailyRefresh(app)
+    }
+
+
+    // Generate a notification-safe monochrome number icon. The original Taiji drawable
+    // remains untouched, so reverting this experiment restores the previous appearance.
+    private fun createDaysIcon(days: Long): IconCompat {
+        val bitmap = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.WHITE
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.create("sans-serif", Typeface.BOLD)
+            textSize = when {
+                days >= 100 -> 39f
+                days >= 10 -> 49f
+                else -> 60f
+            }
+        }
+        val label = days.coerceAtMost(999).toString()
+        val baseline = 48f - (paint.ascent() + paint.descent()) / 2f
+        canvas.drawText(label, 48f, baseline, paint)
+        return IconCompat.createWithBitmap(bitmap)
     }
 
     private data class DisplayValue(val days: Long, val description: String, val projectName: String, val habitId: Long? = null)
