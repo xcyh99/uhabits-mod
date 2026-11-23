@@ -1631,7 +1631,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     }
 
     private fun updateAutoBackupStatusSummary() {
-        val preference = findPreference<Preference>("autoBackupStatus") ?: return
+        val preference = findPreference("autoBackupStatus") ?: return
         val backupPrefs = requireContext().getSharedPreferences(
             AutoBackup.STATUS_PREFS,
             android.content.Context.MODE_PRIVATE
