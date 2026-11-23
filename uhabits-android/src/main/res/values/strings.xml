@@ -279,7 +279,7 @@
     <string name="activity_not_found">No app was found to support this action</string>
     <string name="pref_midnight_delay_title">Extend day a few hours past midnight</string>
     <string name="pref_midnight_delay_description">Delay the start of a new day until the hour selected below. Useful if you typically go to sleep after midnight. Requires app restart.</string>
-    <string name="pref_midnight_delay_hours_summary">每天在所选时间切换新的一天；修改后重启 APP 生效。默认凌晨 3 点。</string>
+    <string name="pref_midnight_delay_hours_summary">可选择凌晨 0 点至 6 点切换新的一天；修改后重启 APP 生效。默认凌晨 3 点。</string>
     <string name="pref_animations_title">Disable animations</string>
     <string name="pref_animations_description">Disable confetti animation after adding a checkmark.</string>
     <string name="backup_saved">Backup saved</string>
