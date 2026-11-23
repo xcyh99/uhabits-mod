@@ -175,6 +175,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     "webDavSync",
                     "settingsBackupRestore",
                     "publicBackupFolder",
+                    "autoBackupNow",
                     "clearLocalHabitData",
                     "reminderCustomize",
                     "startupPage",
@@ -1598,6 +1599,13 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         if (key == "pref_widget_opacity" && widgetUpdater != null) {
             Log.d("SettingsFragment", "updating widgets")
             widgetUpdater!!.updateWidgets()
+        }
+        if (key == AutoBackup.KEY_ENABLED ||
+            key == AutoBackup.KEY_INTERVAL_DAYS ||
+            key == AutoBackup.KEY_KEEP_COUNT ||
+            key == "publicBackupFolder"
+        ) {
+            updateAutoBackupStatusSummary()
         }
         BackupManager.dataChanged("org.isoron.uhabits")
         updateWeekdayPreference()
