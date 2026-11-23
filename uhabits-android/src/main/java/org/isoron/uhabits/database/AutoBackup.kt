@@ -59,16 +59,16 @@ class AutoBackup(private val context: Context) {
                 File(uri.path ?: return).let { DocumentFile.fromFile(it) }
             }
             if (dir != null) {
-                runInPublicDir(dir, keep)
+                runInPublicDir(dir, keep, force, intervalMillis)
                 return
             }
         }
 
         val basedir = AndroidDirFinder(context).getFilesDir("Backups") ?: return
-        runInPrivateDir(basedir, keep)
+        runInPrivateDir(basedir, keep, force, intervalMillis)
     }
 
-    private fun runInPrivateDir(dir: File, keep: Int) {
+    private fun runInPrivateDir(dir: File, keep: Int, force: Boolean, intervalMillis: Long) {
         val files = dir.listFiles()
             ?.filter { it.isFile && backupPattern.matches(it.name) }
             ?.sortedBy { it.lastModified() }
@@ -96,12 +96,12 @@ class AutoBackup(private val context: Context) {
         }
     }
 
-    private fun runInPublicDir(dir: DocumentFile, keep: Int) {
+    private fun runInPublicDir(dir: DocumentFile, keep: Int, force: Boolean, intervalMillis: Long) {
         val files = dir.listFiles()
             .filter { it.isFile && it.name?.let(backupPattern::matches) == true }
             .sortedBy { it.lastModified() }
         val newestTimestamp = files.lastOrNull()?.lastModified() ?: 0L
-        if (System.currentTimeMillis() - newestTimestamp > DateUtils.DAY_LENGTH) {
+        if (force || System.currentTimeMillis() - newestTimestamp >= intervalMillis) {
             val name = "Shizi_Full_Backup_${BackupFileName.timestamp()}.uhabitsbackup"
             val target = dir.createFile("application/octet-stream", name)
             if (target == null) {
