@@ -79,7 +79,8 @@
 
         <activity
             android:name="org.isoron.uhabits.activities.timerecords.TimeRecordsActivity"
-            android:label="@string/time_records">
+            android:label="@string/time_records"
+            android:launchMode="singleTop">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="org.isoron.uhabits.activities.habits.list.ListHabitsActivity" />
