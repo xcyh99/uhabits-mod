@@ -16,6 +16,7 @@ on:
       - feature/date-calculator-and-widget-manager
       - feature/auto-backup-controls
       - feature/history-widget-compact-weekdays-trial
+      - feature/time-record-widget-three-line
   pull_request:
     branches:
       - dev
