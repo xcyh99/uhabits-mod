@@ -85,49 +85,9 @@
                 app:iconSpaceReserved="false" />
 
         <Preference
-                android:key="publicBackupFolder"
-                android:title="@string/select_public_backup_folder"
-                android:summary="@string/no_public_backup_folder_selected"
-                app:iconSpaceReserved="false" />
-
-        <SwitchPreferenceCompat
-                android:key="auto_backup_enabled"
-                android:defaultValue="true"
-                android:title="启用自动备份"
-                android:summary="打开主页面时检查是否需要创建本地完整备份。"
-                app:iconSpaceReserved="false" />
-
-        <ListPreference
-                android:key="auto_backup_interval_days"
-                android:defaultValue="1"
-                android:entries="@array/auto_backup_interval_entries"
-                android:entryValues="@array/auto_backup_interval_values"
-                android:dependency="auto_backup_enabled"
-                android:title="自动备份间隔"
-                android:summary="设置两次自动备份之间的最短间隔。"
-                app:iconSpaceReserved="false" />
-
-        <ListPreference
-                android:key="auto_backup_keep_count"
-                android:defaultValue="5"
-                android:entries="@array/auto_backup_keep_entries"
-                android:entryValues="@array/auto_backup_keep_values"
-                android:dependency="auto_backup_enabled"
-                android:title="保留备份数量"
-                android:summary="自动清理较旧的自动备份，手动备份不受影响。"
-                app:iconSpaceReserved="false" />
-
-        <Preference
-                android:key="autoBackupNow"
-                android:title="立即创建自动备份"
-                android:summary="现在创建一份新的本地完整备份。"
-                app:iconSpaceReserved="false" />
-
-        <Preference
-                android:key="autoBackupStatus"
-                android:title="自动完整备份状态"
-                android:summary="查看自动备份的最近结果和保存位置。"
-                android:selectable="false"
+                android:key="autoBackup"
+                android:title="自动备份"
+                android:summary="管理自动备份开关、备份间隔、保留数量、保存位置和立即备份。"
                 app:iconSpaceReserved="false" />
 
     </PreferenceCategory>
