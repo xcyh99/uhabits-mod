@@ -90,6 +90,13 @@
                 android:summary="@string/no_public_backup_folder_selected"
                 app:iconSpaceReserved="false" />
 
+        <Preference
+                android:key="autoBackupStatus"
+                android:title="自动完整备份状态"
+                android:summary="查看自动备份的最近结果和保存位置。"
+                android:selectable="false"
+                app:iconSpaceReserved="false" />
+
     </PreferenceCategory>
 
 <PreferenceCategory
