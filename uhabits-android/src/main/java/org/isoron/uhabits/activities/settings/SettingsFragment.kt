@@ -251,6 +251,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 } else {
                     val intent = Intent(context, DesktopDoodleService::class.java).setAction(DesktopDoodleService.ACTION_START)
                     if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
+                    // Bring the system launcher forward so doodling starts on the desktop.
+                    val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                        addCategory(Intent.CATEGORY_HOME)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    context.startActivity(homeIntent)
                 }
                 return true
             }
