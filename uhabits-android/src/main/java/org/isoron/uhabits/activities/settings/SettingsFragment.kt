@@ -1627,7 +1627,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     }
 
     private fun updatePublicBackupFolderSummary() {
-        val pref = findPreference("publicBackupFolder")
+        // The folder picker is now inside the Auto Backup dialog, so older
+        // versions of the settings tree may not contain a standalone preference.
+        // Keep this summary updater safe for both layouts.
+        val pref = findPreference<Preference>("publicBackupFolder") ?: return
         val uriString = sharedPrefs?.getString("publicBackupFolder", null)
         if (uriString == null) {
             pref.summary = getString(R.string.no_public_backup_folder_selected)
