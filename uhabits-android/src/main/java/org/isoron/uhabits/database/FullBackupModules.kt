@@ -248,9 +248,18 @@ internal object FullBackupModuleRegistry {
         values.keys().forEach { key ->
             val item = values.optJSONObject(key) ?: throw IOException("$label备份字段无效：$key")
             val type = item.optString("type")
-            if (type !in setOf("boolean", "int", "long", "float", "string", "string_set") ||
-                !item.has("value")
-            ) throw IOException("备份包含不支持的$label类型：$type")
+            if (!item.has("value")) throw IOException("$label备份字段缺少值：$key")
+            val value = item.get("value")
+            val valid = when (type) {
+                "boolean" -> value is Boolean
+                "int", "long", "float" -> value is Number
+                "string" -> value is String
+                "string_set" -> value is JSONArray && (0 until value.length()).all {
+                    value.opt(it) is String
+                }
+                else -> false
+            }
+            if (!valid) throw IOException("备份包含不支持的$label类型或值：$key")
         }
     }
 
