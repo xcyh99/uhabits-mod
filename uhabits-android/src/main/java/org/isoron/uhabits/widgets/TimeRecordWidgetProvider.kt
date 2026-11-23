@@ -64,14 +64,6 @@ class TimeRecordWidgetProvider : AppWidgetProvider() {
                 } else {
                     ChronoUnit.DAYS.between(today, target)
                 }
-                val caption = when {
-                    record.type == TimeRecord.ELAPSED ->
-                        context.getString(R.string.time_records_elapsed_days, difference)
-                    difference >= 0 ->
-                        context.getString(R.string.time_records_remaining_days, difference)
-                    else ->
-                        context.getString(R.string.time_records_overdue_days, -difference)
-                }
                 views.setTextViewText(R.id.time_record_title, record.title)
                 views.setTextViewText(R.id.time_record_number, kotlin.math.abs(difference).toString())
                 views.setTextViewText(R.id.time_record_date, target.format(dateFormatter))
