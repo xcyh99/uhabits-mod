@@ -31,7 +31,7 @@
         android:fontFamily="sans-serif-condensed"
         android:autoSizeTextType="uniform"
         android:autoSizeMinTextSize="26sp"
-        android:autoSizeMaxTextSize="44sp"
+        android:autoSizeMaxTextSize="72sp"
         android:autoSizeStepGranularity="1sp"
         android:textSize="44sp" />
 
