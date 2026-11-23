@@ -162,9 +162,14 @@ class HistoryChart(
 
     private fun calculateWeekdayColumnWidth(canvas: Canvas): Double {
         val labelGap = if (compactWeekdayLabels) 0.75 else 1.5
-        return DayOfWeek.values().map { weekday ->
-            canvas.measureText(weekdayDisplayName(weekday)) + labelGap
-        }.maxOrNull() ?: 0.0
+        val labels = if (compactWeekdayLabels) {
+            (0 until 7).map { offset ->
+                dateFormatter.narrowWeekdayName(LocalDate(2020, 1, 5 + offset))
+            }
+        } else {
+            DayOfWeek.values().map { weekdayDisplayName(it) }
+        }
+        return labels.map { canvas.measureText(it) + labelGap }.maxOrNull() ?: 0.0
     }
 
     private fun shouldUseNarrowWeekdayName(): Boolean {
