@@ -66,6 +66,7 @@ import org.isoron.uhabits.core.preferences.Preferences
 import org.isoron.uhabits.core.models.sqlite.SQLiteHabitList
 import org.isoron.uhabits.database.WebDavSync
 import org.isoron.uhabits.database.FullBackupManager
+import org.isoron.uhabits.database.AutoBackup
 import org.isoron.uhabits.database.WebDavFullBackup
 import org.isoron.uhabits.database.WebDavSettingsBackup
 import org.isoron.uhabits.database.TwoWaySyncPreview
@@ -109,6 +110,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 requireContext().contentResolver.takePersistableUriPermission(uri, flags)
                 sharedPrefs?.edit()?.putString("publicBackupFolder", uri.toString())?.apply()
                 updatePublicBackupFolderSummary()
+                updateAutoBackupStatusSummary()
                 return
             }
             FULL_BACKUP_CREATE_REQUEST_CODE -> {
@@ -322,6 +324,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         }
         updateWeekdayPreference()
         updatePublicBackupFolderSummary()
+        updateAutoBackupStatusSummary()
 
         findPreference("webDavSync").title =
             "☆ " + getString(R.string.webdav_sync)
@@ -1625,6 +1628,35 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         val uri = Uri.parse(uriString)
         val path = fullPathFor(uri)
         pref.summary = path ?: uriString
+    }
+
+    private fun updateAutoBackupStatusSummary() {
+        val preference = findPreference<Preference>("autoBackupStatus") ?: return
+        val backupPrefs = requireContext().getSharedPreferences(
+            AutoBackup.STATUS_PREFS,
+            android.content.Context.MODE_PRIVATE
+        )
+        val lastSuccess = backupPrefs.getLong(AutoBackup.KEY_LAST_SUCCESS, 0L)
+        val lastFailure = backupPrefs.getLong(AutoBackup.KEY_LAST_FAILURE, 0L)
+        val folderUri = sharedPrefs?.getString("publicBackupFolder", null)
+        val location = if (folderUri.isNullOrBlank()) {
+            "应用内部 Backups 文件夹"
+        } else {
+            fullPathFor(Uri.parse(folderUri)) ?: "已选择的公共文件夹"
+        }
+        val formatter = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA)
+        val status = when {
+            lastFailure > lastSuccess -> {
+                "最近一次自动备份尝试失败：${formatter.format(java.util.Date(lastFailure))}"
+            }
+            lastSuccess > 0L -> {
+                "最近有效备份：${formatter.format(java.util.Date(lastSuccess))}"
+            }
+            else -> {
+                "尚未记录成功时间；自动备份会在打开主页面时检查，通常每天最多创建一次。"
+            }
+        }
+        preference.summary = "保存位置：$location\n$status"
     }
 
     private fun fullPathFor(uri: Uri): String? {
