@@ -119,24 +119,35 @@ object StatusBarDaysNotifier {
     }
 
 
-    // Generate a notification-safe monochrome number icon. The original Taiji drawable
-    // remains untouched, so reverting this experiment restores the previous appearance.
+    // Fill the available icon area with the day number. Each digit count is fitted
+    // independently in both axes, allowing multi-digit labels to become very narrow.
     private fun createDaysIcon(days: Long): IconCompat {
         val bitmap = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = android.graphics.Color.WHITE
-            textAlign = Paint.Align.CENTER
+            textAlign = Paint.Align.LEFT
             typeface = Typeface.create("sans-serif", Typeface.BOLD)
-            textSize = when {
-                days >= 100 -> 39f
-                days >= 10 -> 49f
-                else -> 60f
-            }
+            textSize = 100f
         }
         val label = days.coerceAtMost(999).toString()
-        val baseline = 48f - (paint.ascent() + paint.descent()) / 2f
-        canvas.drawText(label, 48f, baseline, paint)
+        val bounds = android.graphics.Rect()
+        paint.getTextBounds(label, 0, label.length, bounds)
+
+        if (bounds.width() > 0 && bounds.height() > 0) {
+            val targetSize = 92f
+            canvas.translate(48f, 48f)
+            canvas.scale(
+                targetSize / bounds.width().toFloat(),
+                targetSize / bounds.height().toFloat()
+            )
+            canvas.drawText(
+                label,
+                -bounds.exactCenterX(),
+                -bounds.exactCenterY(),
+                paint
+            )
+        }
         return IconCompat.createWithBitmap(bitmap)
     }
 
