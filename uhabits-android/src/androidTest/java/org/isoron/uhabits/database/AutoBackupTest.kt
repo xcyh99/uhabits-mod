@@ -16,6 +16,7 @@ import org.isoron.uhabits.AndroidDirFinder
 import org.isoron.uhabits.BaseAndroidTest
 import androidx.preference.PreferenceManager
 import org.junit.Test
+import java.io.File
 
 class AutoBackupTest : BaseAndroidTest() {
     @Test
