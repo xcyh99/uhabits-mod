@@ -48,7 +48,8 @@ class HistoryChart(
     var theme: Theme,
     var today: LocalDate,
     var onDateClickedListener: OnDateClickedListener = object : OnDateClickedListener {},
-    var padding: Double = 0.0
+    var padding: Double = 0.0,
+    var compactWeekdayLabels: Boolean = false
 ) : DataView {
 
     enum class Square {
@@ -136,7 +137,7 @@ class HistoryChart(
             canvas.setTextAlign(TextAlign.LEFT)
             canvas.drawText(
                 weekdayDisplayName(date),
-                padding + nColumns * squareSize + 1.5,
+                padding + nColumns * squareSize + if (compactWeekdayLabels) 0.75 else 1.5,
                 padding + squareSize * (row + 1) + squareSize / 2
             )
         }
@@ -153,18 +154,16 @@ class HistoryChart(
     }
 
     private fun weekdayDisplayName(localDate: LocalDate): String {
-        if (shouldUseNarrowWeekdayName()) {
+        if (compactWeekdayLabels || shouldUseNarrowWeekdayName()) {
             return dateFormatter.narrowWeekdayName(localDate)
         }
         return dateFormatter.shortWeekdayName(localDate)
     }
 
     private fun calculateWeekdayColumnWidth(canvas: Canvas): Double {
-        if (shouldUseNarrowWeekdayName()) {
-            return 0.0
-        }
+        val labelGap = if (compactWeekdayLabels) 0.75 else 1.5
         return DayOfWeek.values().map { weekday ->
-            canvas.measureText(weekdayDisplayName(weekday)) + 1.5
+            canvas.measureText(weekdayDisplayName(weekday)) + labelGap
         }.maxOrNull() ?: 0.0
     }
 
