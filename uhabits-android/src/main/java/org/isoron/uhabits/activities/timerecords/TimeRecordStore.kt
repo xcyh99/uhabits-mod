@@ -1,6 +1,9 @@
 package org.isoron.uhabits.activities.timerecords
 
 import android.content.Context
+
+private fun defaultTimeRecordColor(type: String): Int =
+    if (type == TimeRecord.ELAPSED) 0xFF269B65.toInt() else 0xFFE59A23.toInt()
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -80,6 +83,7 @@ object TimeRecordStore {
                     .put("title", item.title)
                     .put("type", item.type)
                     .put("date", item.date)
+                    .put("color", item.color)
             )
         }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
