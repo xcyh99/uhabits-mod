@@ -372,6 +372,16 @@
                 android:value="用户主动开启的悬浮计时器" />
         </service>
 
+        <service
+            android:name="org.isoron.uhabits.activities.settings.DesktopDoodleService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="用户主动开启的屏幕涂鸦悬浮层" />
+        </service>
+
     </application>
 
 </manifest>
