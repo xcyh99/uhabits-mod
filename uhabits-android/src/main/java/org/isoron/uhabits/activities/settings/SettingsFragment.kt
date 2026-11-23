@@ -174,8 +174,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     "widgetManager",
                     "webDavSync",
                     "settingsBackupRestore",
-                    "publicBackupFolder",
-                    "autoBackupNow",
+                    "autoBackup",
                     "clearLocalHabitData",
                     "reminderCustomize",
                     "startupPage",
@@ -300,36 +299,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 confirmClearLocalHabitData()
                 return true
             }
-            "autoBackupNow" -> {
-                val appContext = requireContext().applicationContext
-                val hostActivity = activity
-                Toast.makeText(requireContext(), "正在创建自动备份…", Toast.LENGTH_SHORT).show()
-                Thread {
-                    AutoBackup(appContext).run(force = true)
-                    hostActivity?.runOnUiThread {
-                        if (!isAdded) return@runOnUiThread
-                        updateAutoBackupStatusSummary()
-                        val status = appContext.getSharedPreferences(
-                            AutoBackup.STATUS_PREFS,
-                            android.content.Context.MODE_PRIVATE
-                        )
-                        val success = status.getLong(AutoBackup.KEY_LAST_SUCCESS, 0L)
-                        val failure = status.getLong(AutoBackup.KEY_LAST_FAILURE, 0L)
-                        val message = if (failure > success) "备份失败，请检查备份目录和存储空间"
-                            else "完整备份已完成"
-                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
-                    }
-                }.start()
+            "autoBackup" -> {
+                showAutoBackupSettings()
                 return true
             }
             "publicBackupFolder" -> {
-                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
-                intent.addFlags(
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
-                        Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
-                )
-                startActivityForResult(intent, PUBLIC_BACKUP_REQUEST_CODE)
+                openPublicBackupFolderPicker()
                 return true
             }
         }
@@ -1660,8 +1635,136 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         pref.summary = path ?: uriString
     }
 
+    private fun showAutoBackupSettings() {
+        val context = requireContext()
+        val settings = PreferenceManager.getDefaultSharedPreferences(context)
+        val enabled = settings.getBoolean(AutoBackup.KEY_ENABLED, true)
+        val interval = settings.getString(AutoBackup.KEY_INTERVAL_DAYS, "1")?.toIntOrNull()
+            ?.coerceIn(1, 30) ?: 1
+        val keep = settings.getString(AutoBackup.KEY_KEEP_COUNT, "5")?.toIntOrNull()
+            ?.coerceIn(1, 50) ?: 5
+        val folder = settings.getString("publicBackupFolder", null)
+        val location = if (folder.isNullOrBlank()) "应用内部备份目录" else "已选择外部备份目录"
+        val options = arrayOf(
+            "自动备份开关：${if (enabled) "开启" else "关闭"}",
+            "备份间隔：每 $interval 天",
+            "保留数量：$keep 份",
+            "备份保存位置：$location",
+            "立即备份",
+            "查看备份状态"
+        )
+        AlertDialog.Builder(context)
+            .setTitle("自动备份")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> AlertDialog.Builder(context)
+                        .setTitle("自动备份开关")
+                        .setSingleChoiceItems(arrayOf("开启", "关闭"), if (enabled) 0 else 1) { dialog, selected ->
+                            settings.edit().putBoolean(AutoBackup.KEY_ENABLED, selected == 0).apply()
+                            updateAutoBackupStatusSummary()
+                            dialog.dismiss()
+                            showAutoBackupSettings()
+                        }
+                        .setNegativeButton("取消", null)
+                        .show()
+                    1 -> {
+                        val values = arrayOf("1", "2", "3", "7")
+                        val labels = arrayOf("1 天", "2 天", "3 天", "7 天")
+                        val selected = values.indexOf(interval.toString()).coerceAtLeast(0)
+                        AlertDialog.Builder(context)
+                            .setTitle("自动备份间隔")
+                            .setSingleChoiceItems(labels, selected) { dialog, choice ->
+                                settings.edit().putString(AutoBackup.KEY_INTERVAL_DAYS, values[choice]).apply()
+                                updateAutoBackupStatusSummary()
+                                dialog.dismiss()
+                                showAutoBackupSettings()
+                            }
+                            .setNegativeButton("取消", null)
+                            .show()
+                    }
+                    2 -> {
+                        val values = arrayOf("3", "5", "10", "20")
+                        val labels = arrayOf("3 份", "5 份", "10 份", "20 份")
+                        val selected = values.indexOf(keep.toString()).let { if (it < 0) 1 else it }
+                        AlertDialog.Builder(context)
+                            .setTitle("自动备份保留数量")
+                            .setSingleChoiceItems(labels, selected) { dialog, choice ->
+                                settings.edit().putString(AutoBackup.KEY_KEEP_COUNT, values[choice]).apply()
+                                updateAutoBackupStatusSummary()
+                                dialog.dismiss()
+                                showAutoBackupSettings()
+                            }
+                            .setNegativeButton("取消", null)
+                            .show()
+                    }
+                    3 -> openPublicBackupFolderPicker()
+                    4 -> {
+                        Toast.makeText(context, "正在创建完整备份…", Toast.LENGTH_SHORT).show()
+                        val host = activity
+                        Thread {
+                            val result = AutoBackup(context.applicationContext).run(force = true)
+                            host?.runOnUiThread {
+                                if (!isAdded) return@runOnUiThread
+                                updateAutoBackupStatusSummary()
+                                val message = when (result) {
+                                    AutoBackup.Result.CREATED -> "完整备份已成功创建"
+                                    AutoBackup.Result.SKIPPED -> "没有创建新备份，请检查自动备份设置"
+                                    AutoBackup.Result.FAILED -> "备份失败，请检查保存位置和存储空间"
+                                }
+                                Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                                showAutoBackupSettings()
+                            }
+                        }.start()
+                    }
+                    5 -> AlertDialog.Builder(context)
+                        .setTitle("自动备份状态")
+                        .setMessage(autoBackupStatusDescription())
+                        .setPositiveButton("知道了", null)
+                        .show()
+                }
+            }
+            .setNegativeButton("关闭", null)
+            .show()
+    }
+
+    private fun openPublicBackupFolderPicker() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+        intent.addFlags(
+            Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+        )
+        startActivityForResult(intent, PUBLIC_BACKUP_REQUEST_CODE)
+    }
+
+    private fun autoBackupStatusDescription(): String {
+        val context = requireContext()
+        val backupPrefs = context.getSharedPreferences(
+            AutoBackup.STATUS_PREFS,
+            android.content.Context.MODE_PRIVATE
+        )
+        val lastSuccess = backupPrefs.getLong(AutoBackup.KEY_LAST_SUCCESS, 0L)
+        val lastFailure = backupPrefs.getLong(AutoBackup.KEY_LAST_FAILURE, 0L)
+        val folderUri = PreferenceManager.getDefaultSharedPreferences(context)
+            .getString("publicBackupFolder", null)
+        val location = if (folderUri.isNullOrBlank()) {
+            "应用内部 Backups 文件夹"
+        } else {
+            fullPathFor(Uri.parse(folderUri)) ?: "已选择的公共文件夹"
+        }
+        val formatter = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA)
+        val status = when {
+            lastFailure > lastSuccess ->
+                "最近一次备份尝试失败：${formatter.format(java.util.Date(lastFailure))}"
+            lastSuccess > 0L ->
+                "最近成功备份：${formatter.format(java.util.Date(lastSuccess))}"
+            else -> "尚无成功备份记录"
+        }
+        return "保存位置：$location\n$status\n\n自动备份在打开主页面时检查，不保证应用关闭后仍按固定时间后台执行。"
+    }
+
     private fun updateAutoBackupStatusSummary() {
-        val preference = findPreference("autoBackupStatus") ?: return
+        val preference = findPreference("autoBackup") ?: return
         val backupPrefs = requireContext().getSharedPreferences(
             AutoBackup.STATUS_PREFS,
             android.content.Context.MODE_PRIVATE
@@ -1682,23 +1785,11 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         val keepCount = settings?.getString(AutoBackup.KEY_KEEP_COUNT, "5")?.toIntOrNull()
             ?.coerceIn(1, 50) ?: 5
         val configuration = if (enabled) {
-            "自动备份：开启；两次自动备份至少间隔 $intervalDays 天；保留最近 $keepCount 份。\n" +
-                "触发方式：打开主页面时检查，不保证后台定时执行。"
+            "已开启 · 每 $intervalDays 天 · 保留 $keepCount 份"
         } else {
-            "自动备份：已关闭。手动备份仍可使用。"
+            "已关闭 · 手动备份仍可使用"
         }
-        val status = when {
-            lastFailure > lastSuccess -> {
-                "最近一次自动备份尝试失败：${formatter.format(java.util.Date(lastFailure))}"
-            }
-            lastSuccess > 0L -> {
-                "最近有效备份：${formatter.format(java.util.Date(lastSuccess))}"
-            }
-            else -> {
-                "尚未记录成功时间；自动备份会在打开主页面时检查，通常每天最多创建一次。"
-            }
-        }
-        preference.summary = "保存位置：$location\n$configuration\n$status"
+        preference.summary = "$configuration\n保存位置：$location"
     }
 
     private fun fullPathFor(uri: Uri): String? {
