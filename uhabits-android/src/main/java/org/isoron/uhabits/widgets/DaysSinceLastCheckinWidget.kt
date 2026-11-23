@@ -129,9 +129,15 @@ internal class DaysSinceLastCheckinView(context: Context) : View(context) {
         numberPaint.textSize = numberSize
         var glyphWidths = number.map { numberPaint.measureText(it.toString()) }
         val gapCount = (number.length - 1).coerceAtLeast(0)
-        // Keep a small positive gap between digits. If the full number is too wide,
-        // narrow the glyphs further while preserving both the gap and the font height.
-        val digitSpacing = 0f
+        // Keep digits visually separated, while reducing the gap as digit count grows.
+        // This gives wider glyphs priority, especially for three- and four-digit values.
+        val digitSpacingDp = when (number.length) {
+            2 -> 0.4f
+            3 -> 0.3f
+            4 -> 0.2f
+            else -> 0f
+        }
+        val digitSpacing = digitSpacingDp * density
         var totalNumberWidth = glyphWidths.sum() + digitSpacing * gapCount
         if (totalNumberWidth > maxTextWidth) {
             val availableGlyphWidth = (maxTextWidth - digitSpacing * gapCount).coerceAtLeast(1f)
