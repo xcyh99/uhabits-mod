@@ -166,16 +166,30 @@ class FullBackupManager(private val context: Context) {
         if (manifest.optInt("payload_count", -1) != expectedNames.size) {
             throw IOException("备份说明中的数据文件数量不一致")
         }
-        val supportedModuleIds = setOf("habits_database") +
-            FullBackupModuleRegistry.create().map { it.id }
+        val registeredModules = FullBackupModuleRegistry.create()
+        val supportedModuleIds = setOf("habits_database") + registeredModules.map { it.id }
+        val supportedPayloads = setOf("database/uhabits.db") + FullBackupModuleRegistry.allEntries
+        val unsupportedPayloads = payloadNames - supportedPayloads
+        if (unsupportedPayloads.isNotEmpty()) {
+            throw IOException("当前版本不支持备份数据项：${unsupportedPayloads.first()}")
+        }
         val declaredModules = manifest.optJSONArray("modules")
-        if (declaredModules != null) {
-            for (index in 0 until declaredModules.length()) {
-                val moduleId = declaredModules.optString(index)
-                if (moduleId !in supportedModuleIds) {
-                    throw IOException("当前版本不支持备份模块：$moduleId")
-                }
+            ?: throw IOException("备份说明中缺少模块清单")
+        val declaredModuleIds = (0 until declaredModules.length())
+            .map { declaredModules.optString(it) }
+        if (declaredModuleIds.size != declaredModuleIds.toSet().size) {
+            throw IOException("备份说明包含重复模块")
+        }
+        declaredModuleIds.forEach { moduleId ->
+            if (moduleId !in supportedModuleIds) {
+                throw IOException("当前版本不支持备份模块：$moduleId")
             }
+        }
+        val presentModuleIds = setOf("habits_database") + registeredModules.filter { module ->
+            module.entries.all { it in payloadNames }
+        }.map { it.id }
+        if (declaredModuleIds.toSet() != presentModuleIds) {
+            throw IOException("备份说明中的模块清单与实际数据不一致")
         }
         if (!expectedNames.containsAll(REQUIRED_ENTRIES)) {
             throw IOException("备份包缺少必要的数据模块或校验记录")
