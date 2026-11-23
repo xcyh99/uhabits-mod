@@ -177,6 +177,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     "reminderCustomize",
                     "startupPage",
                     "floatingTimer",
+                    "desktopDoodle",
                     "statusBarDays"
                 )
                 if (key in directActionKeys) {
@@ -237,6 +238,18 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     startActivity(intent)
                 } else {
                     val intent = Intent(context, FloatingTimerService::class.java).setAction(FloatingTimerService.ACTION_SETUP)
+                    if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
+                }
+                return true
+            }
+            "desktopDoodle" -> {
+                val context = requireContext()
+                if (!Settings.canDrawOverlays(context)) {
+                    Toast.makeText(context, "请允许十字习惯 APP 显示在其他应用上层，然后再次点击桌面涂鸦", Toast.LENGTH_LONG).show()
+                    val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context.packageName))
+                    startActivity(intent)
+                } else {
+                    val intent = Intent(context, DesktopDoodleService::class.java).setAction(DesktopDoodleService.ACTION_START)
                     if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
                 }
                 return true
