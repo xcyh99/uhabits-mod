@@ -434,38 +434,41 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 }
                 val checked = BooleanArray(ids.size) { index -> "$mode:${ids[index]}" in checkedItems }
                 val selectedNow = checked.copyOf()
+                fun saveSelection() {
+                    val updated = configured.toMutableSet()
+                    // Replace only this category; selections in the other categories remain intact.
+                    updated.removeAll { it.startsWith("$mode:") }
+                    ids.forEachIndexed { index, id ->
+                        if (selectedNow[index]) updated.add("$mode:$id")
+                    }
+                    val nextMode = if (updated.isEmpty()) "off" else mode
+                    store.edit()
+                        .putString("status_bar_days_mode", nextMode)
+                        .putStringSet("status_bar_days_items", updated)
+                        .apply()
+                    org.isoron.uhabits.notifications.StatusBarDaysNotifier.update(context)
+                    Toast.makeText(
+                        context,
+                        if (selectedNow.count { it } == 0) "已取消此类项目的显示"
+                        else "已选择 ${selectedNow.count { it }} 个项目",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
                 AlertDialog.Builder(context)
                     .setTitle(title)
                     .setMultiChoiceItems(labels.toTypedArray(), checked) { _, index, isChecked ->
                         selectedNow[index] = isChecked
                     }
                     .setNegativeButton("取消", null)
-                    .setPositiveButton("确定") { pickDialog, _ ->
-                        val updated = configured.toMutableSet()
-                        // Replace only this category; selections in the other categories remain intact.
-                        updated.removeAll { it.startsWith("$mode:") }
-                        ids.forEachIndexed { index, id ->
-                            if (selectedNow[index]) updated.add("$mode:$id")
-                        }
-                        val nextMode = if (updated.isEmpty()) "off" else mode
-                        store.edit()
-                            .putString("status_bar_days_mode", nextMode)
-                            .putStringSet("status_bar_days_items", updated)
-                            .apply()
-                        org.isoron.uhabits.notifications.StatusBarDaysNotifier.update(context)
-                        Toast.makeText(
-                            context,
-                            if (selectedNow.count { it } == 0) "已取消此类项目的显示"
-                            else "已选择 ${selectedNow.count { it }} 个项目",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                    .setNeutralButton("确定") { pickDialog, _ ->
+                        saveSelection()
                         pickDialog.dismiss()
-                        // Keep the add flow open: after saving this category, show the
-                        // category chooser again so the user can add another kind of item.
-                        if (selectedNow.any { it }) {
-                            dialog.dismiss()
-                            showStatusBarDaysSettings()
-                        }
+                    }
+                    .setPositiveButton("继续添加") { pickDialog, _ ->
+                        saveSelection()
+                        pickDialog.dismiss()
+                        dialog.dismiss()
+                        showStatusBarDaysSettings()
                     }
                     .show()
                 dialog.dismiss()
