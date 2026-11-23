@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import android.os.Build
+import android.os.SystemClock
 import androidx.preference.PreferenceManager
 import org.json.JSONArray
 import org.json.JSONObject
@@ -91,6 +92,15 @@ class FullBackupManager(private val context: Context) {
         payloads["settings/preferences.json"] =
             writeTextFile(tempDir, "preferences.json", encodePreferences(defaultPreferences).toString())
 
+        // A monotonic elapsedRealtime anchor is device/boot-specific. Export a
+        // normalized paused value so the timer remains meaningful after restore.
+        val floatingTimerPreferences = context.getSharedPreferences(FLOATING_TIMER_PREFS, Context.MODE_PRIVATE)
+        payloads[FLOATING_TIMER_ENTRY] = writeTextFile(
+            tempDir,
+            "floating_timer_state.json",
+            encodeFloatingTimerState(floatingTimerPreferences).toString()
+        )
+
         val checksums = JSONObject()
         payloads.forEach { (name, file) -> checksums.put(name, sha256(file)) }
         val checksumsFile = writeTextFile(tempDir, "checksums.json", checksums.toString(2))
@@ -104,7 +114,7 @@ class FullBackupManager(private val context: Context) {
             .put("database_version", dbVersion)
             .put("android_sdk", Build.VERSION.SDK_INT)
             .put("device", Build.MANUFACTURER + " " + Build.MODEL)
-            .put("modules", JSONArray(listOf("habits_database", "time_records", "time_record_widget_links", "app_preferences")))
+            .put("modules", JSONArray(listOf("habits_database", "time_records", "time_record_widget_links", "app_preferences", "floating_timer")))
             .put("payload_count", payloads.size)
             .put("checksums_sha256", sha256(checksumsFile))
 
@@ -169,8 +179,11 @@ class FullBackupManager(private val context: Context) {
         }
         val checksums = JSONObject(String(checksumsBytes, Charsets.UTF_8))
         val expectedNames = checksums.keys().asSequence().toSet()
-        if (!expectedNames.containsAll(RESTORABLE_ENTRIES)) {
+        if (!expectedNames.containsAll(REQUIRED_ENTRIES)) {
             throw IOException("备份包缺少必要的数据模块或校验记录")
+        }
+        if (FLOATING_TIMER_ENTRY in files && FLOATING_TIMER_ENTRY !in expectedNames) {
+            throw IOException("悬浮计时器数据缺少完整性校验记录")
         }
         expectedNames.forEach { name ->
             val bytes = files[name] ?: throw IOException("备份缺少文件：$name")
@@ -178,7 +191,7 @@ class FullBackupManager(private val context: Context) {
                 throw IOException("文件校验失败：$name")
             }
         }
-        if (!files.keys.containsAll(RESTORABLE_ENTRIES)) {
+        if (!files.keys.containsAll(REQUIRED_ENTRIES)) {
             throw IOException("备份中缺少主数据库、时间记录或设置数据")
         }
         return BackupInfo(
@@ -256,6 +269,8 @@ class FullBackupManager(private val context: Context) {
                     throw IOException("备份包含不支持的软件设置类型：$type")
                 }
             }
+            val floatingTimerFile = File(staging, FLOATING_TIMER_ENTRY)
+            if (floatingTimerFile.isFile) validateFloatingTimerState(floatingTimerFile.readText())
             if (readDatabaseVersion(database) != info.databaseVersion) {
                 throw IOException("备份说明中的数据库版本与实际数据库不一致")
             }
@@ -313,12 +328,15 @@ class FullBackupManager(private val context: Context) {
         val safetyWidgetLinks = encodeStringPreferences(
             context.getSharedPreferences("time_record_widget_links", Context.MODE_PRIVATE)
         ).toString()
+        val floatingTimerPreferences = context.getSharedPreferences(FLOATING_TIMER_PREFS, Context.MODE_PRIVATE)
+        val safetyFloatingTimer = encodePreferences(floatingTimerPreferences, excludeDeviceLocal = false).toString()
         File(safetyDir, "preferences.json").writeText(safetyPreferences)
         File(safetyDir, "time_records.json").writeText(
             JSONObject().put("format", "SHIZI_TIME_RECORDS").put("version", 1)
                 .put("records", JSONArray(safetyTimeRecords)).toString()
         )
         File(safetyDir, "time_record_widget_links.json").writeText(safetyWidgetLinks)
+        File(safetyDir, "floating_timer_preferences.json").writeText(safetyFloatingTimer)
 
         try {
             val stagedDatabase = File(pending, "database/uhabits.db")
@@ -338,6 +356,10 @@ class FullBackupManager(private val context: Context) {
             restorePreferences(File(pending, "settings/preferences.json").readText())
             restoreTimeRecords(File(pending, "modules/time_records.json").readText())
             restoreWidgetLinks(File(pending, "widgets/time_record_widget_links.json").readText())
+            val floatingTimerFile = File(pending, FLOATING_TIMER_ENTRY)
+            if (floatingTimerFile.isFile) {
+                restoreFloatingTimerState(floatingTimerFile.readText())
+            }
             pending.deleteRecursively()
             return true
         } catch (error: Exception) {
@@ -358,6 +380,14 @@ class FullBackupManager(private val context: Context) {
                 )
             }
             runCatching { restoreWidgetLinks(safetyWidgetLinks) }
+            runCatching {
+                restoreTypedPreferences(
+                    safetyFloatingTimer,
+                    floatingTimerPreferences,
+                    clearExisting = true,
+                    skipDeviceLocal = false
+                )
+            }
             File(context.filesDir, "full-backup-restore-failed.txt")
                 .writeText(error.message ?: "未知恢复错误")
             // Keep the staged archive so the user can retry after correcting the
@@ -383,18 +413,36 @@ class FullBackupManager(private val context: Context) {
     }
 
     private fun restorePreferences(document: String) {
+        restoreTypedPreferences(
+            document,
+            PreferenceManager.getDefaultSharedPreferences(context),
+            clearExisting = false,
+            skipDeviceLocal = true
+        )
+    }
+
+    private fun restoreTypedPreferences(
+        document: String,
+        preferences: SharedPreferences,
+        clearExisting: Boolean,
+        skipDeviceLocal: Boolean
+    ) {
         val settingsDocument = JSONObject(document)
         if (settingsDocument.optString("format") != "SHIZI_PREFERENCES" ||
             settingsDocument.optInt("version", -1) != 1
         ) throw IOException("软件设置备份格式不受支持")
         val values = settingsDocument.optJSONObject("values")
             ?: throw IOException("软件设置备份内容不完整")
-        val preferences = PreferenceManager.getDefaultSharedPreferences(context)
         val editor = preferences.edit()
-        preferences.all.keys.forEach { key ->
-            if (!isDeviceLocalPreference(key)) editor.remove(key)
+        if (clearExisting) {
+            editor.clear()
+        } else if (skipDeviceLocal) {
+            preferences.all.keys.forEach { key ->
+                if (!isDeviceLocalPreference(key)) editor.remove(key)
+            }
         }
         values.keys().forEach { key ->
+            if (skipDeviceLocal && isDeviceLocalPreference(key)) return@forEach
             val item = values.getJSONObject(key)
             val value = item.get("value")
             when (item.getString("type")) {
@@ -413,6 +461,72 @@ class FullBackupManager(private val context: Context) {
             }
         }
         if (!editor.commit()) throw IOException("软件设置恢复失败")
+    }
+
+    private fun encodeFloatingTimerState(preferences: SharedPreferences): JSONObject {
+        val mode = preferences.getString("mode", "down") ?: "down"
+        val duration = preferences.getLong("duration", 0L)
+        val base = preferences.getLong("base", duration)
+        val running = preferences.getBoolean("running", false)
+        val anchor = preferences.getLong("anchor", 0L)
+        val elapsed = if (running) {
+            (SystemClock.elapsedRealtime() - anchor).coerceAtLeast(0L)
+        } else 0L
+        val portableBase = when (mode) {
+            "up" -> (base + elapsed).coerceAtLeast(0L)
+            else -> (base - elapsed).coerceAtLeast(0L)
+        }
+        val values = JSONObject()
+            .put("mode", encodeValue(mode))
+            .put("duration", encodeValue(duration))
+            .put("base", encodeValue(portableBase))
+            // Running timers are restored paused: elapsedRealtime() is not portable
+            // across devices or reboots, so carrying the old anchor would be wrong.
+            .put("running", encodeValue(false))
+        return JSONObject()
+            .put("format", FLOATING_TIMER_FORMAT)
+            .put("version", 1)
+            .put("values", values)
+    }
+
+    private fun validateFloatingTimerState(document: String) {
+        val root = JSONObject(document)
+        val values = root.optJSONObject("values")
+        if (root.optString("format") != FLOATING_TIMER_FORMAT ||
+            root.optInt("version", -1) != 1 || values == null
+        ) throw IOException("悬浮计时器备份格式不受支持")
+        val expectedTypes = mapOf(
+            "mode" to "string",
+            "duration" to "long",
+            "base" to "long",
+            "running" to "boolean"
+        )
+        if (values.length() != expectedTypes.size) throw IOException("悬浮计时器备份字段不完整")
+        expectedTypes.forEach { (key, type) ->
+            val item = values.optJSONObject(key)
+                ?: throw IOException("悬浮计时器备份缺少字段：$key")
+            if (item.optString("type") != type || !item.has("value")) {
+                throw IOException("悬浮计时器备份字段类型错误：$key")
+            }
+        }
+        if (values.getJSONObject("mode").optString("value") !in setOf("up", "down")) {
+            throw IOException("悬浮计时器模式无效")
+        }
+    }
+
+    private fun restoreFloatingTimerState(document: String) {
+        validateFloatingTimerState(document)
+        val values = JSONObject(document).getJSONObject("values")
+        val preferences = context.getSharedPreferences(FLOATING_TIMER_PREFS, Context.MODE_PRIVATE)
+        val editor = preferences.edit()
+            .putString("mode", values.getJSONObject("mode").getString("value"))
+            .putLong("duration", values.getJSONObject("duration").getLong("value"))
+            .putLong("base", values.getJSONObject("base").getLong("value"))
+            .putBoolean("running", false)
+            .putLong("anchor", 0L)
+        // x/y are deliberately left untouched: window coordinates belong to the
+        // current device's screen dimensions, not to portable timer data.
+        if (!editor.commit()) throw IOException("悬浮计时器状态恢复失败")
     }
 
     private fun restoreTimeRecords(document: String) {
@@ -510,12 +624,17 @@ class FullBackupManager(private val context: Context) {
         }
     }
 
-    private fun encodePreferences(preferences: SharedPreferences): JSONObject {
+    private fun encodePreferences(
+        preferences: SharedPreferences,
+        excludeDeviceLocal: Boolean = true
+    ): JSONObject {
         val result = JSONObject()
         preferences.all.toSortedMap().forEach { (key, value) ->
             // WebDAV credentials are encrypted with a device-bound Android Keystore key.
             // SAF folder grants and notification sound URIs are device-local and not portable.
-            if (key.startsWith("webdav_") || key == "publicBackupFolder" || key == "reminderSound") {
+            if (excludeDeviceLocal &&
+                (key.startsWith("webdav_") || key == "publicBackupFolder" || key == "reminderSound")
+            ) {
                 return@forEach
             }
             result.put(key, encodeValue(value))
@@ -583,14 +702,20 @@ class FullBackupManager(private val context: Context) {
     private companion object {
         const val FORMAT_NAME = "SHIZI_FULL_BACKUP"
         const val FORMAT_VERSION = 1
+        const val FLOATING_TIMER_PREFS = "floating_timer_state"
+        const val FLOATING_TIMER_FORMAT = "SHIZI_FLOATING_TIMER"
+        const val FLOATING_TIMER_ENTRY = "modules/floating_timer_state.json"
         const val MAX_ENTRY_BYTES = 128 * 1024 * 1024
         const val MAX_TOTAL_BYTES = 256L * 1024 * 1024
         const val PENDING_RESTORE_DIR = "full-backup-pending"
-        val RESTORABLE_ENTRIES = setOf(
+        val REQUIRED_ENTRIES = setOf(
             "database/uhabits.db",
             "modules/time_records.json",
             "widgets/time_record_widget_links.json",
             "settings/preferences.json"
         )
+        // The timer module is optional so archives created before it was added
+        // remain restorable without a format-version bump.
+        val RESTORABLE_ENTRIES = REQUIRED_ENTRIES + FLOATING_TIMER_ENTRY
     }
 }
