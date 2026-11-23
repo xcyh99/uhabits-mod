@@ -25,9 +25,6 @@ import org.isoron.uhabits.R
 import org.isoron.uhabits.widgets.TimeRecordWidgetProvider
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.Duration
-import java.time.Period
-import java.time.temporal.ChronoUnit
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Locale
@@ -366,27 +363,18 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
             .create().also { dialog ->
                 dialog.setOnShowListener {
                     dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                        val earlier = if (start <= end) start else end
-                        val later = if (start <= end) end else start
-                        val duration = Duration.between(earlier, later)
-                        val totalMinutes = duration.toMinutes()
-                        val totalHours = duration.toHours()
-                        val totalDays = duration.toDays()
-                        val totalWeeks = totalDays / 7
-                        val remainingDays = totalDays % 7
-                        val period = Period.between(earlier.toLocalDate(), later.toLocalDate())
-                        val totalMonths = ChronoUnit.MONTHS.between(earlier, later)
-                        val totalYears = ChronoUnit.YEARS.between(earlier, later)
-                        val direction = if (start <= end) "结束时间晚于开始时间" else "结束时间早于开始时间"
+                        val calculation = DateSpanCalculator.calculate(start, end)
+                        val period = calculation.calendarPeriod
+                        val direction = if (calculation.isForward) "结束时间晚于开始时间" else "结束时间早于开始时间"
                         val resultText = buildString {
                             append(direction).append("\n")
                             append("日历跨度：${period.years}年${period.months}个月${period.days}天").append("\n\n")
-                            append("总年数：${totalYears}年（完整年）").append("\n")
-                            append("总月数：${totalMonths}个月（完整月）").append("\n")
-                            append("总星期：${totalWeeks}周${remainingDays}天").append("\n")
-                            append("总天数：${totalDays}天").append("\n")
-                            append("总小时：${totalHours}小时").append("\n")
-                            append("总分钟：${totalMinutes}分钟")
+                            append("总年数：${calculation.totalYears}年（完整年）").append("\n")
+                            append("总月数：${calculation.totalMonths}个月（完整月）").append("\n")
+                            append("总星期：${calculation.totalWeeks}周${calculation.remainingDays}天").append("\n")
+                            append("总天数：${calculation.totalDays}天").append("\n")
+                            append("总小时：${calculation.totalHours}小时").append("\n")
+                            append("总分钟：${calculation.totalMinutes}分钟")
                         }
                         AlertDialog.Builder(context)
                             .setTitle("计算结果")
