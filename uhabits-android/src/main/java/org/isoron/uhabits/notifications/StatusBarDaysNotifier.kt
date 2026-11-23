@@ -11,7 +11,6 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.os.Build
-import androidx.core.app.NotificationCompat
 import android.graphics.drawable.Icon
 import androidx.core.app.NotificationManagerCompat
 import org.isoron.platform.time.getToday
