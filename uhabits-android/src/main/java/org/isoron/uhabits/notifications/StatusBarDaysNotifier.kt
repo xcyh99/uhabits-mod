@@ -12,7 +12,7 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import androidx.core.graphics.drawable.IconCompat
+import android.graphics.drawable.Icon
 import androidx.core.app.NotificationManagerCompat
 import org.isoron.platform.time.getToday
 import org.isoron.uhabits.HabitsApplication
@@ -103,16 +103,18 @@ object StatusBarDaysNotifier {
             // reject or fail to render bitmap small icons; never leave an older arrow icon
             // silently stuck in the notification shade in that case.
             val posted = runCatching {
-                val notification = NotificationCompat.Builder(app, CHANNEL_ID)
-                    .setSmallIcon(createDaysIcon(result.days, result.color))
+                val smallIcon = Icon.createWithBitmap(createDaysBitmap(result.days, result.color))
+                android.util.Log.d("StatusBarDaysNotifier", "Publishing native bitmap small icon, type=${smallIcon.type}")
+                val notification = android.app.Notification.Builder(app, CHANNEL_ID)
+                    .setSmallIcon(smallIcon)
                     .setContentTitle(result.description)
                     .setContentText(result.projectName)
                     .setContentIntent(openApp)
                     .setOngoing(true)
                     .setOnlyAlertOnce(true)
                     .setShowWhen(false)
-                    .setPriority(NotificationCompat.PRIORITY_MAX)
-                    .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                    .setPriority(android.app.Notification.PRIORITY_MAX)
+                    .setCategory(android.app.Notification.CATEGORY_SERVICE)
                     .build()
                 manager.notify(notificationId, notification)
             }.onFailure {
@@ -125,7 +127,7 @@ object StatusBarDaysNotifier {
                 // The bundled notification resource is the current Taiji glyph, not the
                 // legacy curved arrow. Use it as a safe fallback if bitmap icons fail.
                 val fallbackPosted = runCatching {
-                    val fallback = NotificationCompat.Builder(app, CHANNEL_ID)
+                    val fallback = android.app.Notification.Builder(app, CHANNEL_ID)
                         .setSmallIcon(R.drawable.ic_notification)
                         .setContentTitle(result.description)
                         .setContentText(result.projectName)
@@ -133,8 +135,8 @@ object StatusBarDaysNotifier {
                         .setOngoing(true)
                         .setOnlyAlertOnce(true)
                         .setShowWhen(false)
-                        .setPriority(NotificationCompat.PRIORITY_MAX)
-                        .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                        .setPriority(android.app.Notification.PRIORITY_MAX)
+                        .setCategory(android.app.Notification.CATEGORY_SERVICE)
                         .build()
                     manager.notify(notificationId, fallback)
                 }.onFailure {
@@ -154,7 +156,7 @@ object StatusBarDaysNotifier {
 
     // Fill the available icon area with the day number. Each digit count is fitted
     // independently in both axes, allowing multi-digit labels to become very narrow.
-    private fun createDaysIcon(days: Long, color: Int): IconCompat {
+    private fun createDaysBitmap(days: Long, color: Int): Bitmap {
         val bitmap = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
@@ -181,7 +183,7 @@ object StatusBarDaysNotifier {
                 paint
             )
         }
-        return IconCompat.createWithBitmap(bitmap)
+        return bitmap
     }
 
     private data class DisplayValue(
