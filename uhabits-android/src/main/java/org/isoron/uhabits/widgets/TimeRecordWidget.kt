@@ -2,6 +2,7 @@ package org.isoron.uhabits.widgets
 
 import android.app.PendingIntent
 import android.content.Context
+import android.net.Uri
 import android.content.Intent
 import android.view.View
 import org.isoron.uhabits.R
@@ -24,7 +25,10 @@ class TimeRecordWidget(
         val recordId = record?.id ?: return null
         val intent = Intent(context, TimeRecordsActivity::class.java).apply {
             putExtra(TimeRecordsActivity.EXTRA_EDIT_RECORD_ID, recordId)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            // Make each widget's click target distinct beyond extras (which are
+            // not part of PendingIntent identity).
+            data = Uri.parse("uhabits://time-record-widget/$id/$recordId")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         }
         return PendingIntent.getActivity(
             context,
