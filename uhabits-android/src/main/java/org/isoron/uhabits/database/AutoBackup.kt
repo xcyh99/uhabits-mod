@@ -113,6 +113,7 @@ class AutoBackup(private val context: Context) {
                 Log.e("AutoBackup", "Unable to create automatic full backup", it)
             }
         } else {
+            recordSuccess(newestTimestamp)
             Log.i("AutoBackup", "Fresh full backup found (timestamp=$newestTimestamp)")
         }
     }
