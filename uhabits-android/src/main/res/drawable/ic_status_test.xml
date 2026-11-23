@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Temporary diagnostic glyph: a solid upright triangle, intentionally unlike the app Taiji. -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,2 L23,22 L1,22 Z" />
+</vector>
