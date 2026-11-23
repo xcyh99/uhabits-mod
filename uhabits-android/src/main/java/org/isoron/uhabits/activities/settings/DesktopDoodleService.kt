@@ -52,6 +52,7 @@ class DesktopDoodleService : Service() {
     private var toolbarWindowParams: WindowManager.LayoutParams? = null
     private var toolbar: LinearLayout? = null
     private var pauseButton: TextView? = null
+    private var collapsedHandle: TextView? = null
     private var currentColorIndex = 0
     private var eraserEnabled = false
     private var paused = false
@@ -171,7 +172,7 @@ class DesktopDoodleService : Service() {
         val tools = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(6), dp(6), dp(6), dp(6))
+            setPadding(dp(3), dp(3), dp(3), dp(3))
             background = roundedBackground(0xE622252B.toInt(), dp(16).toFloat())
             elevation = dp(12).toFloat()
         }
@@ -179,35 +180,7 @@ class DesktopDoodleService : Service() {
 
         val dragHandle = toolButton("⠿", "拖动工具栏")
         tools.addView(dragHandle, buttonLayout())
-        dragHandle.setOnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    val p = toolbarWindowParams
-                    if (p != null) {
-                        dragHandle.tag = floatArrayOf(
-                            event.rawX, event.rawY, p.x.toFloat(), p.y.toFloat()
-                        )
-                    }
-                    true
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    val start = dragHandle.tag as? FloatArray
-                    val p = toolbarWindowParams
-                    val host = toolbarWindowRoot
-                    if (start != null && p != null && host != null) {
-                        p.x = (start[2] + event.rawX - start[0]).toInt()
-                        p.y = (start[3] + event.rawY - start[1]).toInt()
-                        try {
-                            windowManager?.updateViewLayout(host, p)
-                        } catch (_: Exception) {
-                        }
-                    }
-                    true
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> true
-                else -> true
-            }
-        }
+        attachDrag(dragHandle)
 
         tools.addView(toolButton("Ⅱ", "暂停涂鸦，恢复操作底层 APP") {
             setPaused(!paused)
@@ -233,9 +206,27 @@ class DesktopDoodleService : Service() {
         tools.addView(toolButton("清", "清除全部笔迹") { canvas.clear() }, buttonLayout())
         tools.addView(toolButton("×", "关闭涂鸦") { stopSelf() }.apply {
             setTextColor(Color.WHITE)
-            background = roundedBackground(0xFFD94343.toInt(), dp(10).toFloat())
+            background = roundedBackground(0xFFD94343.toInt(), dp(8).toFloat())
         }, buttonLayout())
 
+        val compact = TextView(this).apply {
+            text = "▶"
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            alpha = 0.72f
+            contentDescription = "展开桌面涂鸦控制条"
+            background = roundedBackground(0xE622252B.toInt(), dp(28).toFloat())
+            visibility = View.GONE
+        }
+        collapsedHandle = compact
+        attachDrag(compact) { setToolbarCollapsed(false) }
+
+        toolbarHost.addView(
+            compact,
+            FrameLayout.LayoutParams(dp(34), dp(56), Gravity.CENTER)
+        )
         toolbarHost.addView(
             tools,
             FrameLayout.LayoutParams(
@@ -252,7 +243,8 @@ class DesktopDoodleService : Service() {
             WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            gravity = Gravity.TOP or Gravity.START
+            x = (resources.displayMetrics.widthPixels - dp(360)) / 2
             y = dp(54)
         }
         toolbarWindowRoot = toolbarHost
@@ -295,6 +287,7 @@ class DesktopDoodleService : Service() {
                 dp(10).toFloat()
             )
         }
+        setToolbarCollapsed(paused)
         val manager = getSystemService(NotificationManager::class.java)
         val notification = Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_edit)
@@ -336,9 +329,69 @@ class DesktopDoodleService : Service() {
         }
     }
 
-    private fun buttonLayout() = LinearLayout.LayoutParams(dp(38), dp(38)).apply {
-        marginStart = dp(3)
-        marginEnd = dp(3)
+    private fun buttonLayout() = LinearLayout.LayoutParams(dp(28), dp(28)).apply {
+        marginStart = dp(1)
+        marginEnd = dp(1)
+    }
+
+    private fun setToolbarCollapsed(collapsed: Boolean) {
+        val tools = toolbar ?: return
+        val handle = collapsedHandle ?: return
+        tools.visibility = if (collapsed) View.GONE else View.VISIBLE
+        handle.visibility = if (collapsed) View.VISIBLE else View.GONE
+        toolbarWindowRoot?.let { host ->
+            host.post {
+                try {
+                    val params = toolbarWindowParams ?: return@post
+                    windowManager?.updateViewLayout(host, params)
+                } catch (_: Exception) {
+                }
+            }
+        }
+    }
+
+    private fun attachDrag(view: View, onTap: (() -> Unit)? = null) {
+        view.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    val p = toolbarWindowParams
+                    if (p != null) view.tag = floatArrayOf(event.rawX, event.rawY, p.x.toFloat(), p.y.toFloat(), 0f)
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val start = view.tag as? FloatArray
+                    val p = toolbarWindowParams
+                    val host = toolbarWindowRoot
+                    if (start != null && p != null && host != null) {
+                        val dx = event.rawX - start[0]
+                        val dy = event.rawY - start[1]
+                        if (kotlin.math.abs(dx) > dp(5) || kotlin.math.abs(dy) > dp(5)) start[4] = 1f
+                        p.x = (start[2] + dx).toInt().coerceAtLeast(0)
+                        p.y = (start[3] + dy).toInt().coerceAtLeast(0)
+                        try { windowManager?.updateViewLayout(host, p) } catch (_: Exception) { }
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    val start = view.tag as? FloatArray
+                    val p = toolbarWindowParams
+                    val host = toolbarWindowRoot
+                    if (start != null && start[4] == 0f) {
+                        onTap?.invoke()
+                    } else if (p != null && host != null) {
+                        val screenWidth = resources.displayMetrics.widthPixels
+                        val hostWidth = if (host.width > 0) host.width else dp(260)
+                        p.x = if (p.x + hostWidth / 2 < screenWidth / 2) 0
+                              else (screenWidth - hostWidth).coerceAtLeast(0)
+                        p.y = p.y.coerceIn(dp(8), (resources.displayMetrics.heightPixels - host.height).coerceAtLeast(dp(8)))
+                        try { windowManager?.updateViewLayout(host, p) } catch (_: Exception) { }
+                    }
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> true
+                else -> true
+            }
+        }
     }
 
     private fun roundedBackground(color: Int, radius: Float) = GradientDrawable().apply {
