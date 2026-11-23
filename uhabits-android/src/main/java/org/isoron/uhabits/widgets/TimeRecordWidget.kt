@@ -59,7 +59,8 @@ class TimeRecordWidget(
                 dayCount = kotlin.math.abs(difference).toInt()
                 activeColor = item.color
                 footerColor = if (item.type == TimeRecord.ELAPSED) {
-                    0xFF2EAD67.toInt()
+                    // Vivid green for the elapsed-time start date.
+                    0xFF00E676.toInt()
                 } else {
                     // Vivid red for the countdown target date.
                     0xFFFF3030.toInt()
