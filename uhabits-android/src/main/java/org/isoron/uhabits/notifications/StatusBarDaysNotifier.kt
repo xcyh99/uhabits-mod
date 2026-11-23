@@ -125,7 +125,7 @@ object StatusBarDaysNotifier {
         val bitmap = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
-            color = color
+            this.color = color
             textAlign = Paint.Align.LEFT
             typeface = Typeface.create("sans-serif", Typeface.BOLD)
             textSize = 100f
