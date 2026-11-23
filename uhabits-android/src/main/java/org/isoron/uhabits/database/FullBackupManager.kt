@@ -1,12 +1,9 @@
 package org.isoron.uhabits.database
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import android.os.Build
-import android.os.SystemClock
-import androidx.preference.PreferenceManager
 import org.json.JSONArray
 import org.json.JSONObject
 import org.isoron.uhabits.BuildConfig
@@ -162,6 +159,24 @@ class FullBackupManager(private val context: Context) {
         }
         val checksums = JSONObject(String(checksumsBytes, Charsets.UTF_8))
         val expectedNames = checksums.keys().asSequence().toSet()
+        val payloadNames = files.keys - setOf("manifest.json", "checksums.json")
+        if (payloadNames != expectedNames) {
+            throw IOException("备份文件与完整性校验清单不一致")
+        }
+        if (manifest.optInt("payload_count", -1) != expectedNames.size) {
+            throw IOException("备份说明中的数据文件数量不一致")
+        }
+        val supportedModuleIds = setOf("habits_database") +
+            FullBackupModuleRegistry.create().map { it.id }
+        val declaredModules = manifest.optJSONArray("modules")
+        if (declaredModules != null) {
+            for (index in 0 until declaredModules.length()) {
+                val moduleId = declaredModules.optString(index)
+                if (moduleId !in supportedModuleIds) {
+                    throw IOException("当前版本不支持备份模块：$moduleId")
+                }
+            }
+        }
         if (!expectedNames.containsAll(REQUIRED_ENTRIES)) {
             throw IOException("备份包缺少必要的数据模块或校验记录")
         }
@@ -359,151 +374,6 @@ class FullBackupManager(private val context: Context) {
         }
     }
 
-    private fun restorePreferences(document: String) {
-        restoreTypedPreferences(
-            document,
-            PreferenceManager.getDefaultSharedPreferences(context),
-            clearExisting = false,
-            skipDeviceLocal = true
-        )
-    }
-
-    private fun restoreTypedPreferences(
-        document: String,
-        preferences: SharedPreferences,
-        clearExisting: Boolean,
-        skipDeviceLocal: Boolean
-    ) {
-        val settingsDocument = JSONObject(document)
-        if (settingsDocument.optString("format") != "SHIZI_PREFERENCES" ||
-            settingsDocument.optInt("version", -1) != 1
-        ) throw IOException("软件设置备份格式不受支持")
-        val values = settingsDocument.optJSONObject("values")
-            ?: throw IOException("软件设置备份内容不完整")
-        val editor = preferences.edit()
-        if (clearExisting) {
-            editor.clear()
-        } else if (skipDeviceLocal) {
-            preferences.all.keys.forEach { key ->
-                if (!isDeviceLocalPreference(key)) editor.remove(key)
-            }
-        }
-        values.keys().forEach { key ->
-            if (skipDeviceLocal && isDeviceLocalPreference(key)) return@forEach
-            val item = values.getJSONObject(key)
-            val value = item.get("value")
-            when (item.getString("type")) {
-                "boolean" -> editor.putBoolean(key, value as Boolean)
-                "int" -> editor.putInt(key, (value as Number).toInt())
-                "long" -> editor.putLong(key, (value as Number).toLong())
-                "float" -> editor.putFloat(key, (value as Number).toFloat())
-                "string" -> editor.putString(key, value as String)
-                "string_set" -> {
-                    val array = value as JSONArray
-                    editor.putStringSet(key, buildSet {
-                        for (index in 0 until array.length()) add(array.getString(index))
-                    })
-                }
-                else -> throw IOException("不支持的软件设置类型：${item.optString("type")}")
-            }
-        }
-        if (!editor.commit()) throw IOException("软件设置恢复失败")
-    }
-
-    private fun encodeFloatingTimerState(preferences: SharedPreferences): JSONObject {
-        val mode = preferences.getString("mode", "down") ?: "down"
-        val duration = preferences.getLong("duration", 0L)
-        val base = preferences.getLong("base", duration)
-        val running = preferences.getBoolean("running", false)
-        val anchor = preferences.getLong("anchor", 0L)
-        val elapsed = if (running) {
-            (SystemClock.elapsedRealtime() - anchor).coerceAtLeast(0L)
-        } else 0L
-        val portableBase = when (mode) {
-            "up" -> (base + elapsed).coerceAtLeast(0L)
-            else -> (base - elapsed).coerceAtLeast(0L)
-        }
-        val values = JSONObject()
-            .put("mode", encodeValue(mode))
-            .put("duration", encodeValue(duration))
-            .put("base", encodeValue(portableBase))
-            // Running timers are restored paused: elapsedRealtime() is not portable
-            // across devices or reboots, so carrying the old anchor would be wrong.
-            .put("running", encodeValue(false))
-        return JSONObject()
-            .put("format", FLOATING_TIMER_FORMAT)
-            .put("version", 1)
-            .put("values", values)
-    }
-
-    private fun validateFloatingTimerState(document: String) {
-        val root = JSONObject(document)
-        val values = root.optJSONObject("values")
-        if (root.optString("format") != FLOATING_TIMER_FORMAT ||
-            root.optInt("version", -1) != 1 || values == null
-        ) throw IOException("悬浮计时器备份格式不受支持")
-        val expectedTypes = mapOf(
-            "mode" to "string",
-            "duration" to "long",
-            "base" to "long",
-            "running" to "boolean"
-        )
-        if (values.length() != expectedTypes.size) throw IOException("悬浮计时器备份字段不完整")
-        expectedTypes.forEach { (key, type) ->
-            val item = values.optJSONObject(key)
-                ?: throw IOException("悬浮计时器备份缺少字段：$key")
-            if (item.optString("type") != type || !item.has("value")) {
-                throw IOException("悬浮计时器备份字段类型错误：$key")
-            }
-        }
-        if (values.getJSONObject("mode").optString("value") !in setOf("up", "down")) {
-            throw IOException("悬浮计时器模式无效")
-        }
-    }
-
-    private fun restoreFloatingTimerState(document: String) {
-        validateFloatingTimerState(document)
-        val values = JSONObject(document).getJSONObject("values")
-        val preferences = context.getSharedPreferences(FLOATING_TIMER_PREFS, Context.MODE_PRIVATE)
-        val editor = preferences.edit()
-            .putString("mode", values.getJSONObject("mode").getString("value"))
-            .putLong("duration", values.getJSONObject("duration").getLong("value"))
-            .putLong("base", values.getJSONObject("base").getLong("value"))
-            .putBoolean("running", false)
-            .putLong("anchor", 0L)
-        // x/y are deliberately left untouched: window coordinates belong to the
-        // current device's screen dimensions, not to portable timer data.
-        if (!editor.commit()) throw IOException("悬浮计时器状态恢复失败")
-    }
-
-    private fun restoreTimeRecords(document: String) {
-        val recordDocument = JSONObject(document)
-        if (recordDocument.optString("format") != "SHIZI_TIME_RECORDS" ||
-            recordDocument.optInt("version", -1) != 1
-        ) throw IOException("时间记录备份格式不受支持")
-        val records = recordDocument.optJSONArray("records")
-            ?: throw IOException("时间记录备份内容不完整")
-        if (!context.getSharedPreferences("time_records_data", Context.MODE_PRIVATE)
-                .edit().putString("records", records.toString()).commit()
-        ) throw IOException("时间记录恢复失败")
-    }
-
-    private fun restoreWidgetLinks(document: String) {
-        val linksDocument = JSONObject(document)
-        if (linksDocument.optString("format") != "SHIZI_WIDGET_LINKS" ||
-            linksDocument.optInt("version", -1) != 1
-        ) throw IOException("小组件配置备份格式不受支持")
-        val values = linksDocument.optJSONObject("values")
-            ?: throw IOException("小组件配置备份内容不完整")
-        val preferences = context.getSharedPreferences("time_record_widget_links", Context.MODE_PRIVATE)
-        val editor = preferences.edit().clear()
-        values.keys().forEach { key -> editor.putString(key, values.getString(key)) }
-        if (!editor.commit()) throw IOException("时间记录小组件配置恢复失败")
-    }
-
-    private fun isDeviceLocalPreference(key: String): Boolean =
-        key.startsWith("webdav_") || key == "publicBackupFolder" || key == "reminderSound"
-
     private fun copyConsistentDatabaseSnapshot(source: File, destination: File) {
         val db = SQLiteDatabase.openDatabase(
             source.absolutePath,
@@ -571,49 +441,6 @@ class FullBackupManager(private val context: Context) {
         }
     }
 
-    private fun encodePreferences(
-        preferences: SharedPreferences,
-        excludeDeviceLocal: Boolean = true
-    ): JSONObject {
-        val result = JSONObject()
-        preferences.all.toSortedMap().forEach { (key, value) ->
-            // WebDAV credentials are encrypted with a device-bound Android Keystore key.
-            // SAF folder grants and notification sound URIs are device-local and not portable.
-            if (excludeDeviceLocal &&
-                (key.startsWith("webdav_") || key == "publicBackupFolder" || key == "reminderSound")
-            ) {
-                return@forEach
-            }
-            result.put(key, encodeValue(value))
-        }
-        return JSONObject()
-            .put("format", "SHIZI_PREFERENCES")
-            .put("version", 1)
-            .put("values", result)
-    }
-
-    private fun encodeStringPreferences(preferences: SharedPreferences): JSONObject {
-        val values = JSONObject()
-        preferences.all.toSortedMap().forEach { (key, value) ->
-            if (value is String) values.put(key, value)
-        }
-        return JSONObject().put("format", "SHIZI_WIDGET_LINKS").put("version", 1).put("values", values)
-    }
-
-    private fun encodeValue(value: Any?): JSONObject? {
-        val result = JSONObject()
-        when (value) {
-            is Boolean -> result.put("type", "boolean").put("value", value)
-            is Int -> result.put("type", "int").put("value", value)
-            is Long -> result.put("type", "long").put("value", value)
-            is Float -> result.put("type", "float").put("value", value.toDouble())
-            is String -> result.put("type", "string").put("value", value)
-            is Set<*> -> result.put("type", "string_set").put("value", JSONArray(value.filterIsInstance<String>().sorted()))
-            else -> return null
-        }
-        return result
-    }
-
     private fun writeTextFile(dir: File, name: String, content: String): File =
         File(dir, name).apply {
             parentFile?.mkdirs()
@@ -649,13 +476,9 @@ class FullBackupManager(private val context: Context) {
     private companion object {
         const val FORMAT_NAME = "SHIZI_FULL_BACKUP"
         const val FORMAT_VERSION = 1
-        const val FLOATING_TIMER_PREFS = "floating_timer_state"
-        const val FLOATING_TIMER_FORMAT = "SHIZI_FLOATING_TIMER"
-        const val FLOATING_TIMER_ENTRY = "modules/floating_timer_state.json"
         const val MAX_ENTRY_BYTES = 128 * 1024 * 1024
         const val MAX_TOTAL_BYTES = 256L * 1024 * 1024
         const val PENDING_RESTORE_DIR = "full-backup-pending"
         val REQUIRED_ENTRIES = setOf("database/uhabits.db") + FullBackupModuleRegistry.requiredEntries
-        val RESTORABLE_ENTRIES = REQUIRED_ENTRIES + FullBackupModuleRegistry.allEntries
     }
 }
