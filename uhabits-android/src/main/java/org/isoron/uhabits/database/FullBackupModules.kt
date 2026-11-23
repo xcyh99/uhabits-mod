@@ -254,12 +254,12 @@ internal object FullBackupModuleRegistry {
     private fun validatePreferencesDocument(root: JSONObject, label: String) {
         if (root.optString("format") != "SHIZI_PREFERENCES" ||
             root.optInt("version", -1) != 1 || root.optJSONObject("values") == null
-        ) throw IOException("$label备份格式不受支持")
+        ) throw IOException("${label}备份格式不受支持")
         val values = root.getJSONObject("values")
         values.keys().forEach { key ->
-            val item = values.optJSONObject(key) ?: throw IOException("$label备份字段无效：$key")
+            val item = values.optJSONObject(key) ?: throw IOException("${label}备份字段无效：$key")
             val type = item.optString("type")
-            if (!item.has("value")) throw IOException("$label备份字段缺少值：$key")
+            if (!item.has("value")) throw IOException("${label}备份字段缺少值：$key")
             val value = item.get("value")
             val valid = when (type) {
                 "boolean" -> value is Boolean
@@ -270,7 +270,7 @@ internal object FullBackupModuleRegistry {
                 }
                 else -> false
             }
-            if (!valid) throw IOException("备份包含不支持的$label类型或值：$key")
+            if (!valid) throw IOException("备份包含不支持的${label}类型或值：$key")
         }
     }
 
