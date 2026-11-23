@@ -84,5 +84,6 @@ object TimeRecordStore {
             .putString(RECORDS_KEY, array.toString())
             .apply()
         org.isoron.uhabits.notifications.StatusBarDaysNotifier.update(context)
+        org.isoron.uhabits.widgets.TimeRecordWidgetProvider.updateAll(context)
     }
 }
