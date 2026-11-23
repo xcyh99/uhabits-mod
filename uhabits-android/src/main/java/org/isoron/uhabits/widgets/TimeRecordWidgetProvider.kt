@@ -38,7 +38,9 @@ class TimeRecordWidgetProvider : BaseWidgetProvider() {
             context.setTheme(R.style.WidgetTheme)
             val manager = AppWidgetManager.getInstance(context)
             val provider = TimeRecordWidgetProvider()
-            val widget = provider.getWidgetFromId(context, widgetId)
+            val recordId = context.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE)
+                .getString(widgetId.toString(), null)
+            val widget = TimeRecordWidget(context, widgetId, recordId?.let { TimeRecordStore.get(context, it) })
             widget.setDimensions(provider.getDimensionsFromOptions(context, manager.getAppWidgetOptions(widgetId)))
             BaseWidgetProvider.updateAppWidget(manager, widget)
         }
