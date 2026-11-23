@@ -100,7 +100,7 @@ object StatusBarDaysNotifier {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             val notification = NotificationCompat.Builder(app, CHANNEL_ID)
-                .setSmallIcon(createDaysIcon(result.days))
+                .setSmallIcon(createDaysIcon(result.days, result.color))
                 .setContentTitle(result.description)
                 .setContentText(result.projectName)
                 .setContentIntent(openApp)
@@ -121,11 +121,11 @@ object StatusBarDaysNotifier {
 
     // Fill the available icon area with the day number. Each digit count is fitted
     // independently in both axes, allowing multi-digit labels to become very narrow.
-    private fun createDaysIcon(days: Long): IconCompat {
+    private fun createDaysIcon(days: Long, color: Int): IconCompat {
         val bitmap = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
-            color = android.graphics.Color.WHITE
+            color = color
             textAlign = Paint.Align.LEFT
             typeface = Typeface.create("sans-serif", Typeface.BOLD)
             textSize = 100f
@@ -151,7 +151,13 @@ object StatusBarDaysNotifier {
         return IconCompat.createWithBitmap(bitmap)
     }
 
-    private data class DisplayValue(val days: Long, val description: String, val projectName: String, val habitId: Long? = null)
+    private data class DisplayValue(
+        val days: Long,
+        val description: String,
+        val projectName: String,
+        val habitId: Long? = null,
+        val color: Int = android.graphics.Color.WHITE
+    )
 
     private fun resolveValue(context: Context, mode: String, selectedId: String? = null): DisplayValue? {
         val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
@@ -163,7 +169,13 @@ object StatusBarDaysNotifier {
                 val last = habit.computedEntries.getKnown()
                     .filter { it.completed && it.value != Entry.SKIP }
                     .maxByOrNull { it.date }?.date ?: return null
-                DisplayValue(last.daysUntil(getToday()).toLong(), "距离上次打卡：${last.daysUntil(getToday())} 天", habit.name, id)
+                DisplayValue(
+                    last.daysUntil(getToday()).toLong(),
+                    "距离上次打卡：${last.daysUntil(getToday())} 天",
+                    habit.name,
+                    id,
+                    habit.color.argb
+                )
             }
             "elapsed", "countdown" -> {
                 val id = selectedId ?: prefs.getString("status_bar_days_record_id", null) ?: return null
