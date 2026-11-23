@@ -1,39 +1,27 @@
 package org.isoron.uhabits.widgets
 
-import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
-import android.widget.RemoteViews
 import org.isoron.uhabits.R
-import org.isoron.uhabits.activities.timerecords.TimeRecord
 import org.isoron.uhabits.activities.timerecords.TimeRecordStore
-import org.isoron.uhabits.activities.timerecords.TimeRecordsActivity
-import java.time.LocalDate
-import java.time.temporal.ChronoUnit
-import java.time.format.DateTimeFormatter
 
-class TimeRecordWidgetProvider : AppWidgetProvider() {
-    override fun onUpdate(
-        context: Context,
-        manager: AppWidgetManager,
-        appWidgetIds: IntArray
-    ) {
-        appWidgetIds.forEach { updateWidget(context, it) }
+class TimeRecordWidgetProvider : BaseWidgetProvider() {
+    override fun getWidgetFromId(context: Context, id: Int): BaseWidget {
+        val recordId = context.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE)
+            .getString(id.toString(), null)
+        return TimeRecordWidget(context, id, recordId?.let { TimeRecordStore.get(context, it) })
     }
 
-    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
-        val prefs = context.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE)
-        prefs.edit().apply {
+    override fun onDeleted(context: Context?, appWidgetIds: IntArray?) {
+        if (context == null || appWidgetIds == null) return
+        context.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE).edit().apply {
             appWidgetIds.forEach { remove(it.toString()) }
         }.apply()
     }
 
     companion object {
         private const val WIDGET_PREFS = "time_record_widget_links"
-        private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
         fun setRecord(context: Context, widgetId: Int, recordId: String) {
             context.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE)
@@ -47,45 +35,12 @@ class TimeRecordWidgetProvider : AppWidgetProvider() {
         }
 
         fun updateWidget(context: Context, widgetId: Int) {
+            context.setTheme(R.style.WidgetTheme)
             val manager = AppWidgetManager.getInstance(context)
-            val recordId = context.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE)
-                .getString(widgetId.toString(), null)
-            val record = recordId?.let { TimeRecordStore.get(context, it) }
-            val views = RemoteViews(context.packageName, R.layout.widget_time_record)
-            if (record == null) {
-                views.setTextViewText(R.id.time_record_title, context.getString(R.string.time_records_widget_unconfigured))
-                views.setTextViewText(R.id.time_record_number, "—")
-                views.setTextViewText(R.id.time_record_date, "")
-            } else {
-                val target = LocalDate.parse(record.date)
-                val today = LocalDate.now()
-                val difference = if (record.type == TimeRecord.ELAPSED) {
-                    ChronoUnit.DAYS.between(target, today)
-                } else {
-                    ChronoUnit.DAYS.between(today, target)
-                }
-                views.setTextViewText(R.id.time_record_title, record.title)
-                views.setTextViewText(R.id.time_record_number, kotlin.math.abs(difference).toString())
-                views.setTextViewText(R.id.time_record_date, target.format(dateFormatter))
-                views.setTextColor(R.id.time_record_title, record.color)
-                views.setTextColor(R.id.time_record_number, record.color)
-                views.setTextColor(
-                    R.id.time_record_date,
-                    if (record.type == TimeRecord.ELAPSED) 0xFF2EAD67.toInt() else 0xFFE69A32.toInt()
-                )
-            }
-            val intent = Intent(context, TimeRecordsActivity::class.java).apply {
-                putExtra(TimeRecordsActivity.EXTRA_EDIT_RECORD_ID, record?.id)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            }
-            val pending = PendingIntent.getActivity(
-                context,
-                widgetId,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.time_record_root, pending)
-            manager.updateAppWidget(widgetId, views)
+            val provider = TimeRecordWidgetProvider()
+            val widget = provider.getWidgetFromId(context, widgetId)
+            widget.setDimensions(provider.getDimensionsFromOptions(context, manager.getAppWidgetOptions(widgetId)))
+            BaseWidgetProvider.updateAppWidget(manager, widget)
         }
     }
 }
