@@ -2,8 +2,8 @@ package org.isoron.uhabits.widgets
 
 import android.app.PendingIntent
 import android.content.Context
-import android.net.Uri
 import android.content.Intent
+import android.net.Uri
 import android.view.View
 import org.isoron.uhabits.R
 import org.isoron.uhabits.activities.timerecords.TimeRecord
