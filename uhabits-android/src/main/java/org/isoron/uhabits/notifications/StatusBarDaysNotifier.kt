@@ -30,8 +30,12 @@ object StatusBarDaysNotifier {
         val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(app)
         val mode = prefs.getString("status_bar_days_mode", "off") ?: "off"
         val manager = app.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val previousIds = prefs.getStringSet("status_bar_days_active_ids", emptySet())
+            ?.mapNotNull { it.toIntOrNull() }.orEmpty().toSet()
         if (mode == "off") {
+            previousIds.forEach { manager.cancel(it) }
             manager.cancel(NOTIFICATION_ID)
+            prefs.edit().putStringSet("status_bar_days_active_ids", emptySet()).apply()
             cancelDailyRefresh(app)
             return
         }
@@ -40,15 +44,28 @@ object StatusBarDaysNotifier {
             android.content.pm.PackageManager.PERMISSION_GRANTED) return
         if (!NotificationManagerCompat.from(app).areNotificationsEnabled()) return
 
-        val result = runCatching { resolveValue(app, mode) }.getOrNull()
-        if (result == null) {
+        // New multi-item configuration; if absent, retain compatibility with the old single-item setting.
+        val configured = prefs.getStringSet("status_bar_days_items", emptySet()).orEmpty()
+        val items = if (configured.isNotEmpty()) {
+            configured.mapNotNull { entry ->
+                val split = entry.split(":", limit = 2)
+                if (split.size == 2 && split[0] in setOf("checkin", "countdown", "elapsed")) {
+                    split[0] to split[1]
+                } else null
+            }
+        } else {
+            listOf(mode to "")
+        }
+        if (items.isEmpty()) {
+            previousIds.forEach { manager.cancel(it) }
             manager.cancel(NOTIFICATION_ID)
+            prefs.edit().putStringSet("status_bar_days_active_ids", emptySet()).apply()
             return
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager.createNotificationChannel(
                 NotificationChannel(CHANNEL_ID, "状态栏天数", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                    description = "仅显示当前选择项目的天数"
+                    description = "分别显示已选择项目的天数"
                     setShowBadge(false)
                     enableVibration(false)
                     setSound(null, null)
@@ -56,41 +73,53 @@ object StatusBarDaysNotifier {
                 }
             )
         }
-        val contentIntent = if (mode == "checkin" && result.habitId != null) {
-            IntentFactory().startShowHabitActivity(app, result.habitId).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+
+        val activeIds = mutableSetOf<Int>()
+        items.forEach { (itemMode, itemId) ->
+            val result = runCatching { resolveValue(app, itemMode, itemId.ifBlank { null }) }.getOrNull()
+                ?: return@forEach
+            val notificationId = if (itemId.isBlank()) NOTIFICATION_ID
+                else 7406 + (("${itemMode}:${itemId}".hashCode() and 0x7fffffff) % 100000)
+            activeIds.add(notificationId)
+            val contentIntent = if (itemMode == "checkin" && result.habitId != null) {
+                IntentFactory().startShowHabitActivity(app, result.habitId).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
+            } else {
+                Intent(app, org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
             }
-        } else {
-            Intent(app, org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            }
+            val openApp = PendingIntent.getActivity(
+                app, notificationId, contentIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val notification = NotificationCompat.Builder(app, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle(result.description)
+                .setContentText(result.projectName)
+                .setContentIntent(openApp)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setShowWhen(false)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                .build()
+            runCatching { manager.notify(notificationId, notification) }
         }
-        val openApp = PendingIntent.getActivity(
-            app, 7405, contentIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val notification = NotificationCompat.Builder(app, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(result.description)
-            .setContentText(result.projectName)
-            .setContentIntent(openApp)
-            .setOngoing(true)
-            .setOnlyAlertOnce(true)
-            .setShowWhen(false)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .build()
-        runCatching { manager.notify(NOTIFICATION_ID, notification) }
-        scheduleDailyRefresh(app)
+        (previousIds - activeIds).forEach { manager.cancel(it) }
+        if (activeIds.none { it == NOTIFICATION_ID }) manager.cancel(NOTIFICATION_ID)
+        prefs.edit().putStringSet("status_bar_days_active_ids", activeIds.map { it.toString() }.toSet()).apply()
+        if (activeIds.isEmpty()) cancelDailyRefresh(app) else scheduleDailyRefresh(app)
     }
 
     private data class DisplayValue(val days: Long, val description: String, val projectName: String, val habitId: Long? = null)
 
-    private fun resolveValue(context: Context, mode: String): DisplayValue? {
+    private fun resolveValue(context: Context, mode: String, selectedId: String? = null): DisplayValue? {
         val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
         return when (mode) {
             "checkin" -> {
-                val id = prefs.getLong("status_bar_days_habit_id", -1L)
+                val id = selectedId?.toLongOrNull() ?: prefs.getLong("status_bar_days_habit_id", -1L)
                 val habit = (context.applicationContext as HabitsApplication).component.habitList.getById(id)
                     ?: return null
                 val last = habit.computedEntries.getKnown()
@@ -99,7 +128,7 @@ object StatusBarDaysNotifier {
                 DisplayValue(last.daysUntil(getToday()).toLong(), "距离上次打卡：${last.daysUntil(getToday())} 天", habit.name, id)
             }
             "elapsed", "countdown" -> {
-                val id = prefs.getString("status_bar_days_record_id", null) ?: return null
+                val id = selectedId ?: prefs.getString("status_bar_days_record_id", null) ?: return null
                 val record = TimeRecordStore.get(context, id) ?: return null
                 val date = LocalDate.parse(record.date)
                 val today = LocalDate.now()
