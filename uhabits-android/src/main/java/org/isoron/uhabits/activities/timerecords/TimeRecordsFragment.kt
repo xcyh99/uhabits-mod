@@ -175,6 +175,125 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
         }
 
     /**
+     * Lets users enter a date directly, without repeatedly paging through the calendar.
+     * The calendar remains available as an optional fallback.
+     */
+    private fun showDateInputDialog(
+        initialDate: LocalDate,
+        type: String,
+        onDateSelected: (LocalDate) -> Unit
+    ) {
+        val context = requireContext()
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+        val row = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(4))
+        }
+        fun dateField(hintText: String, value: Int, maxLength: Int): EditText =
+            EditText(context).apply {
+                hint = hintText
+                inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                setSingleLine(true)
+                setText(value.toString())
+                filters = arrayOf(android.text.InputFilter.LengthFilter(maxLength))
+                textSize = 18f
+                gravity = android.view.Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(0, dp(52), 1f).apply {
+                    marginEnd = dp(6)
+                }
+            }
+        val yearInput = dateField("年", initialDate.year, 4)
+        val monthInput = dateField("月", initialDate.monthValue, 2)
+        val dayInput = dateField("日", initialDate.dayOfMonth, 2)
+        row.addView(yearInput)
+        row.addView(monthInput)
+        row.addView(dayInput)
+
+        val dialog = AlertDialog.Builder(context)
+            .setTitle("直接输入日期")
+            .setView(row)
+            .setNegativeButton(R.string.clear_label, null)
+            .setNeutralButton("打开日历") { _, _ ->
+                val initial = initialDate
+                val picker = DatePickerDialog(
+                    context,
+                    { _, year, month, day ->
+                        val chosen = LocalDate.of(year, month + 1, day)
+                        val valid = if (type == TimeRecord.ELAPSED) {
+                            !chosen.isAfter(LocalDate.now())
+                        } else {
+                            chosen.isAfter(LocalDate.now())
+                        }
+                        if (valid) onDateSelected(chosen) else {
+                            Toast.makeText(
+                                context,
+                                if (type == TimeRecord.ELAPSED) R.string.time_records_start_must_be_past
+                                else R.string.time_records_target_must_be_future,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    },
+                    initial.year,
+                    initial.monthValue - 1,
+                    initial.dayOfMonth
+                )
+                val boundary = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                    if (type == TimeRecord.COUNTDOWN) add(Calendar.DAY_OF_MONTH, 1)
+                }
+                if (type == TimeRecord.ELAPSED) {
+                    picker.datePicker.maxDate = boundary.timeInMillis + 24L * 60L * 60L * 1000L - 1L
+                } else {
+                    picker.datePicker.minDate = boundary.timeInMillis
+                }
+                picker.show()
+            }
+            .setPositiveButton(R.string.save, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val year = yearInput.text.toString().toIntOrNull()
+                val month = monthInput.text.toString().toIntOrNull()
+                val day = dayInput.text.toString().toIntOrNull()
+                if (year == null || year !in 1..9999) {
+                    yearInput.error = "请输入有效年份"
+                    return@setOnClickListener
+                }
+                if (month == null || month !in 1..12) {
+                    monthInput.error = "月份应为 1–12"
+                    return@setOnClickListener
+                }
+                if (day == null || day !in 1..31) {
+                    dayInput.error = "日期应为 1–31"
+                    return@setOnClickListener
+                }
+                val chosen = try {
+                    LocalDate.of(year, month, day)
+                } catch (_: java.time.DateTimeException) {
+                    dayInput.error = "这个日期不存在"
+                    return@setOnClickListener
+                }
+                if (type == TimeRecord.ELAPSED && chosen.isAfter(LocalDate.now())) {
+                    yearInput.error = getString(R.string.time_records_start_must_be_past)
+                    return@setOnClickListener
+                }
+                if (type == TimeRecord.COUNTDOWN && !chosen.isAfter(LocalDate.now())) {
+                    yearInput.error = getString(R.string.time_records_target_must_be_future)
+                    return@setOnClickListener
+                }
+                onDateSelected(chosen)
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
+    }
+
+    /**
      * Opens the date calculator as an assistant to the current elapsed/countdown
      * editor. The calculated date is returned to that editor, not saved as a
      * separate time record.
@@ -462,30 +581,10 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
             }
         }
         dateButton.setOnClickListener {
-            val initial = selectedDate
-            val picker = DatePickerDialog(
-                context,
-                { _, year, month, day ->
-                    selectedDate = LocalDate.of(year, month + 1, day)
-                    updateDateLabel()
-                },
-                initial.year,
-                initial.monthValue - 1,
-                initial.dayOfMonth
-            )
-            val boundary = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-                if (type == TimeRecord.COUNTDOWN) add(Calendar.DAY_OF_MONTH, 1)
+            showDateInputDialog(selectedDate, type) { chosen ->
+                selectedDate = chosen
+                updateDateLabel()
             }
-            if (type == TimeRecord.ELAPSED) {
-                picker.datePicker.maxDate = boundary.timeInMillis + 24L * 60L * 60L * 1000L - 1L
-            } else {
-                picker.datePicker.minDate = boundary.timeInMillis
-            }
-            picker.show()
         }
         container.addView(titleInput)
         container.addView(colorButton)
