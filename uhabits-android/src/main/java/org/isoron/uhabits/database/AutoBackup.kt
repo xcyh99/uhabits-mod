@@ -105,7 +105,7 @@ class AutoBackup(private val context: Context) {
         } else {
             recordSuccess(newestTimestamp)
             Log.i("AutoBackup", "Fresh full backup found (timestamp=$newestTimestamp)")
-            Result.SKIPPED
+            return Result.SKIPPED
         }
     }
 
@@ -140,7 +140,7 @@ class AutoBackup(private val context: Context) {
         } else {
             recordSuccess(newestTimestamp)
             Log.i("AutoBackup", "Fresh full backup found (timestamp=$newestTimestamp)")
-            Result.SKIPPED
+            return Result.SKIPPED
         }
     }
 
