@@ -106,6 +106,10 @@ internal object FullBackupModuleRegistry {
                 root.optInt("version", -1) != 1 ||
                 root.optJSONObject("values") == null
             ) throw IOException("小组件配置备份格式不受支持")
+            val values = root.getJSONObject("values")
+            values.keys().forEach { key ->
+                if (values.get(key) !is String) throw IOException("小组件配置值无效：$key")
+            }
         }
 
         override fun snapshot(context: Context, safetyRoot: File) = export(context, safetyRoot)
@@ -198,7 +202,14 @@ internal object FullBackupModuleRegistry {
             expected.forEach { (key, type) ->
                 val item = values.optJSONObject(key)
                     ?: throw IOException("悬浮计时器备份缺少字段：$key")
-                if (item.optString("type") != type || !item.has("value")) {
+                val value = item.opt("value")
+                val validValue = when (type) {
+                    "string" -> value is String
+                    "long" -> value is Number
+                    "boolean" -> value is Boolean
+                    else -> false
+                }
+                if (item.optString("type") != type || !item.has("value") || !validValue) {
                     throw IOException("悬浮计时器备份字段类型错误：$key")
                 }
             }
