@@ -40,6 +40,9 @@ jobs:
       - name: Run core JVM tests
         run: ./gradlew :uhabits-core:jvmTest --no-daemon
 
+      - name: Run Android JVM unit tests
+        run: ./gradlew :uhabits-android:testDebugUnitTest --no-daemon
+
       # Pull requests use an ephemeral debug key. Installable release APKs
       # are built only from trusted branch pushes/manual runs with the
       # repository's long-lived signing key stored in GitHub Actions Secrets.
