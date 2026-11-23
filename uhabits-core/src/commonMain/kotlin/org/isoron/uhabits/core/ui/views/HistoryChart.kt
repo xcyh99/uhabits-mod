@@ -297,24 +297,11 @@ class HistoryChart(
             }
         }
 
-        val textColor = if (
-            value == Square.ON && theme.cardBackgroundColor == Color.TRANSPARENT
-        ) {
-            // Use luminance thresholds for the expanded custom-color range.
-            val luminance = fun(channel: Double): Double {
-                return if (channel <= 0.04045) channel / 12.92
-                else ((channel + 0.055) / 1.055).pow(2.4)
-            }
-            val backgroundLuminance =
-                0.2126 * luminance(squareColor.red) +
-                0.7152 * luminance(squareColor.green) +
-                0.0722 * luminance(squareColor.blue)
-            if (theme is DarkTheme) {
-                if (backgroundLuminance >= 0.80) Color.BLACK else Color.WHITE
-            } else {
-                if (backgroundLuminance <= 0.20) Color.WHITE else Color.BLACK
-            }
-        } else if (theme.cardBackgroundColor == Color.TRANSPARENT) {
+        // Use the original theme-aware contrast selection:
+        // transparent cards use the theme's high-contrast text color;
+        // opaque cards compare contrast against the card background and
+        // medium-contrast text color, then choose the stronger candidate.
+        val textColor = if (theme.cardBackgroundColor == Color.TRANSPARENT) {
             theme.highContrastTextColor
         } else {
             val c1 = squareColor.contrast(theme.cardBackgroundColor)
