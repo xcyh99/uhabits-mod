@@ -297,11 +297,16 @@ class HistoryChart(
             }
         }
 
-        // Use the original theme-aware contrast selection:
-        // transparent cards use the theme's high-contrast text color;
-        // opaque cards compare contrast against the card background and
-        // medium-contrast text color, then choose the stronger candidate.
-        val textColor = if (theme.cardBackgroundColor == Color.TRANSPARENT) {
+        // Completed calendar squares can use any user-selected palette color,
+        // including pure white. Choose whichever of black or white has the
+        // stronger contrast against the actual square fill so the date remains
+        // readable regardless of the selected color or card background.
+        // Keep the original theme-aware behavior for all other square states.
+        val textColor = if (value == Square.ON) {
+            val blackContrast = squareColor.contrast(Color.BLACK)
+            val whiteContrast = squareColor.contrast(Color.WHITE)
+            if (blackContrast >= whiteContrast) Color.BLACK else Color.WHITE
+        } else if (theme.cardBackgroundColor == Color.TRANSPARENT) {
             theme.highContrastTextColor
         } else {
             val c1 = squareColor.contrast(theme.cardBackgroundColor)
