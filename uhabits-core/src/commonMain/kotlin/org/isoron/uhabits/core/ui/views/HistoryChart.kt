@@ -30,7 +30,6 @@ import org.isoron.uhabits.core.models.PaletteColor
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.pow
 import kotlin.math.round
 
 interface OnDateClickedListener {
@@ -296,24 +295,17 @@ class HistoryChart(
             }
         }
 
-        val textColor = if (value == Square.ON) {
-            // Match the checkmark widget's black/white switch thresholds:
-            // dark theme: switch to black at luminance 0.70;
-            // light theme: switch to white at luminance 0.18.
-            // The completed square uses the same opaque habit color as the widget.
-            val luminance = fun(channel: Double): Double {
-                return if (channel <= 0.04045) channel / 12.92
-                else ((channel + 0.055) / 1.055).pow(2.4)
-            }
-            val backgroundLuminance =
-                0.2126 * luminance(squareColor.red) +
-                0.7152 * luminance(squareColor.green) +
-                0.0722 * luminance(squareColor.blue)
-            val isDarkTheme = theme is DarkTheme
-            if (isDarkTheme) {
-                if (backgroundLuminance >= 0.70) Color.BLACK else Color.WHITE
+        val textColor = if (
+            value == Square.ON && theme.cardBackgroundColor == Color.TRANSPARENT
+        ) {
+            // Restore the original adaptive contrast choice for completed squares.
+            // Compare the actual contrast of white and dark gray against this square.
+            val lightText = Color(0xFFFFFF)
+            val darkText = Color(0x202020)
+            if (squareColor.contrast(lightText) >= squareColor.contrast(darkText)) {
+                lightText
             } else {
-                if (backgroundLuminance <= 0.18) Color.WHITE else Color.BLACK
+                darkText
             }
         } else if (theme.cardBackgroundColor == Color.TRANSPARENT) {
             theme.highContrastTextColor
