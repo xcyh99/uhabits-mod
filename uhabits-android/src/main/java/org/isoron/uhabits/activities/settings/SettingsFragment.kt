@@ -1765,19 +1765,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
 
     private fun updateAutoBackupStatusSummary() {
         val preference = findPreference("autoBackup") ?: return
-        val backupPrefs = requireContext().getSharedPreferences(
-            AutoBackup.STATUS_PREFS,
-            android.content.Context.MODE_PRIVATE
-        )
-        val lastSuccess = backupPrefs.getLong(AutoBackup.KEY_LAST_SUCCESS, 0L)
-        val lastFailure = backupPrefs.getLong(AutoBackup.KEY_LAST_FAILURE, 0L)
         val folderUri = sharedPrefs?.getString("publicBackupFolder", null)
         val location = if (folderUri.isNullOrBlank()) {
             "应用内部 Backups 文件夹"
         } else {
             fullPathFor(Uri.parse(folderUri)) ?: "已选择的公共文件夹"
         }
-        val formatter = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA)
         val settings = sharedPrefs
         val enabled = settings?.getBoolean(AutoBackup.KEY_ENABLED, true) ?: true
         val intervalDays = settings?.getString(AutoBackup.KEY_INTERVAL_DAYS, "1")?.toIntOrNull()
