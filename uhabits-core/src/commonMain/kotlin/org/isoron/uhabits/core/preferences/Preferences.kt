@@ -191,6 +191,11 @@ open class Preferences(private val storage: Storage) {
 
     companion object {
         const val MIDNIGHT_DELAY_HOURS = 3
+        const val DEFAULT_HISTORY_WHITE_WEIGHT = 6.6
+        const val MIN_HISTORY_WHITE_WEIGHT = 0.1
+        const val MAX_HISTORY_WHITE_WEIGHT = 100.0
+        private const val HISTORY_WHITE_WEIGHT_KEY = "parameter_history_white_weight"
+        private const val HISTORY_WHITE_WEIGHT_BACKUP_KEY = "parameter_history_white_weight_backup"
     }
 
     open fun updateLastHint(number: Int, date: LocalDate) {
@@ -208,6 +213,50 @@ open class Preferences(private val storage: Storage) {
         set(value) {
             storage.putString("pref_widget_opacity", value.toString())
         }
+    /**
+     * User-adjustable white text preference for completed history squares.
+     * Values are validated and recovered before they can reach rendering code.
+     */
+    open var historyChartWhiteWeight: Double
+        get() {
+            val current = readValidParameter(HISTORY_WHITE_WEIGHT_KEY)
+            if (current != null) return current
+            val recovered = readValidParameter(HISTORY_WHITE_WEIGHT_BACKUP_KEY)
+                ?: DEFAULT_HISTORY_WHITE_WEIGHT
+            runCatching { storage.putString(HISTORY_WHITE_WEIGHT_KEY, recovered.toString()) }
+            return recovered
+        }
+        set(value) {
+            require(isValidHistoryWhiteWeight(value)) { "Weight must be between 0.1 and 100.0" }
+            val previous = historyChartWhiteWeight
+            storage.putString(HISTORY_WHITE_WEIGHT_BACKUP_KEY, previous.toString())
+            storage.putString(HISTORY_WHITE_WEIGHT_KEY, value.toString())
+        }
+
+    /** Restore the last valid value saved before the most recent change. */
+    open fun restorePreviousHistoryChartWhiteWeight(): Double {
+        val previous = readValidParameter(HISTORY_WHITE_WEIGHT_BACKUP_KEY)
+            ?: DEFAULT_HISTORY_WHITE_WEIGHT
+        historyChartWhiteWeight = previous
+        return previous
+    }
+
+    /** Reset only parameter-center values; habit and time-record data are untouched. */
+    open fun restoreParameterDefaults() {
+        storage.putString(HISTORY_WHITE_WEIGHT_KEY, DEFAULT_HISTORY_WHITE_WEIGHT.toString())
+        storage.putString(HISTORY_WHITE_WEIGHT_BACKUP_KEY, DEFAULT_HISTORY_WHITE_WEIGHT.toString())
+    }
+
+    private fun readValidParameter(key: String): Double? {
+        val parsed = runCatching { storage.getString(key, "") }.getOrNull()
+            ?.toDoubleOrNull() ?: return null
+        return parsed.takeIf { isValidHistoryWhiteWeight(it) }
+    }
+
+    private fun isValidHistoryWhiteWeight(value: Double): Boolean =
+        !value.isNaN() && !value.isInfinite() &&
+            value >= MIN_HISTORY_WHITE_WEIGHT && value <= MAX_HISTORY_WHITE_WEIGHT
+
     open var isSkipEnabled: Boolean
         get() = storage.getBoolean("pref_skip_enabled", false)
         set(value) {
