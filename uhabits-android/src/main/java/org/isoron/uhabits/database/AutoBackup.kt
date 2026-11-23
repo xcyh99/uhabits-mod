@@ -37,8 +37,18 @@ class AutoBackup(private val context: Context) {
 
     private val backupPattern = Regex("^Shizi_Full_Backup_\\d{8}_\\d{6}_\\d{3}\\.uhabitsbackup$")
 
-    fun run(keep: Int = 5) {
-        Log.i("AutoBackup", "Checking automatic full backups...")
+    fun run(force: Boolean = false) {
+        val settings = PreferenceManager.getDefaultSharedPreferences(context)
+        if (!settings.getBoolean(KEY_ENABLED, true)) {
+            Log.i("AutoBackup", "Automatic backups are disabled")
+            return
+        }
+        val intervalDays = settings.getString(KEY_INTERVAL_DAYS, "1")?.toIntOrNull()
+            ?.coerceIn(1, 30) ?: 1
+        val keep = settings.getString(KEY_KEEP_COUNT, "5")?.toIntOrNull()
+            ?.coerceIn(1, 50) ?: 5
+        val intervalMillis = DateUtils.DAY_LENGTH * intervalDays
+        Log.i("AutoBackup", "Checking automatic full backups (intervalDays=$intervalDays, force=$force)...")
         val uriString = PreferenceManager.getDefaultSharedPreferences(context)
             .getString("publicBackupFolder", null)
         if (uriString != null) {
@@ -64,7 +74,7 @@ class AutoBackup(private val context: Context) {
             ?.sortedBy { it.lastModified() }
             ?: emptyList()
         val newestTimestamp = files.lastOrNull()?.lastModified() ?: 0L
-        if (System.currentTimeMillis() - newestTimestamp > DateUtils.DAY_LENGTH) {
+        if (force || System.currentTimeMillis() - newestTimestamp >= intervalMillis) {
             val target = File(dir, "Shizi_Full_Backup_${BackupFileName.timestamp()}.uhabitsbackup")
             runCatching {
                 FullBackupManager(context).createBackup(target)
@@ -151,5 +161,8 @@ class AutoBackup(private val context: Context) {
         const val STATUS_PREFS = "auto_backup_status"
         const val KEY_LAST_SUCCESS = "last_success"
         const val KEY_LAST_FAILURE = "last_failure"
+        const val KEY_ENABLED = "auto_backup_enabled"
+        const val KEY_INTERVAL_DAYS = "auto_backup_interval_days"
+        const val KEY_KEEP_COUNT = "auto_backup_keep_count"
     }
 }
