@@ -81,6 +81,7 @@ class AutoBackup(private val context: Context) {
                 Log.e("AutoBackup", "Unable to create automatic full backup", it)
             }
         } else {
+            recordSuccess(newestTimestamp)
             Log.i("AutoBackup", "Fresh full backup found (timestamp=$newestTimestamp)")
         }
     }
@@ -116,10 +117,10 @@ class AutoBackup(private val context: Context) {
         }
     }
 
-    private fun recordSuccess() {
+    private fun recordSuccess(timestamp: Long = System.currentTimeMillis()) {
         context.getSharedPreferences(STATUS_PREFS, Context.MODE_PRIVATE)
             .edit()
-            .putLong(KEY_LAST_SUCCESS, System.currentTimeMillis())
+            .putLong(KEY_LAST_SUCCESS, timestamp)
             .remove(KEY_LAST_FAILURE)
             .apply()
     }
