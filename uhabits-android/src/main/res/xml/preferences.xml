@@ -90,6 +90,13 @@
                 android:summary="@string/no_public_backup_folder_selected"
                 app:iconSpaceReserved="false" />
 
+        <Preference
+                android:key="autoBackupStatus"
+                android:title="自动完整备份状态"
+                android:summary="查看自动备份的最近结果和保存位置。"
+                android:selectable="false"
+                app:iconSpaceReserved="false" />
+
     </PreferenceCategory>
 
 <PreferenceCategory
@@ -115,9 +122,39 @@
             android:title="@string/feature_center">
 
         <Preference
+                android:key="startupPage"
+                android:title="启动首页设置"
+                android:summary="设置每次打开十字习惯 APP 时首先显示的页面。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
+                android:key="floatingTimer"
+                android:title="悬浮计时器"
+                android:summary="在其他应用上方显示小时、分钟、秒计时窗口。单击暂停或继续，长按打开设置。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
+                android:key="desktopDoodle"
+                android:title="桌面涂鸦"
+                android:summary="在当前屏幕上方自由绘画；可切换画笔、橡皮擦、颜色、撤销和清屏，点击关闭退出。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
+                android:key="statusBarDays"
+                android:title="状态栏天数"
+                android:summary="在状态栏显示一个纯数字；支持打卡间隔、倒计时和正计时。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
                 android:key="timeRecords"
                 android:title="@string/time_records"
                 android:summary="@string/time_records_summary"
+                app:iconSpaceReserved="false" />
+
+        <Preference
+                android:key="widgetManager"
+                android:title="桌面组件管理"
+                android:summary="选择多个组件，一次发起添加到手机桌面的请求。"
                 app:iconSpaceReserved="false" />
 
         <Preference
@@ -150,6 +187,16 @@
             android:key="pref_midnight_delay"
             android:summary="@string/pref_midnight_delay_description"
             android:title="@string/pref_midnight_delay_title"
+            app:iconSpaceReserved="false" />
+
+        <ListPreference
+            android:defaultValue="3"
+            android:dependency="pref_midnight_delay"
+            android:entries="@array/midnight_delay_hour_entries"
+            android:entryValues="@array/midnight_delay_hour_values"
+            android:key="pref_midnight_delay_hours"
+            android:summary="@string/pref_midnight_delay_hours_summary"
+            android:title="新的一天切换时间"
             app:iconSpaceReserved="false" />
 
         <SwitchPreferenceCompat

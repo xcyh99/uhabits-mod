@@ -26,6 +26,7 @@ import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
 import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.Settings
@@ -65,6 +66,7 @@ import org.isoron.uhabits.core.preferences.Preferences
 import org.isoron.uhabits.core.models.sqlite.SQLiteHabitList
 import org.isoron.uhabits.database.WebDavSync
 import org.isoron.uhabits.database.FullBackupManager
+import org.isoron.uhabits.database.AutoBackup
 import org.isoron.uhabits.database.WebDavFullBackup
 import org.isoron.uhabits.database.WebDavSettingsBackup
 import org.isoron.uhabits.database.TwoWaySyncPreview
@@ -108,6 +110,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 requireContext().contentResolver.takePersistableUriPermission(uri, flags)
                 sharedPrefs?.edit()?.putString("publicBackupFolder", uri.toString())?.apply()
                 updatePublicBackupFolderSummary()
+                updateAutoBackupStatusSummary()
                 return
             }
             FULL_BACKUP_CREATE_REQUEST_CODE -> {
@@ -157,7 +160,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         super.onViewCreated(view, savedInstanceState)
         val targetPreference = requireActivity().intent.getStringExtra("open_preference_key")
         val openFeatureCenter = requireActivity().intent.getBooleanExtra("open_feature_center", false)
-        if (targetPreference != null || openFeatureCenter) {
+        if ((targetPreference != null && targetPreference != "widgetManager") || openFeatureCenter) {
             view.post {
                 val key = targetPreference ?: "featureCenterCategory"
                 val directActionKeys = setOf(
@@ -168,11 +171,16 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     "exportCSV",
                     "importData",
                     "featureShortcuts",
+                    "widgetManager",
                     "webDavSync",
                     "settingsBackupRestore",
                     "publicBackupFolder",
                     "clearLocalHabitData",
-                    "reminderCustomize"
+                    "reminderCustomize",
+                    "startupPage",
+                    "floatingTimer",
+                    "desktopDoodle",
+                    "statusBarDays"
                 )
                 if (key in directActionKeys) {
                     findPreference(key)?.performClick()
@@ -214,6 +222,48 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             }
             "timeRecords" -> {
                 startActivity(Intent(requireContext(), org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
+                return true
+            }
+            "widgetManager" -> {
+                showWidgetManager()
+                return true
+            }
+            "startupPage" -> {
+                showStartupPageSettings()
+                return true
+            }
+            "floatingTimer" -> {
+                val context = requireContext()
+                if (!Settings.canDrawOverlays(context)) {
+                    Toast.makeText(context, "请允许十字习惯 APP 显示在其他应用上层，然后再次点击悬浮计时器", Toast.LENGTH_LONG).show()
+                    val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context.packageName))
+                    startActivity(intent)
+                } else {
+                    val intent = Intent(context, FloatingTimerService::class.java).setAction(FloatingTimerService.ACTION_SETUP)
+                    if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
+                }
+                return true
+            }
+            "desktopDoodle" -> {
+                val context = requireContext()
+                if (!Settings.canDrawOverlays(context)) {
+                    Toast.makeText(context, "请允许十字习惯 APP 显示在其他应用上层，然后再次点击桌面涂鸦", Toast.LENGTH_LONG).show()
+                    val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context.packageName))
+                    startActivity(intent)
+                } else {
+                    val intent = Intent(context, DesktopDoodleService::class.java).setAction(DesktopDoodleService.ACTION_START)
+                    if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
+                    // Bring the system launcher forward so doodling starts on the desktop.
+                    val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                        addCategory(Intent.CATEGORY_HOME)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    context.startActivity(homeIntent)
+                }
+                return true
+            }
+            "statusBarDays" -> {
+                showStatusBarDaysSettings()
                 return true
             }
             "featureShortcuts" -> {
@@ -274,25 +324,223 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         }
         updateWeekdayPreference()
         updatePublicBackupFolderSummary()
+        updateAutoBackupStatusSummary()
 
         findPreference("webDavSync").title =
             "☆ " + getString(R.string.webdav_sync)
         findPreference("reminderSound").isVisible = false
     }
 
-    private fun showFeatureShortcutSettings() {
-        val candidateKeys = arrayOf(
-            "timeRecords", "createFullBackup", "restoreFullBackup",
-            "exportDB", "exportLegacyDB", "exportCSV", "importData",
-            "webDavSync", "settingsBackupRestore", "publicBackupFolder",
-            "clearLocalHabitData", "pref_short_toggle", "pref_midnight_delay",
-            "pref_skip_enabled", "pref_unknown_enabled", "pref_checkmark_reverse_order",
-            "pref_pure_black", "pref_disable_animation", "pref_widget_opacity",
-            "pref_first_weekday", "pref_sticky_notifications", "reminderCustomize"
+
+    fun openBatchWidgetPicker(intent: Intent) {
+        showWidgetManager()
+    }
+
+
+    private fun showStartupPageSettings() {
+        val store = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val modes = arrayOf("主界面", "上次打开的界面", "指定其他界面")
+        val current = store.getString("startup_page_mode", "main") ?: "main"
+        val selected = when (current) { "last" -> 1; "custom" -> 2; else -> 0 }
+        AlertDialog.Builder(requireContext())
+            .setTitle("启动首页设置")
+            .setSingleChoiceItems(modes, selected) { dialog, which ->
+                when (which) {
+                    0 -> store.edit().putString("startup_page_mode", "main").apply()
+                    1 -> store.edit().putString("startup_page_mode", "last").apply()
+                    2 -> {
+                        val pages = arrayOf("时间记录", "设置页面", "功能中心")
+                        val values = arrayOf("timeRecords", "settings", "featureCenter")
+                        val currentPage = store.getString("startup_page_custom", "timeRecords")
+                        val pageIndex = values.indexOf(currentPage).let { if (it < 0) 0 else it }
+                        AlertDialog.Builder(requireContext())
+                            .setTitle("选择启动页面")
+                            .setSingleChoiceItems(pages, pageIndex) { pageDialog, pageWhich ->
+                                store.edit()
+                                    .putString("startup_page_mode", "custom")
+                                    .putString("startup_page_custom", values[pageWhich])
+                                    .apply()
+                                Toast.makeText(requireContext(), "启动首页已设置为：${pages[pageWhich]}", Toast.LENGTH_SHORT).show()
+                                pageDialog.dismiss()
+                            }
+                            .setNegativeButton(android.R.string.cancel, null)
+                            .show()
+                    }
+                }
+                if (which != 2) Toast.makeText(requireContext(), "启动首页已设置为：${modes[which]}", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showStatusBarDaysSettings() {
+        val context = requireContext()
+        val store = PreferenceManager.getDefaultSharedPreferences(context)
+        val modes = arrayOf("关闭", "距离上次打卡", "倒计时", "正计时")
+        val modeValues = arrayOf("off", "checkin", "countdown", "elapsed")
+        val current = store.getString("status_bar_days_mode", "off") ?: "off"
+        val selected = modeValues.indexOf(current).coerceAtLeast(0)
+        AlertDialog.Builder(context)
+            .setTitle("状态栏天数")
+            .setSingleChoiceItems(modes, selected) { dialog, which ->
+                val mode = modeValues[which]
+                if (mode == "off") {
+                    store.edit()
+                        .putString("status_bar_days_mode", "off")
+                        .putStringSet("status_bar_days_items", emptySet())
+                        .apply()
+                    org.isoron.uhabits.notifications.StatusBarDaysNotifier.update(context)
+                    Toast.makeText(context, "状态栏项目已全部关闭", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                    return@setSingleChoiceItems
+                }
+
+                val labels: List<String>
+                val ids: List<String>
+                val title: String
+                if (mode == "checkin") {
+                    val habits = (context.applicationContext as HabitsApplication).component.habitList
+                        .filter { !it.isArchived && it.id != null }
+                    if (habits.isEmpty()) {
+                        Toast.makeText(context, "目前没有可选择的习惯", Toast.LENGTH_SHORT).show()
+                        return@setSingleChoiceItems
+                    }
+                    labels = habits.map { it.name }
+                    ids = habits.map { it.id!!.toString() }
+                    title = "勾选要显示的习惯（可多选）"
+                } else {
+                    val type = if (mode == "countdown") {
+                        org.isoron.uhabits.activities.timerecords.TimeRecord.COUNTDOWN
+                    } else {
+                        org.isoron.uhabits.activities.timerecords.TimeRecord.ELAPSED
+                    }
+                    val records = org.isoron.uhabits.activities.timerecords.TimeRecordStore
+                        .getAll(context).filter { it.type == type }
+                    if (records.isEmpty()) {
+                        Toast.makeText(context, "时间管理中还没有对应的项目，请先创建", Toast.LENGTH_SHORT).show()
+                        return@setSingleChoiceItems
+                    }
+                    labels = records.map { it.title }
+                    ids = records.map { it.id }
+                    title = if (mode == "countdown") "勾选要显示的倒计时项目（可多选）"
+                        else "勾选要显示的正计时项目（可多选）"
+                }
+
+                val configured = store.getStringSet("status_bar_days_items", emptySet()).orEmpty()
+                val checkedItems = configured.toMutableSet()
+                if (configured.isEmpty() && current == mode) {
+                    val legacyId = if (mode == "checkin") {
+                        store.getLong("status_bar_days_habit_id", -1L).takeIf { it >= 0 }?.toString()
+                    } else store.getString("status_bar_days_record_id", null)
+                    if (legacyId != null) checkedItems.add("$mode:$legacyId")
+                }
+                val checked = BooleanArray(ids.size) { index -> "$mode:${ids[index]}" in checkedItems }
+                val selectedNow = checked.copyOf()
+                fun saveSelection() {
+                    val updated = configured.toMutableSet()
+                    // Replace only this category; selections in the other categories remain intact.
+                    updated.removeAll { it.startsWith("$mode:") }
+                    ids.forEachIndexed { index, id ->
+                        if (selectedNow[index]) updated.add("$mode:$id")
+                    }
+                    val nextMode = if (updated.isEmpty()) "off" else mode
+                    store.edit()
+                        .putString("status_bar_days_mode", nextMode)
+                        .putStringSet("status_bar_days_items", updated)
+                        .apply()
+                    org.isoron.uhabits.notifications.StatusBarDaysNotifier.update(context)
+                    Toast.makeText(
+                        context,
+                        if (selectedNow.count { it } == 0) "已取消此类项目的显示"
+                        else "已选择 ${selectedNow.count { it }} 个项目",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                AlertDialog.Builder(context)
+                    .setTitle(title)
+                    .setMultiChoiceItems(labels.toTypedArray(), checked) { _, index, isChecked ->
+                        selectedNow[index] = isChecked
+                    }
+                    .setNegativeButton("取消", null)
+                    .setNeutralButton("确定") { pickDialog, _ ->
+                        saveSelection()
+                        pickDialog.dismiss()
+                    }
+                    .setPositiveButton("继续添加") { pickDialog, _ ->
+                        saveSelection()
+                        pickDialog.dismiss()
+                        dialog.dismiss()
+                        showStatusBarDaysSettings()
+                    }
+                    .show()
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showWidgetManager() {
+        val context = requireContext()
+        val widgets = listOf(
+            "历史" to org.isoron.uhabits.widgets.HistoryWidgetProvider::class.java,
+            "标记" to org.isoron.uhabits.widgets.CheckmarkWidgetProvider::class.java,
+            "得分" to org.isoron.uhabits.widgets.ScoreWidgetProvider::class.java,
+            "连续记录" to org.isoron.uhabits.widgets.StreakWidgetProvider::class.java,
+            "频率" to org.isoron.uhabits.widgets.FrequencyWidgetProvider::class.java,
+            "目标" to org.isoron.uhabits.widgets.TargetWidgetProvider::class.java,
+            "距离上次打卡" to org.isoron.uhabits.widgets.DaysSinceLastCheckinWidgetProvider::class.java,
+            "正计时 / 倒计时" to org.isoron.uhabits.widgets.TimeRecordWidgetProvider::class.java,
+            "批量添加" to org.isoron.uhabits.widgets.BatchAddWidgetProvider::class.java
         )
-        val keys = candidateKeys.filter { findPreference(it) != null }
-        val labels = keys.map { key -> findPreference(key)?.title?.toString() ?: key }
-            .toTypedArray()
+        val labels = widgets.map { it.first }.toTypedArray()
+        var selectedIndex = -1
+        var positiveButton: Button? = null
+        val dialog = AlertDialog.Builder(context)
+            .setTitle("选择要添加的桌面组件（单选）")
+            .setSingleChoiceItems(labels, -1) { _, which ->
+                selectedIndex = which
+                positiveButton?.isEnabled = true
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton("开始添加") { _, _ ->
+                val manager = android.appwidget.AppWidgetManager.getInstance(context)
+                if (!manager.isRequestPinAppWidgetSupported) {
+                    Toast.makeText(context, "当前桌面不支持应用内添加组件，请到桌面长按空白处添加。", Toast.LENGTH_LONG).show()
+                    return@setPositiveButton
+                }
+                if (selectedIndex !in widgets.indices) return@setPositiveButton
+
+                val provider = widgets[selectedIndex].second
+                val store = PreferenceManager.getDefaultSharedPreferences(context)
+                store.edit().remove("widget_pin_queue").apply()
+                if (manager.requestPinAppWidget(
+                        android.content.ComponentName(context, provider), null, null
+                    )) {
+                    Toast.makeText(context, "已请求添加组件。请在桌面确认。", Toast.LENGTH_LONG).show()
+                    // The launcher must become foreground so its pin-confirmation UI
+                    // is not covered by this app. Do this after the selection dialog
+                    // has finished dismissing.
+                    requireActivity().window.decorView.post {
+                        requireActivity().moveTaskToBack(true)
+                    }
+                } else {
+                    Toast.makeText(context, "桌面未接受添加请求。", Toast.LENGTH_LONG).show()
+                }
+            }
+            .create()
+        dialog.setOnShowListener {
+            positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            positiveButton?.isEnabled = selectedIndex in widgets.indices
+        }
+        dialog.show()
+    }
+    private fun showFeatureShortcutSettings() {
+        // Discover shortcut candidates from the same preference tree used by Settings.
+        // New user-facing entries in Feature Center or Settings appear here automatically.
+        val entries = FeatureShortcutCatalog.getEntries(requireContext())
+        val keys = entries.map { it.key }
+        val labels = entries.map { it.title }.toTypedArray()
         val store = PreferenceManager.getDefaultSharedPreferences(requireContext())
         val savedOrder = store.getString("feature_shortcuts_order", null)
             ?.split("|")?.filter { it in keys }
@@ -316,32 +564,34 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
 
     private fun showShortcutOrderDialog(
         selected: MutableList<String>,
-        store: SharedPreferences
+        store: SharedPreferences,
+        initialSelectedIndex: Int = 0
     ) {
         if (selected.isEmpty()) {
             saveShortcutOrder(selected, store)
             return
         }
-        var selectedIndex = 0
-        val labels = selected.map { key ->
-            findPreference(key)?.title?.toString() ?: key
-        }.toTypedArray()
+        var selectedIndex = initialSelectedIndex.coerceIn(0, selected.lastIndex)
+        val titles = FeatureShortcutCatalog.getEntries(requireContext()).associate { it.key to it.title }
+        val labels = selected.map { key -> titles[key] ?: key }.toTypedArray()
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.shortcut_order_title)
-            .setSingleChoiceItems(labels, 0) { _, which -> selectedIndex = which }
+            .setSingleChoiceItems(labels, selectedIndex) { _, which -> selectedIndex = which }
             .setPositiveButton(R.string.shortcut_move_up) { _, _ ->
                 if (selectedIndex > 0) {
                     val item = selected.removeAt(selectedIndex)
                     selected.add(selectedIndex - 1, item)
+                    selectedIndex -= 1
                 }
-                showShortcutOrderDialog(selected, store)
+                showShortcutOrderDialog(selected, store, selectedIndex)
             }
             .setNegativeButton(R.string.shortcut_move_down) { _, _ ->
                 if (selectedIndex < selected.lastIndex) {
                     val item = selected.removeAt(selectedIndex)
                     selected.add(selectedIndex + 1, item)
+                    selectedIndex += 1
                 }
-                showShortcutOrderDialog(selected, store)
+                showShortcutOrderDialog(selected, store, selectedIndex)
             }
             .setNeutralButton(android.R.string.ok) { _, _ -> saveShortcutOrder(selected, store) }
             .show()
@@ -357,6 +607,11 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             getString(R.string.shortcut_settings_saved, selected.size),
             Toast.LENGTH_SHORT
         ).show()
+        // Shortcut configuration is launched as a focused task from the
+        // main-screen popup. After saving, return directly to the main app
+        // instead of leaving the user on the Settings screen.
+        requireActivity().finish()
+        requireActivity().overridePendingTransition(0, 0)
     }
 
     private fun createFullBackup(uri: Uri) {
@@ -1373,6 +1628,35 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         val uri = Uri.parse(uriString)
         val path = fullPathFor(uri)
         pref.summary = path ?: uriString
+    }
+
+    private fun updateAutoBackupStatusSummary() {
+        val preference = findPreference("autoBackupStatus") ?: return
+        val backupPrefs = requireContext().getSharedPreferences(
+            AutoBackup.STATUS_PREFS,
+            android.content.Context.MODE_PRIVATE
+        )
+        val lastSuccess = backupPrefs.getLong(AutoBackup.KEY_LAST_SUCCESS, 0L)
+        val lastFailure = backupPrefs.getLong(AutoBackup.KEY_LAST_FAILURE, 0L)
+        val folderUri = sharedPrefs?.getString("publicBackupFolder", null)
+        val location = if (folderUri.isNullOrBlank()) {
+            "应用内部 Backups 文件夹"
+        } else {
+            fullPathFor(Uri.parse(folderUri)) ?: "已选择的公共文件夹"
+        }
+        val formatter = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA)
+        val status = when {
+            lastFailure > lastSuccess -> {
+                "最近一次自动备份尝试失败：${formatter.format(java.util.Date(lastFailure))}"
+            }
+            lastSuccess > 0L -> {
+                "最近有效备份：${formatter.format(java.util.Date(lastSuccess))}"
+            }
+            else -> {
+                "尚未记录成功时间；自动备份会在打开主页面时检查，通常每天最多创建一次。"
+            }
+        }
+        preference.summary = "保存位置：$location\n$status"
     }
 
     private fun fullPathFor(uri: Uri): String? {

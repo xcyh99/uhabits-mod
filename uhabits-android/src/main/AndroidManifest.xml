@@ -19,6 +19,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -52,13 +55,13 @@
             android:name="org.isoron.uhabits.activities.habits.list.ListHabitsActivity"
             android:exported="true"
             android:label="@string/main_activity_title"
-            android:launchMode="singleTop" />
+            android:launchMode="singleTask" />
 
         <activity-alias
             android:name="org.isoron.uhabits.MainActivity"
             android:exported="true"
             android:label="@string/main_activity_title"
-            android:launchMode="singleTop"
+            android:launchMode="singleTask"
             android:targetActivity="org.isoron.uhabits.activities.habits.list.ListHabitsActivity">
             <intent-filter android:label="@string/main_activity_title">
                 <action android:name="android.intent.action.MAIN" />
@@ -93,7 +96,8 @@
 
         <activity
             android:name="org.isoron.uhabits.activities.settings.SettingsActivity"
-            android:label="@string/settings">
+            android:label="@string/settings"
+            android:launchMode="singleTop">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="org.isoron.uhabits.activities.habits.list.ListHabitsActivity" />
@@ -200,6 +204,22 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_time_record_info" />
+        </receiver>
+
+        <receiver
+            android:name="org.isoron.uhabits.widgets.WidgetPinQueueReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name="org.isoron.uhabits.widgets.BatchAddWidgetProvider"
+            android:exported="true"
+            android:label="@string/batch_add_widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_batch_add_info" />
         </receiver>
 
         <receiver
@@ -329,6 +349,39 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+            <receiver
+            android:name="org.isoron.uhabits.notifications.StatusBarDaysReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="org.isoron.uhabits.action.UPDATE_STATUS_BAR_DAYS" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:name="org.isoron.uhabits.activities.settings.FloatingTimerService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="用户主动开启的悬浮计时器" />
+        </service>
+
+        <service
+            android:name="org.isoron.uhabits.activities.settings.DesktopDoodleService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="用户主动开启的屏幕涂鸦悬浮层" />
+        </service>
+
     </application>
 
 </manifest>

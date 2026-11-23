@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="midnight_delay_hour_entries">
+        <item>凌晨 0 点（零点）</item>
+        <item>凌晨 1 点</item>
+        <item>凌晨 2 点</item>
+        <item>凌晨 3 点</item>
+        <item>凌晨 4 点</item>
+        <item>凌晨 5 点</item>
+        <item>凌晨 6 点</item>
+    </string-array>
+    <string-array name="midnight_delay_hour_values">
+        <item>0</item><item>1</item><item>2</item><item>3</item>
+        <item>4</item><item>5</item><item>6</item>
+    </string-array>
+</resources>

@@ -18,6 +18,18 @@ import org.isoron.uhabits.utils.applyRootViewInsets
 import org.isoron.uhabits.utils.setupToolbar
 
 class TimeRecordsActivity : AppCompatActivity() {
+    override fun onResume() {
+        super.onResume()
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            .edit().putString("startup_page_last", "timeRecords").apply()
+    }
+
+    override fun onPause() {
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            .edit().putString("startup_page_last", "timeRecords").apply()
+        super.onPause()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val component = (application as HabitsApplication).component

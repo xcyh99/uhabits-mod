@@ -19,6 +19,7 @@
 package org.isoron.uhabits.activities.settings
 
 import android.os.Bundle
+import android.content.Intent
 import android.view.LayoutInflater
 import androidx.appcompat.app.AppCompatActivity
 import org.isoron.uhabits.HabitsApplication
@@ -45,5 +46,37 @@ class SettingsActivity : AppCompatActivity() {
         )
         binding.root.applyRootViewInsets()
         setContentView(binding.root)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            .edit().putString("startup_page_last", "settings").apply()
+    }
+
+    override fun onPause() {
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            .edit().putString("startup_page_last", "settings").apply()
+        super.onPause()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
+    override fun onPostResume() {
+        super.onPostResume()
+        val launchIntent = intent
+        if (launchIntent.getStringExtra("open_preference_key") != "widgetManager") return
+
+        // Consume the request before showing the dialog so a later resume cannot
+        // accidentally open a second picker.
+        launchIntent.removeExtra("open_preference_key")
+        supportFragmentManager.executePendingTransactions()
+        val fragment = supportFragmentManager.findFragmentById(R.id.fragment) as? SettingsFragment
+        if (fragment?.isAdded == true && fragment.view != null) {
+            fragment.openBatchWidgetPicker(launchIntent)
+        }
     }
 }

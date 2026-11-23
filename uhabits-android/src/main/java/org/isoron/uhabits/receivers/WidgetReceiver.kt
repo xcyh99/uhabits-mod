@@ -107,6 +107,7 @@ class WidgetReceiver : BroadcastReceiver() {
                     setToday(computeToday(prefs.midnightDelayHours, 0))
                     setFirstWeekday(prefs.firstWeekday)
                     widgetUpdater.updateWidgets()
+                    org.isoron.uhabits.widgets.TimeRecordWidgetProvider.updateAll(context)
                     widgetUpdater.scheduleStartDayWidgetUpdate()
                 }
             }

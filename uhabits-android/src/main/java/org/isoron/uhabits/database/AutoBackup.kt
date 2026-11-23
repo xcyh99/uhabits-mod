@@ -74,11 +74,14 @@ class AutoBackup(private val context: Context) {
                     ?.sortedBy { it.lastModified() }
                     ?: emptyList()
                 removeOldestPrivate(updatedFiles, keep.coerceAtLeast(1))
+                recordSuccess()
             }.onFailure {
                 target.delete()
+                recordFailure()
                 Log.e("AutoBackup", "Unable to create automatic full backup", it)
             }
         } else {
+            recordSuccess(newestTimestamp)
             Log.i("AutoBackup", "Fresh full backup found (timestamp=$newestTimestamp)")
         }
     }
@@ -92,6 +95,7 @@ class AutoBackup(private val context: Context) {
             val name = "Shizi_Full_Backup_${BackupFileName.timestamp()}.uhabitsbackup"
             val target = dir.createFile("application/octet-stream", name)
             if (target == null) {
+                recordFailure()
                 Log.e("AutoBackup", "Unable to create automatic full backup file")
                 return
             }
@@ -102,13 +106,31 @@ class AutoBackup(private val context: Context) {
                     .filter { it.isFile && it.name?.let(backupPattern::matches) == true }
                     .sortedBy { it.lastModified() }
                 removeOldestPublic(updatedFiles, keep.coerceAtLeast(1))
+                recordSuccess()
             }.onFailure {
                 target.delete()
+                recordFailure()
                 Log.e("AutoBackup", "Unable to create automatic full backup", it)
             }
         } else {
+            recordSuccess(newestTimestamp)
             Log.i("AutoBackup", "Fresh full backup found (timestamp=$newestTimestamp)")
         }
+    }
+
+    private fun recordSuccess(timestamp: Long = System.currentTimeMillis()) {
+        context.getSharedPreferences(STATUS_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putLong(KEY_LAST_SUCCESS, timestamp)
+            .remove(KEY_LAST_FAILURE)
+            .apply()
+    }
+
+    private fun recordFailure() {
+        context.getSharedPreferences(STATUS_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putLong(KEY_LAST_FAILURE, System.currentTimeMillis())
+            .apply()
     }
 
     private fun removeOldestPrivate(files: List<File>, keep: Int) {
@@ -123,5 +145,11 @@ class AutoBackup(private val context: Context) {
             Log.i("AutoBackup", "Removing old full backup ${files[index].uri}")
             files[index].delete()
         }
+    }
+
+    companion object {
+        const val STATUS_PREFS = "auto_backup_status"
+        const val KEY_LAST_SUCCESS = "last_success"
+        const val KEY_LAST_FAILURE = "last_failure"
     }
 }

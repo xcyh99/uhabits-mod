@@ -79,6 +79,30 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        if (savedInstanceState == null && intent?.action == Intent.ACTION_MAIN) {
+            val launchPrefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            val mode = launchPrefs.getString("startup_page_mode", "main") ?: "main"
+            val target = when (mode) {
+                "last" -> launchPrefs.getString("startup_page_last", "main") ?: "main"
+                "custom" -> launchPrefs.getString("startup_page_custom", "timeRecords") ?: "timeRecords"
+                else -> "main"
+            }
+            if (target != "main") {
+                val destination = when (target) {
+                    "timeRecords" -> Intent(this, org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java)
+                    "settings", "featureCenter" -> Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java).apply {
+                        if (target == "featureCenter") putExtra("open_feature_center", true)
+                    }
+                    else -> null
+                }
+                if (destination != null) {
+                    startActivity(destination)
+                    finish()
+                    return
+                }
+            }
+        }
+
         appComponent = (applicationContext as HabitsApplication).component
         component = HabitsActivityComponent::class.create(
             parent = appComponent,
@@ -101,6 +125,9 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
     }
 
     override fun onPause() {
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            .edit().putString("startup_page_last", "main").apply()
+        org.isoron.uhabits.notifications.StatusBarDaysNotifier.update(this)
         midnightTimer.onPause()
         screen.onDetached()
         dismissCurrentDialog()
@@ -108,7 +135,10 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
     }
 
     override fun onResume() {
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            .edit().putString("startup_page_last", "main").apply()
         screen.refresh()
+        org.isoron.uhabits.notifications.StatusBarDaysNotifier.update(this)
         screen.onAttached()
         rootView.postInvalidate()
         midnightTimer.onResume()
@@ -183,6 +213,27 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         setIntent(intent)
+
+        // A launcher tap can bring an existing task to the foreground instead of
+        // creating the activity again. Re-apply the configured startup destination
+        // whenever the launcher delivers a new MAIN intent to this singleTask root.
+        if (intent?.action == Intent.ACTION_MAIN) {
+            val launchPrefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            val mode = launchPrefs.getString("startup_page_mode", "main") ?: "main"
+            val target = when (mode) {
+                "last" -> launchPrefs.getString("startup_page_last", "main") ?: "main"
+                "custom" -> launchPrefs.getString("startup_page_custom", "timeRecords") ?: "timeRecords"
+                else -> "main"
+            }
+            val destination = when (target) {
+                "timeRecords" -> Intent(this, org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java)
+                "settings", "featureCenter" -> Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java).apply {
+                    if (target == "featureCenter") putExtra("open_feature_center", true)
+                }
+                else -> null
+            }
+            if (destination != null) startActivity(destination)
+        }
     }
 
     companion object {
