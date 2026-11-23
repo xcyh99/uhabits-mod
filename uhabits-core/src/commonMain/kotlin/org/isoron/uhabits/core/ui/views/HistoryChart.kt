@@ -297,15 +297,23 @@ class HistoryChart(
             }
         }
 
-        // Completed calendar squares can use any user-selected palette color,
-        // including pure white. Choose whichever of black or white has the
-        // stronger contrast against the actual square fill so the date remains
-        // readable regardless of the selected color or card background.
-        // Keep the original theme-aware behavior for all other square states.
+        // Use simple theme-aware luminance thresholds for completed calendar squares.
+        // The slightly wider thresholds favor white date text while retaining
+        // the original handling for transparent cards and other square states.
         val textColor = if (value == Square.ON) {
-            val blackContrast = squareColor.contrast(Color.BLACK)
-            val whiteContrast = squareColor.contrast(Color.WHITE)
-            if (blackContrast >= whiteContrast) Color.BLACK else Color.WHITE
+            val luminance = fun(channel: Double): Double {
+                return if (channel <= 0.04045) channel / 12.92
+                else ((channel + 0.055) / 1.055).pow(2.4)
+            }
+            val backgroundLuminance =
+                0.2126 * luminance(squareColor.red) +
+                0.7152 * luminance(squareColor.green) +
+                0.0722 * luminance(squareColor.blue)
+            if (theme is DarkTheme) {
+                if (backgroundLuminance >= 0.85) Color.BLACK else Color.WHITE
+            } else {
+                if (backgroundLuminance <= 0.15) Color.WHITE else Color.BLACK
+            }
         } else if (theme.cardBackgroundColor == Color.TRANSPARENT) {
             theme.highContrastTextColor
         } else {
