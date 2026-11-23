@@ -277,6 +277,9 @@ class DesktopDoodleService : Service() {
         val canvas = drawingView ?: return
         val params = drawingWindowParams ?: return
         canvas.visibility = if (paused) View.INVISIBLE else View.VISIBLE
+        // A zero-alpha non-touchable overlay is important on Android 12+:
+        // it prevents the hidden full-screen window from obscuring app touches.
+        params.alpha = if (paused) 0f else 1f
         params.flags = WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
             if (paused) WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE else 0
