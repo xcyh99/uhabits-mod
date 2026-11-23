@@ -1682,7 +1682,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         val keepCount = settings?.getString(AutoBackup.KEY_KEEP_COUNT, "5")?.toIntOrNull()
             ?.coerceIn(1, 50) ?: 5
         val configuration = if (enabled) {
-            "自动备份：开启；每隔 $intervalDays 天检查一次；保留最近 $keepCount 份。\n" +
+            "自动备份：开启；两次自动备份至少间隔 $intervalDays 天；保留最近 $keepCount 份。\n" +
                 "触发方式：打开主页面时检查，不保证后台定时执行。"
         } else {
             "自动备份：已关闭。手动备份仍可使用。"
