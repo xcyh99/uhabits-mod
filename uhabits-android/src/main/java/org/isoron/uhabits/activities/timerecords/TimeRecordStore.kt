@@ -8,7 +8,8 @@ data class TimeRecord(
     val id: String,
     val title: String,
     val type: String,
-    val date: String
+    val date: String,
+    val color: Int = defaultTimeRecordColor(type)
 ) {
     companion object {
         const val ELAPSED = "elapsed"
@@ -35,7 +36,8 @@ object TimeRecordStore {
                                 item.getString("id"),
                                 item.getString("title"),
                                 type,
-                                item.getString("date")
+                                item.getString("date"),
+                                item.optInt("color", defaultTimeRecordColor(type))
                             )
                         )
                     }
@@ -57,6 +59,7 @@ object TimeRecordStore {
                     .put("title", item.title)
                     .put("type", item.type)
                     .put("date", item.date)
+                    .put("color", item.color)
             )
         }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
