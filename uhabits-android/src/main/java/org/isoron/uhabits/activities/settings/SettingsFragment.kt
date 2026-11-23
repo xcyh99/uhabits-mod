@@ -183,7 +183,9 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     "startupPage",
                     "floatingTimer",
                     "desktopDoodle",
-                    "statusBarDays"
+                    "statusBarDays",
+                    "parameterCenter",
+                    "parameterEmergencyReset"
                 )
                 if (key in directActionKeys) {
                     findPreference(key)?.performClick()
@@ -225,6 +227,22 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             }
             "timeRecords" -> {
                 startActivity(Intent(requireContext(), org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
+                return true
+            }
+            "parameterCenter" -> {
+                showParameterCenter()
+                return true
+            }
+            "parameterEmergencyReset" -> {
+                AlertDialog.Builder(requireContext())
+                    .setTitle("参数紧急恢复")
+                    .setMessage("将参数中心全部恢复为安全默认值（当前历史组件白色数字权重恢复为 6.6）。此操作不会删除或修改习惯、打卡记录和时间记录。")
+                    .setNegativeButton("取消", null)
+                    .setPositiveButton("确认恢复") { _, _ ->
+                        prefs.restoreParameterDefaults()
+                        Toast.makeText(requireContext(), "参数已恢复为安全默认值", Toast.LENGTH_LONG).show()
+                    }
+                    .show()
                 return true
             }
             "widgetManager" -> {
@@ -337,6 +355,68 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         showWidgetManager()
     }
 
+
+    private fun showParameterCenter() {
+        val context = requireContext()
+        val current = prefs.historyChartWhiteWeight
+        val input = EditText(context).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or
+                InputType.TYPE_NUMBER_FLAG_DECIMAL or
+                InputType.TYPE_NUMBER_FLAG_SIGNED
+            setSingleLine(true)
+            setText(current.toString())
+            setSelection(text.length)
+            hint = "范围：0.1 – 100.0"
+        }
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 8, 48, 0)
+            addView(input)
+            addView(TextView(context).apply {
+                text = "数值越大，历史打卡方格越倾向使用白色数字。默认值：6.6。\n有效范围：0.1–100.0。每次修改前会自动保存上一有效值。"
+                textSize = 12f
+                setPadding(0, 12, 0, 0)
+            })
+        }
+        val dialog = AlertDialog.Builder(context)
+            .setTitle("参数中心")
+            .setView(container)
+            .setNeutralButton("回退上次值", null)
+            .setNegativeButton("恢复默认", null)
+            .setPositiveButton("保存", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val value = input.text.toString().trim().toDoubleOrNull()
+                if (value == null || value.isNaN() || value.isInfinite() ||
+                    value < Preferences.MIN_HISTORY_WHITE_WEIGHT ||
+                    value > Preferences.MAX_HISTORY_WHITE_WEIGHT
+                ) {
+                    input.error = "请输入 0.1–100.0 之间的有效数字"
+                    return@setOnClickListener
+                }
+                runCatching { prefs.historyChartWhiteWeight = value }
+                    .onSuccess {
+                        Toast.makeText(context, "已保存，当前权重：$value", Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                    }
+                    .onFailure {
+                        Toast.makeText(context, "保存失败，原参数保持不变", Toast.LENGTH_LONG).show()
+                    }
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
+                prefs.restoreParameterDefaults()
+                Toast.makeText(context, "参数已恢复默认值 6.6", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                val restored = prefs.restorePreviousHistoryChartWhiteWeight()
+                Toast.makeText(context, "已回退到上一次有效值：$restored", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
+    }
 
     private fun showStartupPageSettings() {
         val store = PreferenceManager.getDefaultSharedPreferences(requireContext())
