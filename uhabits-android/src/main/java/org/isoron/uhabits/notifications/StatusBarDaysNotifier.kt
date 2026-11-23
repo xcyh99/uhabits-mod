@@ -130,7 +130,7 @@ object StatusBarDaysNotifier {
             typeface = Typeface.create("sans-serif", Typeface.BOLD)
             textSize = 100f
         }
-        val label = days.coerceAtMost(999).toString()
+        val label = days.coerceAtMost(9999).toString()
         val bounds = android.graphics.Rect()
         paint.getTextBounds(label, 0, label.length, bounds)
 
