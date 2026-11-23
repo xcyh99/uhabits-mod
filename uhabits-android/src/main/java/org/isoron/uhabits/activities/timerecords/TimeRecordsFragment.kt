@@ -22,6 +22,8 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import org.isoron.uhabits.R
+import android.graphics.Color
+import org.isoron.uhabits.activities.common.dialogs.ColorPickerDialog
 import org.isoron.uhabits.widgets.TimeRecordWidgetProvider
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -406,6 +408,27 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
             setSingleLine(true)
             setText(existing?.title.orEmpty())
         }
+        var selectedColor = existing?.color
+            ?: if (type == TimeRecord.ELAPSED) 0xFF269B65.toInt() else 0xFFE59A23.toInt()
+        val colorButton = TextView(context).apply {
+            textSize = 14f
+            setPadding(0, dp(8), 0, dp(12))
+        }
+        fun updateColorButton() {
+            colorButton.text = "标题和数字颜色：#%06X".format(0xFFFFFF and selectedColor)
+            colorButton.setTextColor(selectedColor)
+        }
+        updateColorButton()
+        colorButton.setOnClickListener {
+            ColorPickerDialog().apply {
+                setInitialColor(selectedColor)
+                setDialogTitle("选择标题和数字颜色")
+                setListener { color ->
+                    selectedColor = color.argb
+                    updateColorButton()
+                }
+            }.show(childFragmentManager, "timeRecordColorPicker")
+        }
         val dateButton = TextView(context).apply {
             textSize = 16f
             setPadding(0, dp(18), 0, dp(18))
@@ -458,6 +481,7 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
             picker.show()
         }
         container.addView(titleInput)
+        container.addView(colorButton)
         container.addView(dateButton)
         container.addView(calculateDateButton)
 
@@ -493,7 +517,13 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
                 }
                 TimeRecordStore.save(
                     context,
-                    TimeRecord(existing?.id ?: UUID.randomUUID().toString(), title, type, selectedDate.toString())
+                    TimeRecord(
+                        existing?.id ?: UUID.randomUUID().toString(),
+                        title,
+                        type,
+                        selectedDate.toString(),
+                        selectedColor
+                    )
                 )
                 TimeRecordWidgetProvider.updateAll(context)
                 dialog.dismiss()
