@@ -312,7 +312,7 @@ class HistoryChart(
             if (theme is DarkTheme) {
                 if (backgroundLuminance >= 0.80) Color.BLACK else Color.WHITE
             } else {
-                if (backgroundLuminance <= 0.18) Color.WHITE else Color.BLACK
+                if (backgroundLuminance <= 0.20) Color.WHITE else Color.BLACK
             }
         } else if (theme.cardBackgroundColor == Color.TRANSPARENT) {
             theme.highContrastTextColor
