@@ -364,35 +364,29 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             .setSingleChoiceItems(modes, selected) { dialog, which ->
                 val mode = modeValues[which]
                 if (mode == "off") {
-                    store.edit().putString("status_bar_days_mode", "off").apply()
+                    store.edit()
+                        .putString("status_bar_days_mode", "off")
+                        .putStringSet("status_bar_days_items", emptySet())
+                        .apply()
                     org.isoron.uhabits.notifications.StatusBarDaysNotifier.update(context)
-                    Toast.makeText(context, "状态栏数字已关闭", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "状态栏项目已全部关闭", Toast.LENGTH_SHORT).show()
                     dialog.dismiss()
-                } else if (mode == "checkin") {
+                    return@setSingleChoiceItems
+                }
+
+                val labels: List<String>
+                val ids: List<String>
+                val title: String
+                if (mode == "checkin") {
                     val habits = (context.applicationContext as HabitsApplication).component.habitList
-                        .filter { !it.isArchived }
+                        .filter { !it.isArchived && it.id != null }
                     if (habits.isEmpty()) {
                         Toast.makeText(context, "目前没有可选择的习惯", Toast.LENGTH_SHORT).show()
                         return@setSingleChoiceItems
                     }
-                    val labels = habits.map { it.name }.toTypedArray()
-                    AlertDialog.Builder(context)
-                        .setTitle("选择要显示的习惯")
-                        .setItems(labels) { pickDialog, index ->
-                            val habitId = habits[index].id
-                            if (habitId != null) {
-                                store.edit()
-                                    .putString("status_bar_days_mode", mode)
-                                    .putLong("status_bar_days_habit_id", habitId)
-                                    .apply()
-                                org.isoron.uhabits.notifications.StatusBarDaysNotifier.update(context)
-                                Toast.makeText(context, "已设置：${habits[index].name}", Toast.LENGTH_SHORT).show()
-                            }
-                            pickDialog.dismiss()
-                        }
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .show()
-                    dialog.dismiss()
+                    labels = habits.map { it.name }
+                    ids = habits.map { it.id!!.toString() }
+                    title = "勾选要显示的习惯（可多选）"
                 } else {
                     val type = if (mode == "countdown") {
                         org.isoron.uhabits.activities.timerecords.TimeRecord.COUNTDOWN
@@ -405,22 +399,51 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                         Toast.makeText(context, "时间管理中还没有对应的项目，请先创建", Toast.LENGTH_SHORT).show()
                         return@setSingleChoiceItems
                     }
-                    val labels = records.map { it.title }.toTypedArray()
-                    AlertDialog.Builder(context)
-                        .setTitle(if (mode == "countdown") "选择倒计时项目" else "选择正计时项目")
-                        .setItems(labels) { pickDialog, index ->
-                            store.edit()
-                                .putString("status_bar_days_mode", mode)
-                                .putString("status_bar_days_record_id", records[index].id)
-                                .apply()
-                            org.isoron.uhabits.notifications.StatusBarDaysNotifier.update(context)
-                            Toast.makeText(context, "已设置：${records[index].title}", Toast.LENGTH_SHORT).show()
-                            pickDialog.dismiss()
-                        }
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .show()
-                    dialog.dismiss()
+                    labels = records.map { it.title }
+                    ids = records.map { it.id }
+                    title = if (mode == "countdown") "勾选要显示的倒计时项目（可多选）"
+                        else "勾选要显示的正计时项目（可多选）"
                 }
+
+                val configured = store.getStringSet("status_bar_days_items", emptySet()).orEmpty()
+                val checkedItems = configured.toMutableSet()
+                if (configured.isEmpty() && current == mode) {
+                    val legacyId = if (mode == "checkin") {
+                        store.getLong("status_bar_days_habit_id", -1L).takeIf { it >= 0 }?.toString()
+                    } else store.getString("status_bar_days_record_id", null)
+                    if (legacyId != null) checkedItems.add("$mode:$legacyId")
+                }
+                val checked = BooleanArray(ids.size) { index -> "$mode:${ids[index]}" in checkedItems }
+                val selectedNow = checked.copyOf()
+                AlertDialog.Builder(context)
+                    .setTitle(title)
+                    .setMultiChoiceItems(labels.toTypedArray(), checked) { _, index, isChecked ->
+                        selectedNow[index] = isChecked
+                    }
+                    .setNegativeButton("取消", null)
+                    .setPositiveButton("确定") { pickDialog, _ ->
+                        val updated = configured.toMutableSet()
+                        // Replace only this category; selections in the other categories remain intact.
+                        updated.removeAll { it.startsWith("$mode:") }
+                        ids.forEachIndexed { index, id ->
+                            if (selectedNow[index]) updated.add("$mode:$id")
+                        }
+                        val nextMode = if (updated.isEmpty()) "off" else mode
+                        store.edit()
+                            .putString("status_bar_days_mode", nextMode)
+                            .putStringSet("status_bar_days_items", updated)
+                            .apply()
+                        org.isoron.uhabits.notifications.StatusBarDaysNotifier.update(context)
+                        Toast.makeText(
+                            context,
+                            if (selectedNow.count { it } == 0) "已取消此类项目的显示"
+                            else "已选择 ${selectedNow.count { it }} 个项目",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        pickDialog.dismiss()
+                    }
+                    .show()
+                dialog.dismiss()
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
