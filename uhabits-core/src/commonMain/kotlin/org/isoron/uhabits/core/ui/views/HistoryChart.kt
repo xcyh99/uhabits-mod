@@ -297,9 +297,9 @@ class HistoryChart(
             }
         }
 
-        // Use simple theme-aware luminance thresholds for completed calendar squares.
-        // The narrow 0.95/0.05 cutoffs favor white date text while retaining
-        // the original handling for transparent cards and other square states.
+        // Choose completed-square date text by weighted black/white contrast.
+        // A larger white preference weight makes white text appear more often.
+        // Keep the existing handling for transparent cards and other square states.
         val textColor = if (value == Square.ON) {
             val luminance = fun(channel: Double): Double {
                 return if (channel <= 0.04045) channel / 12.92
@@ -309,10 +309,13 @@ class HistoryChart(
                 0.2126 * luminance(squareColor.red) +
                 0.7152 * luminance(squareColor.green) +
                 0.0722 * luminance(squareColor.blue)
-            if (theme is DarkTheme) {
-                if (backgroundLuminance >= 0.95) Color.BLACK else Color.WHITE
+            val whiteContrast = 1.05 / (backgroundLuminance + 0.05)
+            val blackContrast = (backgroundLuminance + 0.05) / 0.05
+            val whitePreferenceWeight = 10.0
+            if (blackContrast / whiteContrast <= whitePreferenceWeight) {
+                Color.WHITE
             } else {
-                if (backgroundLuminance <= 0.05) Color.WHITE else Color.BLACK
+                Color.BLACK
             }
         } else if (theme.cardBackgroundColor == Color.TRANSPARENT) {
             theme.highContrastTextColor
