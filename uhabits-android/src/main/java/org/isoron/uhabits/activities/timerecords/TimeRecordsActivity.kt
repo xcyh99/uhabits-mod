@@ -18,6 +18,10 @@ import org.isoron.uhabits.utils.applyRootViewInsets
 import org.isoron.uhabits.utils.setupToolbar
 
 class TimeRecordsActivity : AppCompatActivity() {
+    companion object {
+        const val EXTRA_EDIT_RECORD_ID = "org.isoron.uhabits.extra.EDIT_TIME_RECORD_ID"
+    }
+
     override fun onResume() {
         super.onResume()
         androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
