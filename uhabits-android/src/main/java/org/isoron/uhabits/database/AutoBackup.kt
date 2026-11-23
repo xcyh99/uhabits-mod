@@ -39,7 +39,7 @@ class AutoBackup(private val context: Context) {
 
     fun run(force: Boolean = false) {
         val settings = PreferenceManager.getDefaultSharedPreferences(context)
-        if (!settings.getBoolean(KEY_ENABLED, true)) {
+        if (!settings.getBoolean(KEY_ENABLED, true) && !force) {
             Log.i("AutoBackup", "Automatic backups are disabled")
             return
         }
