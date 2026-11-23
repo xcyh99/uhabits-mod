@@ -80,7 +80,8 @@ class HistoryWidget(
                     series = listOf(),
                     defaultSquare = HistoryChart.Square.OFF,
                     notesIndicators = listOf(),
-                    padding = 2.5
+                    padding = 2.5,
+                    compactWeekdayLabels = true
                 )
             }
         ).apply {
