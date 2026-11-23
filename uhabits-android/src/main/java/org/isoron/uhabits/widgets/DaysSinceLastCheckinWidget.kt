@@ -109,9 +109,9 @@ internal class DaysSinceLastCheckinView(context: Context) : View(context) {
 
         // Use the actual single-line title boundary so the number can grow vertically.
         val titleBottom = titleBaseline + titlePaint.descent()
-        labelPaint.textSize = 6.5f * density
+        labelPaint.textSize = 7f * density
         labelPaint.color = footerColor
-        val labelBaseline = height * 0.97f
+        val labelBaseline = height * 0.97f + 0.5f * density
         val labelTop = labelBaseline + labelPaint.ascent()
         val verticalGap = 0.5f * density
         val numberTopLimit = titleBottom + verticalGap
