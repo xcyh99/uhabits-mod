@@ -19,6 +19,8 @@
 
 package org.isoron.platform.gui
 
+import kotlin.math.pow
+
 data class Color(
     val red: Double,
     val green: Double,
@@ -27,7 +29,20 @@ data class Color(
 ) {
     val luminosity: Double
         get() {
-            return 0.21 * red + 0.72 * green + 0.07 * blue
+            // Convert sRGB channel values to linear light before calculating
+            // relative luminance. Directly weighting gamma-encoded RGB values
+            // makes saturated colors (especially red and blue) appear brighter
+            // than they are, which can select the wrong text color.
+            fun linearize(channel: Double): Double =
+                if (channel <= 0.04045) {
+                    channel / 12.92
+                } else {
+                    ((channel + 0.055) / 1.055).pow(2.4)
+                }
+
+            return 0.2126 * linearize(red) +
+                0.7152 * linearize(green) +
+                0.0722 * linearize(blue)
         }
 
     constructor(rgb: Int) : this(
