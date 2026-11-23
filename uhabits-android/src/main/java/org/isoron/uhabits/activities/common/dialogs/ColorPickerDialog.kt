@@ -42,9 +42,14 @@ import org.isoron.uhabits.core.ui.callbacks.OnColorPickedCallback
 class ColorPickerDialog : DialogFragment() {
     private var initialColor: Int = Color.RED
     private var callback: OnColorPickedCallback? = null
+    private var dialogTitle: String? = null
 
     fun setInitialColor(color: Int) {
         initialColor = color
+    }
+
+    fun setDialogTitle(title: String) {
+        dialogTitle = title
     }
 
     fun setListener(callback: OnColorPickedCallback) {
@@ -123,7 +128,7 @@ class ColorPickerDialog : DialogFragment() {
         root.addView(preview)
 
         return AlertDialog.Builder(requireContext())
-            .setTitle("Choose habit color")
+            .setTitle(dialogTitle ?: "Choose habit color")
             .setView(root)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(android.R.string.ok) { _, _ ->
