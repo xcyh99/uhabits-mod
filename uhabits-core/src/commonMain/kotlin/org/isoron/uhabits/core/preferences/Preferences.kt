@@ -186,7 +186,7 @@ open class Preferences(private val storage: Storage) {
     open val midnightDelayHours: Int
         get() = if (isMidnightDelayEnabled) {
             storage.getString("pref_midnight_delay_hours", MIDNIGHT_DELAY_HOURS.toString())
-                .toIntOrNull()?.coerceIn(1, 23) ?: MIDNIGHT_DELAY_HOURS
+                .toIntOrNull()?.coerceIn(0, 6) ?: MIDNIGHT_DELAY_HOURS
         } else 0
 
     companion object {
