@@ -35,7 +35,7 @@ import java.io.File
  */
 class AutoBackup(private val context: Context) {
 
-    private val backupPattern = Regex("^Shizi_Full_Backup_\\d{8}_\\d{6}_\\d{3}\\.uhabitsbackup$")
+    private val backupPattern = Regex("^Shizi_Auto_Backup_\\d{8}_\\d{6}_\\d{3}\\.uhabitsbackup$")
 
     enum class Result { CREATED, SKIPPED, FAILED }
 
@@ -65,8 +65,16 @@ class AutoBackup(private val context: Context) {
             } else {
                 File(path!!).let { DocumentFile.fromFile(it) }
             }
-            if (dir != null) {
-                return runInPublicDir(dir, keep, force, intervalMillis)
+            if (dir == null) {
+                recordFailure()
+                return Result.FAILED
+            }
+            return runCatching {
+                runInPublicDir(dir, keep, force, intervalMillis)
+            }.getOrElse {
+                recordFailure()
+                Log.e("AutoBackup", "Unable to access the selected automatic backup folder", it)
+                Result.FAILED
             }
         }
 
@@ -75,7 +83,13 @@ class AutoBackup(private val context: Context) {
             recordFailure()
             return Result.FAILED
         }
-        return runInPrivateDir(basedir, keep, force, intervalMillis)
+        return runCatching {
+            runInPrivateDir(basedir, keep, force, intervalMillis)
+        }.getOrElse {
+            recordFailure()
+            Log.e("AutoBackup", "Unable to access the internal automatic backup folder", it)
+            Result.FAILED
+        }
     }
 
     private fun runInPrivateDir(dir: File, keep: Int, force: Boolean, intervalMillis: Long): Result {
@@ -85,7 +99,7 @@ class AutoBackup(private val context: Context) {
             ?: emptyList()
         val newestTimestamp = files.lastOrNull()?.lastModified() ?: 0L
         if (force || System.currentTimeMillis() - newestTimestamp >= intervalMillis) {
-            val target = File(dir, "Shizi_Full_Backup_${BackupFileName.timestamp()}.uhabitsbackup")
+            val target = File(dir, "Shizi_Auto_Backup_${BackupFileName.timestamp()}.uhabitsbackup")
             return runCatching {
                 FullBackupManager(context).createBackup(target)
                 // Retention is applied only after the new archive has been written successfully.
@@ -103,8 +117,9 @@ class AutoBackup(private val context: Context) {
                 Result.FAILED
             }
         } else {
-            recordSuccess(newestTimestamp)
-            Log.i("AutoBackup", "Fresh full backup found (timestamp=$newestTimestamp)")
+            // Keep the previous success timestamp without clearing a newer failure.
+            recordSuccess(newestTimestamp, clearFailure = false)
+            Log.i("AutoBackup", "Fresh automatic backup found (timestamp=$newestTimestamp)")
             return Result.SKIPPED
         }
     }
@@ -115,7 +130,7 @@ class AutoBackup(private val context: Context) {
             .sortedBy { it.lastModified() }
         val newestTimestamp = files.lastOrNull()?.lastModified() ?: 0L
         if (force || System.currentTimeMillis() - newestTimestamp >= intervalMillis) {
-            val name = "Shizi_Full_Backup_${BackupFileName.timestamp()}.uhabitsbackup"
+            val name = "Shizi_Auto_Backup_${BackupFileName.timestamp()}.uhabitsbackup"
             val target = dir.createFile("application/octet-stream", name)
             if (target == null) {
                 recordFailure()
@@ -138,18 +153,22 @@ class AutoBackup(private val context: Context) {
                 Result.FAILED
             }
         } else {
-            recordSuccess(newestTimestamp)
-            Log.i("AutoBackup", "Fresh full backup found (timestamp=$newestTimestamp)")
+            // Keep the previous success timestamp without clearing a newer failure.
+            recordSuccess(newestTimestamp, clearFailure = false)
+            Log.i("AutoBackup", "Fresh automatic backup found (timestamp=$newestTimestamp)")
             return Result.SKIPPED
         }
     }
 
-    private fun recordSuccess(timestamp: Long = System.currentTimeMillis()) {
-        context.getSharedPreferences(STATUS_PREFS, Context.MODE_PRIVATE)
+    private fun recordSuccess(
+        timestamp: Long = System.currentTimeMillis(),
+        clearFailure: Boolean = true
+    ) {
+        val editor = context.getSharedPreferences(STATUS_PREFS, Context.MODE_PRIVATE)
             .edit()
             .putLong(KEY_LAST_SUCCESS, timestamp)
-            .remove(KEY_LAST_FAILURE)
-            .apply()
+        if (clearFailure) editor.remove(KEY_LAST_FAILURE)
+        editor.apply()
     }
 
     private fun recordFailure() {
