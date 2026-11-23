@@ -61,7 +61,8 @@ class TimeRecordWidget(
                 footerColor = if (item.type == TimeRecord.ELAPSED) {
                     0xFF2EAD67.toInt()
                 } else {
-                    0xFFE69A32.toInt()
+                    // Vivid red for the countdown target date.
+                    0xFFFF3030.toInt()
                 }
                 footerText = target.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"))
             }
