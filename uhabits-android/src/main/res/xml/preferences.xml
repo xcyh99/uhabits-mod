@@ -75,7 +75,7 @@
         <Preference
                 android:key="createFullBackup"
                 android:title="完整备份"
-                android:summary="备份主数据库、时间记录、软件设置和小组件配置；不包含桌面布局及设备专属权限。"
+                android:summary="备份主数据库、时间记录、软件设置、小组件关联和悬浮计时器；不包含设备专属授权、铃声 URI 及桌面摆放位置。"
                 app:iconSpaceReserved="false" />
 
         <Preference
@@ -85,16 +85,9 @@
                 app:iconSpaceReserved="false" />
 
         <Preference
-                android:key="publicBackupFolder"
-                android:title="@string/select_public_backup_folder"
-                android:summary="@string/no_public_backup_folder_selected"
-                app:iconSpaceReserved="false" />
-
-        <Preference
-                android:key="autoBackupStatus"
-                android:title="自动完整备份状态"
-                android:summary="查看自动备份的最近结果和保存位置。"
-                android:selectable="false"
+                android:key="autoBackup"
+                android:title="自动备份"
+                android:summary="管理自动备份开关、备份间隔、保留数量、保存位置和立即备份。"
                 app:iconSpaceReserved="false" />
 
     </PreferenceCategory>

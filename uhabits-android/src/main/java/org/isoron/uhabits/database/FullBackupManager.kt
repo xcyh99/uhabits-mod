@@ -1,11 +1,9 @@
 package org.isoron.uhabits.database
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import android.os.Build
-import androidx.preference.PreferenceManager
 import org.json.JSONArray
 import org.json.JSONObject
 import org.isoron.uhabits.BuildConfig
@@ -71,25 +69,17 @@ class FullBackupManager(private val context: Context) {
         val payloads = linkedMapOf<String, File>()
         payloads["database/uhabits.db"] = stagedDatabase
 
-        val timeRecords = context.getSharedPreferences("time_records_data", Context.MODE_PRIVATE)
-            .getString("records", "[]") ?: "[]"
-        // Parse before writing so a malformed module value cannot silently enter a backup.
-        JSONArray(timeRecords)
-        payloads["modules/time_records.json"] =
-            writeTextFile(
-                tempDir,
-                "time_records.json",
-                JSONObject().put("format", "SHIZI_TIME_RECORDS").put("version", 1)
-                    .put("records", JSONArray(timeRecords)).toString()
-            )
-
-        val widgetLinks = context.getSharedPreferences("time_record_widget_links", Context.MODE_PRIVATE)
-        payloads["widgets/time_record_widget_links.json"] =
-            writeTextFile(tempDir, "time_record_widget_links.json", encodeStringPreferences(widgetLinks).toString())
-
-        val defaultPreferences = PreferenceManager.getDefaultSharedPreferences(context)
-        payloads["settings/preferences.json"] =
-            writeTextFile(tempDir, "preferences.json", encodePreferences(defaultPreferences).toString())
+        val registeredModules = FullBackupModuleRegistry.create()
+        registeredModules.forEach { module ->
+            module.export(context, tempDir)
+            module.entries.forEach { entry ->
+                val payload = File(tempDir, entry)
+                if (!payload.isFile) throw IOException("备份模块 ${module.id} 未生成文件：$entry")
+                if (payloads.put(entry, payload) != null) {
+                    throw IOException("多个备份模块使用了相同文件路径：$entry")
+                }
+            }
+        }
 
         val checksums = JSONObject()
         payloads.forEach { (name, file) -> checksums.put(name, sha256(file)) }
@@ -104,7 +94,7 @@ class FullBackupManager(private val context: Context) {
             .put("database_version", dbVersion)
             .put("android_sdk", Build.VERSION.SDK_INT)
             .put("device", Build.MANUFACTURER + " " + Build.MODEL)
-            .put("modules", JSONArray(listOf("habits_database", "time_records", "time_record_widget_links", "app_preferences")))
+            .put("modules", JSONArray(listOf("habits_database") + registeredModules.map { it.id }))
             .put("payload_count", payloads.size)
             .put("checksums_sha256", sha256(checksumsFile))
 
@@ -169,7 +159,39 @@ class FullBackupManager(private val context: Context) {
         }
         val checksums = JSONObject(String(checksumsBytes, Charsets.UTF_8))
         val expectedNames = checksums.keys().asSequence().toSet()
-        if (!expectedNames.containsAll(RESTORABLE_ENTRIES)) {
+        val payloadNames = files.keys - setOf("manifest.json", "checksums.json")
+        if (payloadNames != expectedNames) {
+            throw IOException("备份文件与完整性校验清单不一致")
+        }
+        if (manifest.optInt("payload_count", -1) != expectedNames.size) {
+            throw IOException("备份说明中的数据文件数量不一致")
+        }
+        val registeredModules = FullBackupModuleRegistry.create()
+        val supportedModuleIds = setOf("habits_database") + registeredModules.map { it.id }
+        val supportedPayloads = setOf("database/uhabits.db") + FullBackupModuleRegistry.allEntries
+        val unsupportedPayloads = payloadNames - supportedPayloads
+        if (unsupportedPayloads.isNotEmpty()) {
+            throw IOException("当前版本不支持备份数据项：${unsupportedPayloads.first()}")
+        }
+        val declaredModules = manifest.optJSONArray("modules")
+            ?: throw IOException("备份说明中缺少模块清单")
+        val declaredModuleIds = (0 until declaredModules.length())
+            .map { declaredModules.optString(it) }
+        if (declaredModuleIds.size != declaredModuleIds.toSet().size) {
+            throw IOException("备份说明包含重复模块")
+        }
+        declaredModuleIds.forEach { moduleId ->
+            if (moduleId !in supportedModuleIds) {
+                throw IOException("当前版本不支持备份模块：$moduleId")
+            }
+        }
+        val presentModuleIds = setOf("habits_database") + registeredModules.filter { module ->
+            module.entries.all { it in payloadNames }
+        }.map { it.id }
+        if (declaredModuleIds.toSet() != presentModuleIds) {
+            throw IOException("备份说明中的模块清单与实际数据不一致")
+        }
+        if (!expectedNames.containsAll(REQUIRED_ENTRIES)) {
             throw IOException("备份包缺少必要的数据模块或校验记录")
         }
         expectedNames.forEach { name ->
@@ -178,8 +200,17 @@ class FullBackupManager(private val context: Context) {
                 throw IOException("文件校验失败：$name")
             }
         }
-        if (!files.keys.containsAll(RESTORABLE_ENTRIES)) {
+        if (!files.keys.containsAll(REQUIRED_ENTRIES)) {
             throw IOException("备份中缺少主数据库、时间记录或设置数据")
+        }
+        FullBackupModuleRegistry.create().forEach { module ->
+            val presentEntries = module.entries.filter { it in files }
+            if (presentEntries.isNotEmpty()) {
+                if (!presentEntries.containsAll(module.entries)) {
+                    throw IOException("备份模块 ${module.id} 的数据不完整")
+                }
+                module.validate(presentEntries.associateWith { files.getValue(it) })
+            }
         }
         return BackupInfo(
             createdAt = manifest.optString("created_at"),
@@ -208,11 +239,12 @@ class FullBackupManager(private val context: Context) {
         if (!staging.mkdirs()) throw IOException("无法创建恢复暂存目录")
 
         try {
+            val restorableEntries = setOf("database/uhabits.db") + FullBackupModuleRegistry.allEntries
             var totalBytes = 0L
             ZipInputStream(BufferedInputStream(input)).use { zip ->
                 var entry = zip.nextEntry
                 while (entry != null) {
-                    if (!entry.isDirectory && entry.name in RESTORABLE_ENTRIES) {
+                    if (!entry.isDirectory && entry.name in restorableEntries) {
                         requireSafeEntryName(entry.name)
                         val target = File(staging, entry.name)
                         target.parentFile?.mkdirs()
@@ -235,25 +267,13 @@ class FullBackupManager(private val context: Context) {
             val database = File(staging, "database/uhabits.db")
             if (!database.isFile || database.length() == 0L) throw IOException("备份中没有有效主数据库")
             validateDatabaseFile(database)
-            val recordsDocument = JSONObject(File(staging, "modules/time_records.json").readText())
-            if (recordsDocument.optString("format") != "SHIZI_TIME_RECORDS" ||
-                recordsDocument.optInt("version", -1) != 1 ||
-                recordsDocument.optJSONArray("records") == null
-            ) throw IOException("时间记录备份格式不受支持")
-            val linksDocument = JSONObject(File(staging, "widgets/time_record_widget_links.json").readText())
-            if (linksDocument.optString("format") != "SHIZI_WIDGET_LINKS" ||
-                linksDocument.optInt("version", -1) != 1 ||
-                linksDocument.optJSONObject("values") == null
-            ) throw IOException("小组件配置备份格式不受支持")
-            val settingsDocument = JSONObject(File(staging, "settings/preferences.json").readText())
-            val settings = settingsDocument.optJSONObject("values")
-            if (settingsDocument.optString("format") != "SHIZI_PREFERENCES" ||
-                settingsDocument.optInt("version", -1) != 1 || settings == null
-            ) throw IOException("软件设置备份格式不受支持")
-            settings.keys().forEach { key ->
-                val type = settings.getJSONObject(key).optString("type")
-                if (type !in setOf("boolean", "int", "long", "float", "string", "string_set")) {
-                    throw IOException("备份包含不支持的软件设置类型：$type")
+            FullBackupModuleRegistry.create().forEach { module ->
+                val presentEntries = module.entries.filter { File(staging, it).isFile }
+                if (presentEntries.isNotEmpty()) {
+                    if (!presentEntries.containsAll(module.entries)) {
+                        throw IOException("备份模块 ${module.id} 的数据不完整")
+                    }
+                    module.validate(presentEntries.associateWith { File(staging, it).readBytes() })
                 }
             }
             if (readDatabaseVersion(database) != info.databaseVersion) {
@@ -306,19 +326,12 @@ class FullBackupManager(private val context: Context) {
             }
         }
 
-        val defaultPreferences = PreferenceManager.getDefaultSharedPreferences(context)
-        val safetyPreferences = encodePreferences(defaultPreferences).toString()
-        val safetyTimeRecords = context.getSharedPreferences("time_records_data", Context.MODE_PRIVATE)
-            .getString("records", "[]") ?: "[]"
-        val safetyWidgetLinks = encodeStringPreferences(
-            context.getSharedPreferences("time_record_widget_links", Context.MODE_PRIVATE)
-        ).toString()
-        File(safetyDir, "preferences.json").writeText(safetyPreferences)
-        File(safetyDir, "time_records.json").writeText(
-            JSONObject().put("format", "SHIZI_TIME_RECORDS").put("version", 1)
-                .put("records", JSONArray(safetyTimeRecords)).toString()
-        )
-        File(safetyDir, "time_record_widget_links.json").writeText(safetyWidgetLinks)
+        val registeredModules = FullBackupModuleRegistry.create()
+        val modulesToRestore = registeredModules.filter { module ->
+            module.entries.any { File(pending, it).isFile }
+        }
+        val safetyModuleRoot = File(safetyDir, "modules")
+        modulesToRestore.forEach { module -> module.snapshot(context, safetyModuleRoot) }
 
         try {
             val stagedDatabase = File(pending, "database/uhabits.db")
@@ -335,9 +348,7 @@ class FullBackupManager(private val context: Context) {
                 replacement.delete()
             }
 
-            restorePreferences(File(pending, "settings/preferences.json").readText())
-            restoreTimeRecords(File(pending, "modules/time_records.json").readText())
-            restoreWidgetLinks(File(pending, "widgets/time_record_widget_links.json").readText())
+            modulesToRestore.forEach { module -> module.restore(context, pending) }
             pending.deleteRecursively()
             return true
         } catch (error: Exception) {
@@ -350,14 +361,9 @@ class FullBackupManager(private val context: Context) {
                     safetyWal.copyTo(File(databaseFile.absolutePath + "-wal"), overwrite = true)
                 }
             }
-            runCatching { restorePreferences(safetyPreferences) }
-            runCatching {
-                restoreTimeRecords(
-                    JSONObject().put("format", "SHIZI_TIME_RECORDS").put("version", 1)
-                        .put("records", JSONArray(safetyTimeRecords)).toString()
-                )
+            modulesToRestore.forEach { module ->
+                runCatching { module.rollback(context, safetyModuleRoot) }
             }
-            runCatching { restoreWidgetLinks(safetyWidgetLinks) }
             File(context.filesDir, "full-backup-restore-failed.txt")
                 .writeText(error.message ?: "未知恢复错误")
             // Keep the staged archive so the user can retry after correcting the
@@ -381,67 +387,6 @@ class FullBackupManager(private val context: Context) {
             db.close()
         }
     }
-
-    private fun restorePreferences(document: String) {
-        val settingsDocument = JSONObject(document)
-        if (settingsDocument.optString("format") != "SHIZI_PREFERENCES" ||
-            settingsDocument.optInt("version", -1) != 1
-        ) throw IOException("软件设置备份格式不受支持")
-        val values = settingsDocument.optJSONObject("values")
-            ?: throw IOException("软件设置备份内容不完整")
-        val preferences = PreferenceManager.getDefaultSharedPreferences(context)
-        val editor = preferences.edit()
-        preferences.all.keys.forEach { key ->
-            if (!isDeviceLocalPreference(key)) editor.remove(key)
-        }
-        values.keys().forEach { key ->
-            val item = values.getJSONObject(key)
-            val value = item.get("value")
-            when (item.getString("type")) {
-                "boolean" -> editor.putBoolean(key, value as Boolean)
-                "int" -> editor.putInt(key, (value as Number).toInt())
-                "long" -> editor.putLong(key, (value as Number).toLong())
-                "float" -> editor.putFloat(key, (value as Number).toFloat())
-                "string" -> editor.putString(key, value as String)
-                "string_set" -> {
-                    val array = value as JSONArray
-                    editor.putStringSet(key, buildSet {
-                        for (index in 0 until array.length()) add(array.getString(index))
-                    })
-                }
-                else -> throw IOException("不支持的软件设置类型：${item.optString("type")}")
-            }
-        }
-        if (!editor.commit()) throw IOException("软件设置恢复失败")
-    }
-
-    private fun restoreTimeRecords(document: String) {
-        val recordDocument = JSONObject(document)
-        if (recordDocument.optString("format") != "SHIZI_TIME_RECORDS" ||
-            recordDocument.optInt("version", -1) != 1
-        ) throw IOException("时间记录备份格式不受支持")
-        val records = recordDocument.optJSONArray("records")
-            ?: throw IOException("时间记录备份内容不完整")
-        if (!context.getSharedPreferences("time_records_data", Context.MODE_PRIVATE)
-                .edit().putString("records", records.toString()).commit()
-        ) throw IOException("时间记录恢复失败")
-    }
-
-    private fun restoreWidgetLinks(document: String) {
-        val linksDocument = JSONObject(document)
-        if (linksDocument.optString("format") != "SHIZI_WIDGET_LINKS" ||
-            linksDocument.optInt("version", -1) != 1
-        ) throw IOException("小组件配置备份格式不受支持")
-        val values = linksDocument.optJSONObject("values")
-            ?: throw IOException("小组件配置备份内容不完整")
-        val preferences = context.getSharedPreferences("time_record_widget_links", Context.MODE_PRIVATE)
-        val editor = preferences.edit().clear()
-        values.keys().forEach { key -> editor.putString(key, values.getString(key)) }
-        if (!editor.commit()) throw IOException("时间记录小组件配置恢复失败")
-    }
-
-    private fun isDeviceLocalPreference(key: String): Boolean =
-        key.startsWith("webdav_") || key == "publicBackupFolder" || key == "reminderSound"
 
     private fun copyConsistentDatabaseSnapshot(source: File, destination: File) {
         val db = SQLiteDatabase.openDatabase(
@@ -510,44 +455,6 @@ class FullBackupManager(private val context: Context) {
         }
     }
 
-    private fun encodePreferences(preferences: SharedPreferences): JSONObject {
-        val result = JSONObject()
-        preferences.all.toSortedMap().forEach { (key, value) ->
-            // WebDAV credentials are encrypted with a device-bound Android Keystore key.
-            // SAF folder grants and notification sound URIs are device-local and not portable.
-            if (key.startsWith("webdav_") || key == "publicBackupFolder" || key == "reminderSound") {
-                return@forEach
-            }
-            result.put(key, encodeValue(value))
-        }
-        return JSONObject()
-            .put("format", "SHIZI_PREFERENCES")
-            .put("version", 1)
-            .put("values", result)
-    }
-
-    private fun encodeStringPreferences(preferences: SharedPreferences): JSONObject {
-        val values = JSONObject()
-        preferences.all.toSortedMap().forEach { (key, value) ->
-            if (value is String) values.put(key, value)
-        }
-        return JSONObject().put("format", "SHIZI_WIDGET_LINKS").put("version", 1).put("values", values)
-    }
-
-    private fun encodeValue(value: Any?): JSONObject? {
-        val result = JSONObject()
-        when (value) {
-            is Boolean -> result.put("type", "boolean").put("value", value)
-            is Int -> result.put("type", "int").put("value", value)
-            is Long -> result.put("type", "long").put("value", value)
-            is Float -> result.put("type", "float").put("value", value.toDouble())
-            is String -> result.put("type", "string").put("value", value)
-            is Set<*> -> result.put("type", "string_set").put("value", JSONArray(value.filterIsInstance<String>().sorted()))
-            else -> return null
-        }
-        return result
-    }
-
     private fun writeTextFile(dir: File, name: String, content: String): File =
         File(dir, name).apply {
             parentFile?.mkdirs()
@@ -586,11 +493,6 @@ class FullBackupManager(private val context: Context) {
         const val MAX_ENTRY_BYTES = 128 * 1024 * 1024
         const val MAX_TOTAL_BYTES = 256L * 1024 * 1024
         const val PENDING_RESTORE_DIR = "full-backup-pending"
-        val RESTORABLE_ENTRIES = setOf(
-            "database/uhabits.db",
-            "modules/time_records.json",
-            "widgets/time_record_widget_links.json",
-            "settings/preferences.json"
-        )
+        val REQUIRED_ENTRIES = setOf("database/uhabits.db") + FullBackupModuleRegistry.requiredEntries
     }
 }

@@ -26,6 +26,7 @@ import org.hamcrest.Matchers.equalTo
 import org.isoron.uhabits.BaseViewTest
 import org.isoron.uhabits.R
 import org.isoron.uhabits.core.ui.screens.habits.show.views.NotesCardState
+import org.isoron.uhabits.core.ui.views.LightTheme
 import org.junit.Assert.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -44,9 +45,16 @@ class NotesCardViewTest : BaseViewTest() {
             .from(targetContext)
             .inflate(R.layout.show_habit, null)
             .findViewById(R.id.notesCard)
-        view.setState(NotesCardState(description = "This is a test description"))
+        view.setState(testState("This is a test description"))
         measureView(view, 800f, 200f)
     }
+
+    private fun testState(description: String) = NotesCardState(
+        description = description,
+        historyNotes = emptyList(),
+        color = fixtures.createLongHabit().color,
+        theme = LightTheme()
+    )
 
     @Test
     fun testRender() {
@@ -55,7 +63,7 @@ class NotesCardViewTest : BaseViewTest() {
 
     @Test
     fun testRenderEmptyDescription() {
-        view.setState(NotesCardState(description = ""))
+        view.setState(testState(""))
         assertThat(view.visibility, equalTo(GONE))
     }
 }

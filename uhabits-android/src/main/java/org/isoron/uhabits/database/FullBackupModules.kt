@@ -1,0 +1,369 @@
+package org.isoron.uhabits.database
+
+import android.content.Context
+import android.content.SharedPreferences
+import android.os.SystemClock
+import androidx.preference.PreferenceManager
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
+import java.io.IOException
+
+/**
+ * A portable data module participating in the full-app backup container.
+ *
+ * New features with their own persistent storage register one module here.
+ * The database remains a separately managed core payload and legacy database
+ * export/synchronization code does not use this registry.
+ */
+internal interface FullBackupModule {
+    val id: String
+    val entries: Set<String>
+    // New modules are optional by default so archives created before a feature
+    // existed remain restorable. Promote entries to required only with a
+    // deliberate format migration.
+    val requiredEntries: Set<String>
+        get() = emptySet()
+
+    fun export(context: Context, stagingRoot: File)
+    fun validate(payloads: Map<String, ByteArray>)
+    fun snapshot(context: Context, safetyRoot: File)
+    fun restore(context: Context, restoreRoot: File)
+    fun rollback(context: Context, safetyRoot: File)
+}
+
+internal object FullBackupModuleRegistry {
+    const val FLOATING_TIMER_ENTRY = "modules/floating_timer_state.json"
+    private const val FLOATING_TIMER_PREFS = "floating_timer_state"
+
+    fun create(): List<FullBackupModule> = listOf(
+        TimeRecordsModule,
+        TimeRecordWidgetLinksModule,
+        AppPreferencesModule,
+        FloatingTimerModule
+    )
+
+    val requiredEntries: Set<String>
+        get() = create().flatMap { it.requiredEntries }.toSet()
+
+    val allEntries: Set<String>
+        get() = create().flatMap { it.entries }.toSet()
+
+    private object TimeRecordsModule : FullBackupModule {
+        private const val ENTRY = "modules/time_records.json"
+        override val id = "time_records"
+        override val entries = setOf(ENTRY)
+        override val requiredEntries = entries
+
+        override fun export(context: Context, stagingRoot: File) {
+            val raw = context.getSharedPreferences("time_records_data", Context.MODE_PRIVATE)
+                .getString("records", "[]") ?: "[]"
+            val document = JSONObject()
+                .put("format", "SHIZI_TIME_RECORDS")
+                .put("version", 1)
+                .put("records", JSONArray(raw))
+            writePayload(stagingRoot, ENTRY, document.toString())
+        }
+
+        override fun validate(payloads: Map<String, ByteArray>) {
+            val root = jsonPayload(payloads, ENTRY)
+            if (root.optString("format") != "SHIZI_TIME_RECORDS" ||
+                root.optInt("version", -1) != 1 ||
+                root.optJSONArray("records") == null
+            ) throw IOException("时间记录备份格式不受支持")
+        }
+
+        override fun snapshot(context: Context, safetyRoot: File) = export(context, safetyRoot)
+
+        override fun restore(context: Context, restoreRoot: File) {
+            val records = JSONObject(readPayload(restoreRoot, ENTRY)).getJSONArray("records")
+            if (!context.getSharedPreferences("time_records_data", Context.MODE_PRIVATE)
+                    .edit().putString("records", records.toString()).commit()
+            ) throw IOException("时间记录恢复失败")
+        }
+
+        override fun rollback(context: Context, safetyRoot: File) = restore(context, safetyRoot)
+    }
+
+    private object TimeRecordWidgetLinksModule : FullBackupModule {
+        private const val ENTRY = "widgets/time_record_widget_links.json"
+        override val id = "time_record_widget_links"
+        override val entries = setOf(ENTRY)
+        override val requiredEntries = entries
+
+        override fun export(context: Context, stagingRoot: File) {
+            val preferences = context.getSharedPreferences("time_record_widget_links", Context.MODE_PRIVATE)
+            val values = JSONObject()
+            preferences.all.toSortedMap().forEach { (key, value) ->
+                if (value is String) values.put(key, value)
+            }
+            val document = JSONObject()
+                .put("format", "SHIZI_WIDGET_LINKS")
+                .put("version", 1)
+                .put("values", values)
+            writePayload(stagingRoot, ENTRY, document.toString())
+        }
+
+        override fun validate(payloads: Map<String, ByteArray>) {
+            val root = jsonPayload(payloads, ENTRY)
+            if (root.optString("format") != "SHIZI_WIDGET_LINKS" ||
+                root.optInt("version", -1) != 1 ||
+                root.optJSONObject("values") == null
+            ) throw IOException("小组件配置备份格式不受支持")
+            val values = root.getJSONObject("values")
+            values.keys().forEach { key ->
+                if (values.get(key) !is String) throw IOException("小组件配置值无效：$key")
+            }
+        }
+
+        override fun snapshot(context: Context, safetyRoot: File) = export(context, safetyRoot)
+
+        override fun restore(context: Context, restoreRoot: File) {
+            val values = JSONObject(readPayload(restoreRoot, ENTRY)).getJSONObject("values")
+            val editor = context.getSharedPreferences(
+                "time_record_widget_links", Context.MODE_PRIVATE
+            ).edit().clear()
+            values.keys().forEach { key -> editor.putString(key, values.getString(key)) }
+            if (!editor.commit()) throw IOException("时间记录小组件配置恢复失败")
+        }
+
+        override fun rollback(context: Context, safetyRoot: File) = restore(context, safetyRoot)
+    }
+
+    private object AppPreferencesModule : FullBackupModule {
+        private const val ENTRY = "settings/preferences.json"
+        override val id = "app_preferences"
+        override val entries = setOf(ENTRY)
+        override val requiredEntries = entries
+
+        override fun export(context: Context, stagingRoot: File) {
+            val preferences = PreferenceManager.getDefaultSharedPreferences(context)
+            writePayload(stagingRoot, ENTRY, encodePreferences(preferences, excludeDeviceLocal = true).toString())
+        }
+
+        override fun validate(payloads: Map<String, ByteArray>) {
+            validatePreferencesDocument(jsonPayload(payloads, ENTRY), "软件设置")
+        }
+
+        override fun snapshot(context: Context, safetyRoot: File) = export(context, safetyRoot)
+
+        override fun restore(context: Context, restoreRoot: File) {
+            restorePreferencesDocument(
+                PreferenceManager.getDefaultSharedPreferences(context),
+                JSONObject(readPayload(restoreRoot, ENTRY)),
+                clearExisting = false,
+                skipDeviceLocal = true
+            )
+        }
+
+        override fun rollback(context: Context, safetyRoot: File) = restore(context, safetyRoot)
+    }
+
+    private object FloatingTimerModule : FullBackupModule {
+        override val id = "floating_timer"
+        override val entries = setOf(FLOATING_TIMER_ENTRY)
+        // Optional so backups created before this module existed remain valid.
+        override val requiredEntries = emptySet<String>()
+
+        override fun export(context: Context, stagingRoot: File) {
+            val preferences = context.getSharedPreferences(FLOATING_TIMER_PREFS, Context.MODE_PRIVATE)
+            val mode = preferences.getString("mode", "down") ?: "down"
+            val duration = preferences.getLong("duration", 0L)
+            val base = preferences.getLong("base", duration)
+            val running = preferences.getBoolean("running", false)
+            val anchor = preferences.getLong("anchor", 0L)
+            val elapsed = if (running) (SystemClock.elapsedRealtime() - anchor).coerceAtLeast(0L) else 0L
+            val portableBase = if (mode == "up") {
+                (base + elapsed).coerceAtLeast(0L)
+            } else {
+                (base - elapsed).coerceAtLeast(0L)
+            }
+            val values = JSONObject()
+                .put("mode", encodeValue(mode))
+                .put("duration", encodeValue(duration))
+                .put("base", encodeValue(portableBase))
+                .put("running", encodeValue(false))
+            val document = JSONObject()
+                .put("format", "SHIZI_FLOATING_TIMER")
+                .put("version", 1)
+                .put("values", values)
+            writePayload(stagingRoot, FLOATING_TIMER_ENTRY, document.toString())
+        }
+
+        override fun validate(payloads: Map<String, ByteArray>) {
+            val root = jsonPayload(payloads, FLOATING_TIMER_ENTRY)
+            val values = root.optJSONObject("values")
+            if (root.optString("format") != "SHIZI_FLOATING_TIMER" ||
+                root.optInt("version", -1) != 1 || values == null
+            ) throw IOException("悬浮计时器备份格式不受支持")
+            val expected = mapOf(
+                "mode" to "string",
+                "duration" to "long",
+                "base" to "long",
+                "running" to "boolean"
+            )
+            if (values.length() != expected.size) throw IOException("悬浮计时器备份字段不完整")
+            expected.forEach { (key, type) ->
+                val item = values.optJSONObject(key)
+                    ?: throw IOException("悬浮计时器备份缺少字段：$key")
+                val value = item.opt("value")
+                val validValue = when (type) {
+                    "string" -> value is String
+                    "long" -> value is Number
+                    "boolean" -> value is Boolean
+                    else -> false
+                }
+                if (item.optString("type") != type || !item.has("value") || !validValue) {
+                    throw IOException("悬浮计时器备份字段类型错误：$key")
+                }
+            }
+            if (values.getJSONObject("mode").optString("value") !in setOf("up", "down")) {
+                throw IOException("悬浮计时器模式无效")
+            }
+            values.getJSONObject("duration").getLong("value")
+            values.getJSONObject("base").getLong("value")
+            values.getJSONObject("running").getBoolean("value")
+        }
+
+        override fun snapshot(context: Context, safetyRoot: File) {
+            val preferences = context.getSharedPreferences(FLOATING_TIMER_PREFS, Context.MODE_PRIVATE)
+            writePayload(safetyRoot, FLOATING_TIMER_ENTRY, encodePreferences(preferences, false).toString())
+        }
+
+        override fun restore(context: Context, restoreRoot: File) {
+            val root = JSONObject(readPayload(restoreRoot, FLOATING_TIMER_ENTRY))
+            val values = root.getJSONObject("values")
+            val preferences = context.getSharedPreferences(FLOATING_TIMER_PREFS, Context.MODE_PRIVATE)
+            val editor = preferences.edit()
+                .putString("mode", values.getJSONObject("mode").getString("value"))
+                .putLong("duration", values.getJSONObject("duration").getLong("value"))
+                .putLong("base", values.getJSONObject("base").getLong("value"))
+                .putBoolean("running", false)
+                .putLong("anchor", 0L)
+            // x/y remain local to this device's screen.
+            if (!editor.commit()) throw IOException("悬浮计时器状态恢复失败")
+        }
+
+        override fun rollback(context: Context, safetyRoot: File) {
+            val preferences = context.getSharedPreferences(FLOATING_TIMER_PREFS, Context.MODE_PRIVATE)
+            restorePreferencesDocument(
+                preferences,
+                JSONObject(readPayload(safetyRoot, FLOATING_TIMER_ENTRY)),
+                clearExisting = true,
+                skipDeviceLocal = false
+            )
+        }
+    }
+
+    private fun validatePreferencesDocument(root: JSONObject, label: String) {
+        if (root.optString("format") != "SHIZI_PREFERENCES" ||
+            root.optInt("version", -1) != 1 || root.optJSONObject("values") == null
+        ) throw IOException("${label}备份格式不受支持")
+        val values = root.getJSONObject("values")
+        values.keys().forEach { key ->
+            val item = values.optJSONObject(key) ?: throw IOException("${label}备份字段无效：$key")
+            val type = item.optString("type")
+            if (!item.has("value")) throw IOException("${label}备份字段缺少值：$key")
+            val value = item.get("value")
+            val valid = when (type) {
+                "boolean" -> value is Boolean
+                "int", "long", "float" -> value is Number
+                "string" -> value is String
+                "string_set" -> value is JSONArray && (0 until value.length()).all {
+                    value.opt(it) is String
+                }
+                else -> false
+            }
+            if (!valid) throw IOException("备份包含不支持的${label}类型或值：$key")
+        }
+    }
+
+    private fun encodePreferences(preferences: SharedPreferences, excludeDeviceLocal: Boolean): JSONObject {
+        val values = JSONObject()
+        preferences.all.toSortedMap().forEach { (key, value) ->
+            if (excludeDeviceLocal && isDeviceLocalPreference(key)) return@forEach
+            encodeValue(value)?.let { values.put(key, it) }
+        }
+        return JSONObject()
+            .put("format", "SHIZI_PREFERENCES")
+            .put("version", 1)
+            .put("values", values)
+    }
+
+    private fun restorePreferencesDocument(
+        preferences: SharedPreferences,
+        document: JSONObject,
+        clearExisting: Boolean,
+        skipDeviceLocal: Boolean
+    ) {
+        validatePreferencesDocument(document, "软件设置")
+        val values = document.getJSONObject("values")
+        val editor = preferences.edit()
+        if (clearExisting) {
+            editor.clear()
+        } else if (skipDeviceLocal) {
+            preferences.all.keys.forEach { key ->
+                if (!isDeviceLocalPreference(key)) editor.remove(key)
+            }
+        }
+        values.keys().forEach { key ->
+            if (skipDeviceLocal && isDeviceLocalPreference(key)) return@forEach
+            val item = values.getJSONObject(key)
+            val value = item.get("value")
+            when (item.getString("type")) {
+                "boolean" -> editor.putBoolean(key, value as Boolean)
+                "int" -> editor.putInt(key, (value as Number).toInt())
+                "long" -> editor.putLong(key, (value as Number).toLong())
+                "float" -> editor.putFloat(key, (value as Number).toFloat())
+                "string" -> editor.putString(key, value as String)
+                "string_set" -> {
+                    val array = value as JSONArray
+                    editor.putStringSet(key, buildSet {
+                        for (index in 0 until array.length()) add(array.getString(index))
+                    })
+                }
+                else -> throw IOException("不支持的软件设置类型：${item.optString("type")}")
+            }
+        }
+        if (!editor.commit()) throw IOException("软件设置恢复失败")
+    }
+
+    private fun encodeValue(value: Any?): JSONObject? {
+        val result = JSONObject()
+        when (value) {
+            is Boolean -> result.put("type", "boolean").put("value", value)
+            is Int -> result.put("type", "int").put("value", value)
+            is Long -> result.put("type", "long").put("value", value)
+            is Float -> result.put("type", "float").put("value", value.toDouble())
+            is String -> result.put("type", "string").put("value", value)
+            is Set<*> -> result.put("type", "string_set")
+                .put("value", JSONArray(value.filterIsInstance<String>().sorted()))
+            else -> return null
+        }
+        return result
+    }
+
+    private fun isDeviceLocalPreference(key: String): Boolean =
+        key.startsWith("webdav_") || key == "publicBackupFolder" || key == "reminderSound"
+
+    private fun jsonPayload(payloads: Map<String, ByteArray>, entry: String): JSONObject {
+        val bytes = payloads[entry] ?: throw IOException("备份缺少文件：$entry")
+        return try {
+            JSONObject(String(bytes, Charsets.UTF_8))
+        } catch (error: Exception) {
+            throw IOException("备份文件格式错误：$entry", error)
+        }
+    }
+
+    private fun writePayload(root: File, entry: String, content: String) {
+        val target = File(root, entry)
+        target.parentFile?.mkdirs()
+        target.writeText(content, Charsets.UTF_8)
+    }
+
+    private fun readPayload(root: File, entry: String): String {
+        val file = File(root, entry)
+        if (!file.isFile) throw IOException("备份缺少文件：$entry")
+        return file.readText(Charsets.UTF_8)
+    }
+}

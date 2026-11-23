@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="auto_backup_interval_entries">
+        <item>每天一次</item>
+        <item>每隔2天</item>
+        <item>每隔3天</item>
+        <item>每隔7天</item>
+    </string-array>
+    <string-array name="auto_backup_interval_values">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>7</item>
+    </string-array>
+    <string-array name="auto_backup_keep_entries">
+        <item>保留3份</item>
+        <item>保留5份</item>
+        <item>保留10份</item>
+        <item>保留20份</item>
+    </string-array>
+    <string-array name="auto_backup_keep_values">
+        <item>3</item>
+        <item>5</item>
+        <item>10</item>
+        <item>20</item>
+    </string-array>
+</resources>
