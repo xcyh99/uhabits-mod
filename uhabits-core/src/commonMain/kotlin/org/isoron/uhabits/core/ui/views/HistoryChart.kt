@@ -310,7 +310,7 @@ class HistoryChart(
                 0.7152 * luminance(squareColor.green) +
                 0.0722 * luminance(squareColor.blue)
             if (theme is DarkTheme) {
-                if (backgroundLuminance >= 0.70) Color.BLACK else Color.WHITE
+                if (backgroundLuminance >= 0.80) Color.BLACK else Color.WHITE
             } else {
                 if (backgroundLuminance <= 0.18) Color.WHITE else Color.BLACK
             }
