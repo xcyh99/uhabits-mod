@@ -147,6 +147,30 @@ class PreferencesTest : BaseUnitTest() {
     }
 
     @Test
+    fun testHistoryChartWhiteWeightDefaultAndPersistence() {
+        assertEquals(6.6, prefs.historyChartWhiteWeight)
+        prefs.historyChartWhiteWeight = 8.8
+        assertEquals(8.8, prefs.historyChartWhiteWeight)
+    }
+
+    @Test
+    fun testHistoryChartWhiteWeightRejectsInvalidValues() {
+        prefs.historyChartWhiteWeight = 8.8
+        storage.putString("parameter_history_white_weight", "NaN")
+        assertEquals(6.6, prefs.historyChartWhiteWeight)
+    }
+
+    @Test
+    fun testHistoryChartWhiteWeightRestoresPreviousValueAndDefaults() {
+        prefs.historyChartWhiteWeight = 8.8
+        prefs.historyChartWhiteWeight = 9.9
+        assertEquals(8.8, prefs.restorePreviousHistoryChartWhiteWeight())
+        assertEquals(8.8, prefs.historyChartWhiteWeight)
+        prefs.restoreParameterDefaults()
+        assertEquals(6.6, prefs.historyChartWhiteWeight)
+    }
+
+    @Test
     fun testMidnightDelay() {
         assertFalse(prefs.isMidnightDelayEnabled)
         prefs.isMidnightDelayEnabled = true
