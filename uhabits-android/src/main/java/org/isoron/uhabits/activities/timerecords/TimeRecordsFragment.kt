@@ -42,6 +42,13 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
     override fun onResume() {
         super.onResume()
         refreshPreferences()
+        val recordId = requireActivity().intent.getStringExtra(TimeRecordsActivity.EXTRA_EDIT_RECORD_ID)
+        if (!recordId.isNullOrBlank()) {
+            requireActivity().intent.removeExtra(TimeRecordsActivity.EXTRA_EDIT_RECORD_ID)
+            TimeRecordStore.get(requireContext(), recordId)?.let { record ->
+                view?.post { showEditor(record.type, record) }
+            }
+        }
     }
 
     private fun refreshPreferences() {
