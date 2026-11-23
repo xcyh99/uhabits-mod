@@ -10,6 +10,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Typeface
+import android.graphics.drawable.Icon
 import android.os.Build
 import androidx.core.app.NotificationManagerCompat
 import org.isoron.platform.time.getToday
@@ -83,7 +84,6 @@ object StatusBarDaysNotifier {
                 ?: return@forEach
             val notificationId = if (itemId.isBlank()) NOTIFICATION_ID
                 else 7406 + (("${itemMode}:${itemId}".hashCode() and 0x7fffffff) % 100000)
-            activeIds.add(notificationId)
             val contentIntent = if (itemMode == "checkin" && result.habitId != null) {
                 IntentFactory().startShowHabitActivity(app, result.habitId).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -97,12 +97,11 @@ object StatusBarDaysNotifier {
                 app, notificationId, contentIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            // Diagnostic build: use a fixed white triangle, deliberately unlike
-            // both the app launcher icon and the dynamic bitmap. This isolates whether
-            // HarmonyOS accepts a normal drawable resource as the notification small icon.
+            // Restore the original per-item dynamic day-number icon and its project color.
             val posted = runCatching {
+                val smallIcon = Icon.createWithBitmap(createDaysBitmap(result.days, result.color))
                 val notification = android.app.Notification.Builder(app, CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_status_test)
+                    .setSmallIcon(smallIcon)
                     .setContentTitle(result.description)
                     .setContentText(result.projectName)
                     .setContentIntent(openApp)
@@ -114,7 +113,7 @@ object StatusBarDaysNotifier {
                     .build()
                 manager.notify(notificationId, notification)
             }.onFailure {
-                android.util.Log.e("StatusBarDaysNotifier", "Unable to post diagnostic notification icon", it)
+                android.util.Log.e("StatusBarDaysNotifier", "Unable to post dynamic day-number notification icon", it)
                 manager.cancel(notificationId)
             }.isSuccess
             if (posted) activeIds.add(notificationId)
@@ -238,4 +237,3 @@ object StatusBarDaysNotifier {
         alarm.cancel(pending)
     }
 }
-
