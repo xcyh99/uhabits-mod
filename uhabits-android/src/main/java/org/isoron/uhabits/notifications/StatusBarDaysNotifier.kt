@@ -26,6 +26,7 @@ import java.time.temporal.ChronoUnit
 object StatusBarDaysNotifier {
     private const val CHANNEL_ID = "STATUS_BAR_DAYS_V3"
     private const val NOTIFICATION_ID = 7405
+    private const val GROUP_KEY = "org.isoron.uhabits.STATUS_BAR_DAYS"
     private const val PREFS = "status_bar_days"
     private const val ACTION_UPDATE = "org.isoron.uhabits.action.UPDATE_STATUS_BAR_DAYS"
 
@@ -79,11 +80,12 @@ object StatusBarDaysNotifier {
         }
 
         val activeIds = mutableSetOf<Int>()
+        var summaryDisplay: DisplayValue? = null
         items.forEach { (itemMode, itemId) ->
             val result = runCatching { resolveValue(app, itemMode, itemId.ifBlank { null }) }.getOrNull()
                 ?: return@forEach
-            val notificationId = if (itemId.isBlank()) NOTIFICATION_ID
-                else 7406 + (("${itemMode}:${itemId}".hashCode() and 0x7fffffff) % 100000)
+            // Reserve NOTIFICATION_ID for the single group summary; every item gets its own child ID.
+            val notificationId = 7406 + (("${itemMode}:${itemId}".hashCode() and 0x7fffffff) % 100000)
             val contentIntent = if (itemMode == "checkin" && result.habitId != null) {
                 IntentFactory().startShowHabitActivity(app, result.habitId).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -110,18 +112,55 @@ object StatusBarDaysNotifier {
                     .setShowWhen(false)
                     .setPriority(android.app.Notification.PRIORITY_MAX)
                     .setCategory(android.app.Notification.CATEGORY_SERVICE)
+                    .setGroup(GROUP_KEY)
+                    .setGroupAlertBehavior(android.app.Notification.GROUP_ALERT_SUMMARY)
                     .build()
                 manager.notify(notificationId, notification)
             }.onFailure {
                 android.util.Log.e("StatusBarDaysNotifier", "Unable to post dynamic day-number notification icon", it)
                 manager.cancel(notificationId)
             }.isSuccess
-            if (posted) activeIds.add(notificationId)
+            if (posted) {
+                activeIds.add(notificationId)
+                if (summaryDisplay == null) summaryDisplay = result
+            }
         }
-        (previousIds - activeIds).forEach { manager.cancel(it) }
-        if (activeIds.none { it == NOTIFICATION_ID }) manager.cancel(NOTIFICATION_ID)
+        // Remove obsolete child notifications, but keep the reserved summary ID separate.
+        (previousIds - activeIds - NOTIFICATION_ID).forEach { manager.cancel(it) }
+        if (activeIds.isEmpty()) {
+            manager.cancel(NOTIFICATION_ID)
+            cancelDailyRefresh(app)
+        } else {
+            val summaryIntent = Intent(
+                app,
+                org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java
+            ).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val summaryPendingIntent = PendingIntent.getActivity(
+                app, NOTIFICATION_ID, summaryIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val summaryIcon = summaryDisplay?.let { createDaysBitmap(it.days, it.color) }
+                ?: createDaysBitmap(0, android.graphics.Color.WHITE)
+            val summary = android.app.Notification.Builder(app, CHANNEL_ID)
+                .setSmallIcon(Icon.createWithBitmap(summaryIcon))
+                .setContentTitle("状态栏天数")
+                .setContentText("正在显示 ${activeIds.size} 个项目")
+                .setContentIntent(summaryPendingIntent)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setShowWhen(false)
+                .setPriority(android.app.Notification.PRIORITY_MAX)
+                .setCategory(android.app.Notification.CATEGORY_SERVICE)
+                .setGroup(GROUP_KEY)
+                .setGroupSummary(true)
+                .setGroupAlertBehavior(android.app.Notification.GROUP_ALERT_SUMMARY)
+                .build()
+            manager.notify(NOTIFICATION_ID, summary)
+            scheduleDailyRefresh(app)
+        }
         prefs.edit().putStringSet("status_bar_days_active_ids", activeIds.map { it.toString() }.toSet()).apply()
-        if (activeIds.isEmpty()) cancelDailyRefresh(app) else scheduleDailyRefresh(app)
     }
 
 
