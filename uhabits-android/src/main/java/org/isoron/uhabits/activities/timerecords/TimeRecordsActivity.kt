@@ -6,6 +6,7 @@
  */
 package org.isoron.uhabits.activities.timerecords
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import androidx.appcompat.app.AppCompatActivity
@@ -20,6 +21,15 @@ import org.isoron.uhabits.utils.setupToolbar
 class TimeRecordsActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_EDIT_RECORD_ID = "org.isoron.uhabits.extra.EDIT_TIME_RECORD_ID"
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        supportFragmentManager.findFragmentById(R.id.fragment)
+            ?.let { fragment ->
+                (fragment as? TimeRecordsFragment)?.openRecordFromIntent()
+            }
     }
 
     override fun onResume() {
