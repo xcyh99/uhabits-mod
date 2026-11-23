@@ -4,79 +4,46 @@
  * This file is part of Loop Habit Tracker.
  *
  * Loop Habit Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by the
- * Free Software Foundation, either version 3 of the License, or (at your
- * option) any later version.
- *
- * Loop Habit Tracker is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  */
 
 package org.isoron.uhabits.database
 
-import org.isoron.platform.time.DateUtils
+import android.net.Uri
 import org.isoron.uhabits.AndroidDirFinder
 import org.isoron.uhabits.BaseAndroidTest
 import org.junit.Test
-import java.io.File
-import java.io.FileOutputStream
 
 class AutoBackupTest : BaseAndroidTest() {
     @Test
-    fun testRun() {
-        DateUtils.setFixedLocalTime(40 * DateUtils.DAY_LENGTH)
+    fun testForceCreatesInspectableFullBackup() {
         val basedir = AndroidDirFinder(targetContext).getFilesDir("Backups")!!
-        createTestFiles(basedir, 30)
+        basedir.listFiles()
+            ?.filter { it.name.startsWith("Shizi_Full_Backup_") && it.name.endsWith(".uhabitsbackup") }
+            ?.forEach { it.delete() }
 
-        val autoBackup = AutoBackup(targetContext)
-        autoBackup.run(keep = 5)
+        val result = AutoBackup(targetContext).run(force = true)
+        assertTrue("Forced backup should create an archive", result == AutoBackup.Result.CREATED)
 
-        for (k in 1..25) assertDoesNotExist("${basedir.path}/test-$k.txt")
-        for (k in 26..30) assertExists("${basedir.path}/test-$k.txt")
-        assertExists("${basedir.path}/Loop Habits Backup 1970-02-10 000000.db")
+        val backup = basedir.listFiles()
+            ?.firstOrNull { it.name.startsWith("Shizi_Full_Backup_") && it.name.endsWith(".uhabitsbackup") }
+        assertNotNull("Full backup archive should exist", backup)
+        val info = FullBackupManager(targetContext).inspectBackup(Uri.fromFile(backup!!))
+        assertTrue(info.entries.contains("database/uhabits.db"))
+        assertTrue(info.entries.contains("modules/time_records.json"))
+        assertTrue(info.entries.contains("widgets/time_record_widget_links.json"))
+        assertTrue(info.entries.contains("settings/preferences.json"))
+        assertTrue(info.entries.contains(FullBackupModuleRegistry.FLOATING_TIMER_ENTRY))
     }
 
     @Test
-    fun testRunWithEmptyDir() {
+    fun testRunWithEmptyDirDoesNotCrash() {
         val basedir = AndroidDirFinder(targetContext).getFilesDir("Backups")!!
-        removeAllFiles(basedir)
+        basedir.listFiles()?.forEach { it.delete() }
         basedir.delete()
 
-        // Should not crash
-        val autoBackup = AutoBackup(targetContext)
-        autoBackup.run()
-    }
-
-    private fun assertExists(path: String) {
-        assertTrue("File $path should exist", File(path).exists())
-    }
-
-    private fun assertDoesNotExist(path: String) {
-        assertFalse("File $path should not exist", File(path).exists())
-    }
-
-    private fun createTestFiles(basedir: File, nfiles: Int) {
-        removeAllFiles(basedir)
-        for (k in 1..nfiles) {
-            touch("${basedir.path}/test-$k.txt", DateUtils.DAY_LENGTH * k)
-        }
-    }
-
-    private fun touch(path: String, time: Long) {
-        val file = File(path)
-        FileOutputStream(file).close()
-        file.setLastModified(time)
-    }
-
-    private fun removeAllFiles(dir: File) {
-        dir.list().forEach { path ->
-            val file = File("${dir.path}/$path")
-            assertTrue(file.delete())
-        }
+        AutoBackup(targetContext).run()
     }
 }
