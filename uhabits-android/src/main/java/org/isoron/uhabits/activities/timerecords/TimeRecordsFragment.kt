@@ -42,12 +42,22 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
     override fun onResume() {
         super.onResume()
         refreshPreferences()
-        val recordId = requireActivity().intent.getStringExtra(TimeRecordsActivity.EXTRA_EDIT_RECORD_ID)
-        if (!recordId.isNullOrBlank()) {
-            requireActivity().intent.removeExtra(TimeRecordsActivity.EXTRA_EDIT_RECORD_ID)
-            TimeRecordStore.get(requireContext(), recordId)?.let { record ->
-                view?.post { showEditor(record.type, record) }
-            }
+        openRecordFromIntent()
+    }
+
+    /**
+     * Consumes the latest widget click exactly once. Also called by the Activity
+     * when an existing singleTop Activity receives a replacement Intent.
+     */
+    fun openRecordFromIntent() {
+        if (!isAdded) return
+        val activity = requireActivity()
+        val recordId = activity.intent.getStringExtra(TimeRecordsActivity.EXTRA_EDIT_RECORD_ID)
+        if (recordId.isNullOrBlank()) return
+        activity.intent.removeExtra(TimeRecordsActivity.EXTRA_EDIT_RECORD_ID)
+        val record = TimeRecordStore.get(requireContext(), recordId) ?: return
+        view?.post {
+            if (isAdded) showEditor(record.type, record)
         }
     }
 
@@ -307,11 +317,30 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
         var baseDate = initialDate
-
         val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(24), dp(8), dp(24), 0)
         }
+        val baseLabel = TextView(context).apply {
+            text = "推算基准"
+            textSize = 14f
+            setPadding(0, dp(8), 0, dp(4))
+        }
+        val baseGroup = RadioGroup(context).apply {
+            orientation = RadioGroup.HORIZONTAL
+        }
+        val targetBaseButton = RadioButton(context).apply {
+            id = 3
+            text = "目标日期"
+        }
+        val todayBaseButton = RadioButton(context).apply {
+            id = 4
+            text = "今天"
+        }
+        baseGroup.addView(targetBaseButton)
+        baseGroup.addView(todayBaseButton)
+        baseGroup.check(targetBaseButton.id)
+
         val dateButton = TextView(context).apply {
             textSize = 16f
             setPadding(0, dp(12), 0, dp(16))
@@ -321,9 +350,16 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
                 R.string.time_records_calculator_base_date,
                 baseDate.format(dateFormatter)
             )
+            dateButton.isEnabled = baseGroup.checkedRadioButtonId == targetBaseButton.id
+            dateButton.alpha = if (dateButton.isEnabled) 1f else 0.55f
         }
         updateDateLabel()
+        baseGroup.setOnCheckedChangeListener { _, checkedId ->
+            baseDate = if (checkedId == todayBaseButton.id) LocalDate.now() else initialDate
+            updateDateLabel()
+        }
         dateButton.setOnClickListener {
+            if (baseGroup.checkedRadioButtonId != targetBaseButton.id) return@setOnClickListener
             DatePickerDialog(
                 context,
                 { _, year, month, day ->
@@ -362,6 +398,8 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
         directionGroup.addView(afterButton)
         directionGroup.check(if (defaultAfter) afterButton.id else beforeButton.id)
 
+        container.addView(baseLabel)
+        container.addView(baseGroup)
         container.addView(dateButton)
         container.addView(daysInput)
         container.addView(directionLabel)
@@ -379,6 +417,12 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
                 if (days == null || days < 0L) {
                     daysInput.error = getString(R.string.time_records_calculator_invalid_days)
                     return@setOnClickListener
+                }
+                if (baseGroup.checkedRadioButtonId == todayBaseButton.id) {
+                    // Resolve "today" at calculation time as well, so the result
+                    // always uses the current local date.
+                    baseDate = LocalDate.now()
+                    updateDateLabel()
                 }
                 val result = try {
                     if (directionGroup.checkedRadioButtonId == afterButton.id) {
