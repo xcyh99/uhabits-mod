@@ -127,6 +127,12 @@
                 app:iconSpaceReserved="false" />
 
         <Preference
+                android:key="desktopDoodle"
+                android:title="桌面涂鸦"
+                android:summary="在当前屏幕上方自由绘画；可切换画笔、橡皮擦、颜色、撤销和清屏，点击关闭退出。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
                 android:key="statusBarDays"
                 android:title="状态栏天数"
                 android:summary="在状态栏显示一个纯数字；支持打卡间隔、倒计时和正计时。"
