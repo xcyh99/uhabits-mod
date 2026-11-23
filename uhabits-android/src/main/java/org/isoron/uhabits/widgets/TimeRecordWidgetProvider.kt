@@ -33,7 +33,7 @@ class TimeRecordWidgetProvider : AppWidgetProvider() {
 
     companion object {
         private const val WIDGET_PREFS = "time_record_widget_links"
-        private val dateFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
+        private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
         fun setRecord(context: Context, widgetId: Int, recordId: String) {
             context.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE)
@@ -55,7 +55,7 @@ class TimeRecordWidgetProvider : AppWidgetProvider() {
             if (record == null) {
                 views.setTextViewText(R.id.time_record_title, context.getString(R.string.time_records_widget_unconfigured))
                 views.setTextViewText(R.id.time_record_number, "—")
-                views.setTextViewText(R.id.time_record_caption, context.getString(R.string.time_records_widget_open_app))
+                views.setTextViewText(R.id.time_record_date, "")
             } else {
                 val target = LocalDate.parse(record.date)
                 val today = LocalDate.now()
@@ -74,10 +74,12 @@ class TimeRecordWidgetProvider : AppWidgetProvider() {
                 }
                 views.setTextViewText(R.id.time_record_title, record.title)
                 views.setTextViewText(R.id.time_record_number, kotlin.math.abs(difference).toString())
-                views.setTextViewText(R.id.time_record_caption, caption)
-                views.setTextViewText(
+                views.setTextViewText(R.id.time_record_date, target.format(dateFormatter))
+                views.setTextColor(R.id.time_record_title, record.color)
+                views.setTextColor(R.id.time_record_number, record.color)
+                views.setTextColor(
                     R.id.time_record_date,
-                    target.format(dateFormatter)
+                    if (record.type == TimeRecord.ELAPSED) 0xFF2EAD67.toInt() else 0xFFE05252.toInt()
                 )
             }
             val intent = Intent(context, TimeRecordsActivity::class.java)
