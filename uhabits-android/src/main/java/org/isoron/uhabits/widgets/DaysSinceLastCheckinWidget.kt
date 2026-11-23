@@ -38,7 +38,7 @@ class DaysSinceLastCheckinWidget(
                 ?.date
                 ?.daysUntil(getToday())
             activeColor = WidgetTheme().color(habit.color).toInt()
-            footerColor = activeColor
+            footerColor = Color.parseColor("#B8B8B8")
             footerText = "天未打卡"
             cardBackgroundColor = StyledResources(context).getColor(R.attr.cardBgColor)
             backgroundAlpha = preferedBackgroundAlpha
