@@ -63,7 +63,7 @@ class TimeRecordWidget(
                     0xFF00E676.toInt()
                 } else {
                     // Vivid red for the countdown target date.
-                    0xFFFF3030.toInt()
+                    0xFFFF0000.toInt()
                 }
                 footerText = target.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"))
             }
