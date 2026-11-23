@@ -51,7 +51,8 @@ data class HistoryCardState(
     val defaultSquare: HistoryChart.Square,
     val notesIndicators: List<Boolean>,
     val theme: Theme,
-    val today: LocalDate
+    val today: LocalDate,
+    val whitePreferenceWeight: Double = 6.6
 )
 
 class HistoryCardPresenter(
@@ -153,7 +154,8 @@ class HistoryCardPresenter(
         fun buildState(
             habit: Habit,
             firstWeekday: DayOfWeek,
-            theme: Theme
+            theme: Theme,
+            whitePreferenceWeight: Double = 6.6
         ): HistoryCardState {
             val today = getToday()
             val oldest = habit.computedEntries.getKnown().lastOrNull()?.date ?: today
@@ -191,7 +193,8 @@ class HistoryCardPresenter(
                 theme = theme,
                 series = series,
                 defaultSquare = OFF,
-                notesIndicators = notesIndicators
+                notesIndicators = notesIndicators,
+                whitePreferenceWeight = whitePreferenceWeight
             )
         }
     }
