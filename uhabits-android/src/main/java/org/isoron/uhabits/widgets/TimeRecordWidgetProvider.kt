@@ -71,7 +71,7 @@ class TimeRecordWidgetProvider : AppWidgetProvider() {
                 views.setTextColor(R.id.time_record_number, record.color)
                 views.setTextColor(
                     R.id.time_record_date,
-                    if (record.type == TimeRecord.ELAPSED) 0xFF2EAD67.toInt() else 0xFFE05252.toInt()
+                    if (record.type == TimeRecord.ELAPSED) 0xFF2EAD67.toInt() else 0xFFE69A32.toInt()
                 )
             }
             val intent = Intent(context, TimeRecordsActivity::class.java)
