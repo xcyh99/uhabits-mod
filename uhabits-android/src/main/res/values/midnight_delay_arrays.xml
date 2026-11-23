@@ -1,34 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="midnight_delay_hour_entries">
+        <item>凌晨 0 点（零点）</item>
         <item>凌晨 1 点</item>
         <item>凌晨 2 点</item>
         <item>凌晨 3 点</item>
         <item>凌晨 4 点</item>
         <item>凌晨 5 点</item>
         <item>凌晨 6 点</item>
-        <item>凌晨 7 点</item>
-        <item>上午 8 点</item>
-        <item>上午 9 点</item>
-        <item>上午 10 点</item>
-        <item>上午 11 点</item>
-        <item>中午 12 点</item>
-        <item>下午 1 点</item>
-        <item>下午 2 点</item>
-        <item>下午 3 点</item>
-        <item>下午 4 点</item>
-        <item>下午 5 点</item>
-        <item>下午 6 点</item>
-        <item>晚上 7 点</item>
-        <item>晚上 8 点</item>
-        <item>晚上 9 点</item>
-        <item>晚上 10 点</item>
-        <item>晚上 11 点</item>
     </string-array>
     <string-array name="midnight_delay_hour_values">
-        <item>1</item><item>2</item><item>3</item><item>4</item><item>5</item><item>6</item>
-        <item>7</item><item>8</item><item>9</item><item>10</item><item>11</item><item>12</item>
-        <item>13</item><item>14</item><item>15</item><item>16</item><item>17</item><item>18</item>
-        <item>19</item><item>20</item><item>21</item><item>22</item><item>23</item>
+        <item>0</item><item>1</item><item>2</item><item>3</item>
+        <item>4</item><item>5</item><item>6</item>
     </string-array>
 </resources>
