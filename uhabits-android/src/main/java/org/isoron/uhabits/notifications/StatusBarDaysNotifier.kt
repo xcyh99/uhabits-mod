@@ -193,7 +193,7 @@ object StatusBarDaysNotifier {
                 val text = if (mode == "elapsed") "已经过去：${delta} 天"
                     else if (delta >= 0) "距离目标：还有 ${delta} 天"
                     else "目标已过：${-delta} 天"
-                DisplayValue(kotlin.math.abs(delta), text, record.title, color = record.color)
+                DisplayValue(kotlin.math.abs(delta), text, record.title)
             }
             else -> null
         }
