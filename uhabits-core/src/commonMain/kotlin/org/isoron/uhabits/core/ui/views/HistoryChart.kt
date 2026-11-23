@@ -305,12 +305,13 @@ class HistoryChart(
                 return if (channel <= 0.04045) channel / 12.92
                 else ((channel + 0.055) / 1.055).pow(2.4)
             }
-            val backgroundLuminance =
+            // Measure the completed check-in square color, not the card background.
+            val checkInColorLuminance =
                 0.2126 * luminance(squareColor.red) +
                 0.7152 * luminance(squareColor.green) +
                 0.0722 * luminance(squareColor.blue)
-            val whiteContrast = 1.05 / (backgroundLuminance + 0.05)
-            val blackContrast = (backgroundLuminance + 0.05) / 0.05
+            val whiteContrast = 1.05 / (checkInColorLuminance + 0.05)
+            val blackContrast = (checkInColorLuminance + 0.05) / 0.05
             val whitePreferenceWeight = 10.0
             if (blackContrast / whiteContrast <= whitePreferenceWeight) {
                 Color.WHITE
