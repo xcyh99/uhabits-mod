@@ -134,12 +134,24 @@ class HistoryChart(
         canvas.setColor(theme.mediumContrastTextColor)
         repeat(7) { row ->
             val date = topLeftDate.plus(row)
-            canvas.setTextAlign(TextAlign.LEFT)
-            canvas.drawText(
-                weekdayDisplayName(date),
-                padding + nColumns * squareSize + if (compactWeekdayLabels) 0.75 else 1.5,
-                padding + squareSize * (row + 1) + squareSize / 2
-            )
+            val weekdayLabel = weekdayDisplayName(date)
+            if (compactWeekdayLabels) {
+                // Anchor compact weekday labels to the right edge so the
+                // unused width is not left after the labels.
+                canvas.setTextAlign(TextAlign.RIGHT)
+                canvas.drawText(
+                    weekdayLabel,
+                    width - padding,
+                    padding + squareSize * (row + 1) + squareSize / 2
+                )
+            } else {
+                canvas.setTextAlign(TextAlign.LEFT)
+                canvas.drawText(
+                    weekdayLabel,
+                    padding + nColumns * squareSize + 1.5,
+                    padding + squareSize * (row + 1) + squareSize / 2
+                )
+            }
         }
     }
 
@@ -161,7 +173,7 @@ class HistoryChart(
     }
 
     private fun calculateWeekdayColumnWidth(canvas: Canvas): Double {
-        val labelGap = if (compactWeekdayLabels) 0.75 else 1.5
+        val labelGap = if (compactWeekdayLabels) 0.25 else 1.5
         val labels = if (compactWeekdayLabels) {
             (0 until 7).map { offset ->
                 dateFormatter.narrowWeekdayName(LocalDate(2020, 1, 5 + offset))
