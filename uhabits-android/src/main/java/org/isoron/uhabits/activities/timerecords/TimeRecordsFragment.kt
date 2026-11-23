@@ -51,12 +51,14 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
      */
     fun openRecordFromIntent() {
         if (!isAdded) return
+        val fragmentView = view ?: return
         val activity = requireActivity()
         val recordId = activity.intent.getStringExtra(TimeRecordsActivity.EXTRA_EDIT_RECORD_ID)
         if (recordId.isNullOrBlank()) return
+        val record = TimeRecordStore.get(requireContext(), recordId)
         activity.intent.removeExtra(TimeRecordsActivity.EXTRA_EDIT_RECORD_ID)
-        val record = TimeRecordStore.get(requireContext(), recordId) ?: return
-        view?.post {
+        if (record == null) return
+        fragmentView.post {
             if (isAdded) showEditor(record.type, record)
         }
     }
