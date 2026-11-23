@@ -312,7 +312,7 @@ class HistoryChart(
                 0.0722 * luminance(squareColor.blue)
             val whiteContrast = 1.05 / (checkInColorLuminance + 0.05)
             val blackContrast = (checkInColorLuminance + 0.05) / 0.05
-            val whitePreferenceWeight = 10.0
+            val whitePreferenceWeight = 11.22
             if (blackContrast / whiteContrast <= whitePreferenceWeight) {
                 Color.WHITE
             } else {
