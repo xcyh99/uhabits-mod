@@ -135,7 +135,7 @@ object StatusBarDaysNotifier {
         paint.getTextBounds(label, 0, label.length, bounds)
 
         if (bounds.width() > 0 && bounds.height() > 0) {
-            val targetSize = 92f
+            val targetSize = 96f
             canvas.translate(48f, 48f)
             canvas.scale(
                 targetSize / bounds.width().toFloat(),
