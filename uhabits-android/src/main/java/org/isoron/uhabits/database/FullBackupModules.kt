@@ -19,7 +19,11 @@ import java.io.IOException
 internal interface FullBackupModule {
     val id: String
     val entries: Set<String>
+    // New modules are optional by default so archives created before a feature
+    // existed remain restorable. Promote entries to required only with a
+    // deliberate format migration.
     val requiredEntries: Set<String>
+        get() = emptySet()
 
     fun export(context: Context, stagingRoot: File)
     fun validate(payloads: Map<String, ByteArray>)
