@@ -11,7 +11,6 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.os.Build
-import android.graphics.drawable.Icon
 import androidx.core.app.NotificationManagerCompat
 import org.isoron.platform.time.getToday
 import org.isoron.uhabits.HabitsApplication
@@ -98,14 +97,12 @@ object StatusBarDaysNotifier {
                 app, notificationId, contentIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            // Try the dynamic day-number icon first. Some Android-derived systems may
-            // reject or fail to render bitmap small icons; never leave an older arrow icon
-            // silently stuck in the notification shade in that case.
+            // Diagnostic build: use a fixed white triangle, deliberately unlike
+            // both the app launcher icon and the dynamic bitmap. This isolates whether
+            // HarmonyOS accepts a normal drawable resource as the notification small icon.
             val posted = runCatching {
-                val smallIcon = Icon.createWithBitmap(createDaysBitmap(result.days, result.color))
-                android.util.Log.d("StatusBarDaysNotifier", "Publishing native bitmap small icon, type=${smallIcon.type}")
                 val notification = android.app.Notification.Builder(app, CHANNEL_ID)
-                    .setSmallIcon(smallIcon)
+                    .setSmallIcon(R.drawable.ic_status_test)
                     .setContentTitle(result.description)
                     .setContentText(result.projectName)
                     .setContentIntent(openApp)
@@ -117,34 +114,10 @@ object StatusBarDaysNotifier {
                     .build()
                 manager.notify(notificationId, notification)
             }.onFailure {
-                android.util.Log.e("StatusBarDaysNotifier", "Unable to post day-number notification", it)
+                android.util.Log.e("StatusBarDaysNotifier", "Unable to post diagnostic notification icon", it)
+                manager.cancel(notificationId)
             }.isSuccess
-
-            if (posted) {
-                activeIds.add(notificationId)
-            } else {
-                // The bundled notification resource is the current Taiji glyph, not the
-                // legacy curved arrow. Use it as a safe fallback if bitmap icons fail.
-                val fallbackPosted = runCatching {
-                    val fallback = android.app.Notification.Builder(app, CHANNEL_ID)
-                        .setSmallIcon(R.drawable.ic_notification)
-                        .setContentTitle(result.description)
-                        .setContentText(result.projectName)
-                        .setContentIntent(openApp)
-                        .setOngoing(true)
-                        .setOnlyAlertOnce(true)
-                        .setShowWhen(false)
-                        .setPriority(android.app.Notification.PRIORITY_MAX)
-                        .setCategory(android.app.Notification.CATEGORY_SERVICE)
-                        .build()
-                    manager.notify(notificationId, fallback)
-                }.onFailure {
-                    android.util.Log.e("StatusBarDaysNotifier", "Unable to post fallback notification", it)
-                }.isSuccess
-
-                if (fallbackPosted) activeIds.add(notificationId)
-                else manager.cancel(notificationId)
-            }
+            if (posted) activeIds.add(notificationId)
         }
         (previousIds - activeIds).forEach { manager.cancel(it) }
         if (activeIds.none { it == NOTIFICATION_ID }) manager.cancel(NOTIFICATION_ID)
