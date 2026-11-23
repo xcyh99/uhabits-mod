@@ -37,11 +37,13 @@ class AutoBackup(private val context: Context) {
 
     private val backupPattern = Regex("^Shizi_Full_Backup_\\d{8}_\\d{6}_\\d{3}\\.uhabitsbackup$")
 
-    fun run(force: Boolean = false) {
+    enum class Result { CREATED, SKIPPED, FAILED }
+
+    fun run(force: Boolean = false): Result {
         val settings = PreferenceManager.getDefaultSharedPreferences(context)
         if (!settings.getBoolean(KEY_ENABLED, true) && !force) {
             Log.i("AutoBackup", "Automatic backups are disabled")
-            return
+            return Result.SKIPPED
         }
         val intervalDays = settings.getString(KEY_INTERVAL_DAYS, "1")?.toIntOrNull()
             ?.coerceIn(1, 30) ?: 1
@@ -53,22 +55,30 @@ class AutoBackup(private val context: Context) {
             .getString("publicBackupFolder", null)
         if (uriString != null) {
             val uri = Uri.parse(uriString)
+            val path = uri.path
+            if (uri.scheme != "content" && path.isNullOrBlank()) {
+                recordFailure()
+                return Result.FAILED
+            }
             val dir = if (uri.scheme == "content") {
                 DocumentFile.fromTreeUri(context, uri)
             } else {
-                File(uri.path ?: return).let { DocumentFile.fromFile(it) }
+                File(path!!).let { DocumentFile.fromFile(it) }
             }
             if (dir != null) {
-                runInPublicDir(dir, keep, force, intervalMillis)
-                return
+                return runInPublicDir(dir, keep, force, intervalMillis)
             }
         }
 
-        val basedir = AndroidDirFinder(context).getFilesDir("Backups") ?: return
-        runInPrivateDir(basedir, keep, force, intervalMillis)
+        val basedir = AndroidDirFinder(context).getFilesDir("Backups")
+        if (basedir == null) {
+            recordFailure()
+            return Result.FAILED
+        }
+        return runInPrivateDir(basedir, keep, force, intervalMillis)
     }
 
-    private fun runInPrivateDir(dir: File, keep: Int, force: Boolean, intervalMillis: Long) {
+    private fun runInPrivateDir(dir: File, keep: Int, force: Boolean, intervalMillis: Long): Result {
         val files = dir.listFiles()
             ?.filter { it.isFile && backupPattern.matches(it.name) }
             ?.sortedBy { it.lastModified() }
@@ -76,7 +86,7 @@ class AutoBackup(private val context: Context) {
         val newestTimestamp = files.lastOrNull()?.lastModified() ?: 0L
         if (force || System.currentTimeMillis() - newestTimestamp >= intervalMillis) {
             val target = File(dir, "Shizi_Full_Backup_${BackupFileName.timestamp()}.uhabitsbackup")
-            runCatching {
+            return runCatching {
                 FullBackupManager(context).createBackup(target)
                 // Retention is applied only after the new archive has been written successfully.
                 val updatedFiles = dir.listFiles()
@@ -85,18 +95,21 @@ class AutoBackup(private val context: Context) {
                     ?: emptyList()
                 removeOldestPrivate(updatedFiles, keep.coerceAtLeast(1))
                 recordSuccess()
-            }.onFailure {
+                Result.CREATED
+            }.getOrElse {
                 target.delete()
                 recordFailure()
                 Log.e("AutoBackup", "Unable to create automatic full backup", it)
+                Result.FAILED
             }
         } else {
             recordSuccess(newestTimestamp)
             Log.i("AutoBackup", "Fresh full backup found (timestamp=$newestTimestamp)")
+            Result.SKIPPED
         }
     }
 
-    private fun runInPublicDir(dir: DocumentFile, keep: Int, force: Boolean, intervalMillis: Long) {
+    private fun runInPublicDir(dir: DocumentFile, keep: Int, force: Boolean, intervalMillis: Long): Result {
         val files = dir.listFiles()
             .filter { it.isFile && it.name?.let(backupPattern::matches) == true }
             .sortedBy { it.lastModified() }
@@ -107,9 +120,9 @@ class AutoBackup(private val context: Context) {
             if (target == null) {
                 recordFailure()
                 Log.e("AutoBackup", "Unable to create automatic full backup file")
-                return
+                return Result.FAILED
             }
-            runCatching {
+            return runCatching {
                 FullBackupManager(context).createBackup(target.uri)
                 // Keep the previous valid archives until the replacement is complete.
                 val updatedFiles = dir.listFiles()
@@ -117,14 +130,17 @@ class AutoBackup(private val context: Context) {
                     .sortedBy { it.lastModified() }
                 removeOldestPublic(updatedFiles, keep.coerceAtLeast(1))
                 recordSuccess()
-            }.onFailure {
+                Result.CREATED
+            }.getOrElse {
                 target.delete()
                 recordFailure()
                 Log.e("AutoBackup", "Unable to create automatic full backup", it)
+                Result.FAILED
             }
         } else {
             recordSuccess(newestTimestamp)
             Log.i("AutoBackup", "Fresh full backup found (timestamp=$newestTimestamp)")
+            Result.SKIPPED
         }
     }
 
