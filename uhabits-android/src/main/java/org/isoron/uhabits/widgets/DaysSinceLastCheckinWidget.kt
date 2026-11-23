@@ -38,6 +38,8 @@ class DaysSinceLastCheckinWidget(
                 ?.date
                 ?.daysUntil(getToday())
             activeColor = WidgetTheme().color(habit.color).toInt()
+            footerColor = activeColor
+            footerText = "天未打卡"
             cardBackgroundColor = StyledResources(context).getColor(R.attr.cardBgColor)
             backgroundAlpha = preferedBackgroundAlpha
             refresh()
@@ -47,10 +49,12 @@ class DaysSinceLastCheckinWidget(
     override fun buildView(): View = DaysSinceLastCheckinView(context)
 }
 
-private class DaysSinceLastCheckinView(context: Context) : View(context) {
+internal class DaysSinceLastCheckinView(context: Context) : View(context) {
     var dayCount: Int? = null
     var habitName: String = ""
     var activeColor: Int = Color.WHITE
+    var footerColor: Int = Color.WHITE
+    var footerText: String = "天未打卡"
     var cardBackgroundColor: Int = Color.DKGRAY
     var backgroundAlpha: Int = 255
 
@@ -106,7 +110,7 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
         // Use the actual single-line title boundary so the number can grow vertically.
         val titleBottom = titleBaseline + titlePaint.descent()
         labelPaint.textSize = 6.5f * density
-        labelPaint.color = activeColor
+        labelPaint.color = footerColor
         val labelBaseline = height * 0.97f
         val labelTop = labelBaseline + labelPaint.ascent()
         val verticalGap = 0.5f * density
@@ -164,6 +168,6 @@ private class DaysSinceLastCheckinView(context: Context) : View(context) {
             numberPaint.clearShadowLayer()
             numberX += glyphWidths[index] + digitSpacing
         }
-        canvas.drawText("天未打卡", width / 2f, labelBaseline, labelPaint)
+        canvas.drawText(footerText, width / 2f, labelBaseline, labelPaint)
     }
 }
