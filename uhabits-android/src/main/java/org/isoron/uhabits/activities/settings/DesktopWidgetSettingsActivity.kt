@@ -119,7 +119,8 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         section("点击区域", "点击组件不同区域时，打开对应功能或手机应用")
         slots.forEach { slot ->
             if (slot.key.startsWith("shortcut") && slot.key.removePrefix("shortcut").toInt() > store.getInt(KEY_SHORTCUT_COUNT, 4)) return@forEach
-            val current = store.getString(key(slot.key), null)?.let(::targetLabel) ?: "未设置"
+            val legacyTimeTarget = if (slot.key == "hour" || slot.key == "minute") store.getString("digital_clock_target_time", null) else null
+            val current = (store.getString(key(slot.key), null) ?: legacyTimeTarget)?.let(::targetLabel) ?: "未设置"
             actionCard(slot.title, "当前：$current") { chooseTarget(slot) }
         }
 
