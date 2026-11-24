@@ -81,18 +81,8 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             val current = store.getString(key(slot.key), null)?.let(::targetLabel) ?: "未设置"
             button("${slot.title}    ·    $current") { chooseTarget(slot) }
         }
-        heading("其他桌面组件")
-        button("历史组件参数") {
-            openExistingSettings("historyWhiteWeight")
-        }
-        button("标记组件参数") {
-            openExistingSettings("checkmarkWhiteWeight")
-        }
-        button("组件白边参数") {
-            openExistingSettings("whiteOutline")
-        }
         root.addView(TextView(this).apply {
-            text = "说明：白字权重、白边、颜色阈值等显示参数仍由「参数中心」统一管理，这里不重复设置。"
+            text = "当前这里只管理数字时钟组件。以后新增桌面组件时，再逐项加入。白字权重、白边、颜色阈值等显示参数仍由「参数中心」统一管理。"
             textSize = 12f
             setTextColor(resolveSecondaryText())
             setPadding(0, dp(14), 0, 0)
