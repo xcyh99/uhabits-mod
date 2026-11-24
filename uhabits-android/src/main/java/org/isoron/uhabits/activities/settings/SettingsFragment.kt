@@ -42,6 +42,8 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.RadioButton
+import android.widget.Spinner
+import android.widget.ArrayAdapter
 import android.widget.TextView
 import android.widget.BaseAdapter
 import android.widget.Toast
@@ -1031,7 +1033,65 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             }
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(android.R.string.ok) { _, _ ->
-                showShortcutOrderDialog(selected, store)
+                showShortcutCustomizationDialog(selected, store)
+            }
+            .show()
+    }
+
+    /**
+     * APP-menu appearance is stored separately from desktop shortcut appearance.
+     * Icon index 0 means text-only; the remaining entries use built-in icons.
+     */
+    private fun showShortcutCustomizationDialog(
+        selected: MutableList<String>,
+        store: SharedPreferences,
+        index: Int = 0
+    ) {
+        if (index >= selected.size) {
+            showShortcutOrderDialog(selected, store)
+            return
+        }
+        val key = selected[index]
+        val entry = FeatureShortcutCatalog.getEntries(requireContext()).firstOrNull { it.key == key }
+        val defaultTitle = entry?.title ?: key
+        val nameInput = EditText(requireContext()).apply {
+            setSingleLine(true)
+            hint = defaultTitle
+            setText(store.getString("feature_shortcut_title_$key", ""))
+        }
+        val iconNames = arrayOf("不显示图标（仅文字）", "十字", "设置", "日历", "图表", "计时", "打卡", "历史")
+        val iconSpinner = Spinner(requireContext()).apply {
+            adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, iconNames)
+            setSelection(store.getInt("feature_shortcut_icon_$key", 0).coerceIn(iconNames.indices))
+        }
+        val content = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            val padding = (20 * resources.displayMetrics.density).toInt()
+            setPadding(padding, padding / 2, padding, 0)
+            addView(TextView(requireContext()).apply {
+                text = "显示名称"
+                textSize = 13f
+            })
+            addView(nameInput)
+            addView(TextView(requireContext()).apply {
+                text = "图标（可选）"
+                textSize = 13f
+                setPadding(0, padding / 2, 0, 0)
+            })
+            addView(iconSpinner)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle("自定义快捷入口 " + (index + 1) + "/" + selected.size)
+            .setView(content)
+            .setNegativeButton("取消") { _, _ ->
+                saveShortcutOrder(selected, store)
+            }
+            .setPositiveButton(if (index == selected.lastIndex) "完成" else "下一项") { _, _ ->
+                store.edit()
+                    .putString("feature_shortcut_title_$key", nameInput.text.toString().trim())
+                    .putInt("feature_shortcut_icon_$key", iconSpinner.selectedItemPosition)
+                    .apply()
+                showShortcutCustomizationDialog(selected, store, index + 1)
             }
             .show()
     }
