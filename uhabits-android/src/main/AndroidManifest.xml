@@ -78,6 +78,11 @@
         </activity>
 
         <activity
+            android:name="org.isoron.uhabits.activities.games.PuzzleGamesActivity"
+            android:label="益智游戏"
+            android:screenOrientation="unspecified" />
+
+        <activity
             android:name="org.isoron.uhabits.activities.timerecords.TimeRecordsActivity"
             android:label="@string/time_records"
             android:launchMode="singleTop">
