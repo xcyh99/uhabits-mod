@@ -198,10 +198,19 @@ class ListHabitsMenu(
                     if (resource != 0) item.setIcon(resource)
                 }
                 item.setOnMenuItemClickListener {
-                    if (entry.first == "timeRecords") {
-                        activity.startActivity(Intent(activity, TimeRecordsActivity::class.java))
-                    } else {
-                        activity.startActivity(
+                    when {
+                        entry.first.startsWith("habit:") -> {
+                            val habitId = entry.first.removePrefix("habit:").toLongOrNull()
+                            if (habitId != null) {
+                                activity.startActivity(
+                                    Intent(activity, org.isoron.uhabits.activities.habits.show.ShowHabitActivity::class.java)
+                                        .setData(android.net.Uri.parse("content://org.isoron.uhabits/habit/$habitId"))
+                                )
+                            }
+                        }
+                        entry.first == "timeRecords" ->
+                            activity.startActivity(Intent(activity, TimeRecordsActivity::class.java))
+                        else -> activity.startActivity(
                             Intent(activity, SettingsActivity::class.java)
                                 .putExtra("open_preference_key", entry.first)
                         )
