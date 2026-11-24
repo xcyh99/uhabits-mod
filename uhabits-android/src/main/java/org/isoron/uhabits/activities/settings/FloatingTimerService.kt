@@ -34,7 +34,21 @@ class FloatingTimerService : Service() {
     private val ticker = object : Runnable {
         override fun run() {
             updateText()
-            handler.postDelayed(this, 250)
+            if (prefs.getBoolean("running", false)) {
+                handler.postDelayed(this, 1000)
+            }
+        }
+    }
+
+    private val longPressRunnable = Runnable {
+        if (!moved) longPress = true
+    }
+
+    private fun refreshTicker() {
+        handler.removeCallbacks(ticker)
+        updateText()
+        if (prefs.getBoolean("running", false)) {
+            handler.postDelayed(ticker, 1000)
         }
     }
 
@@ -63,8 +77,7 @@ class FloatingTimerService : Service() {
         }
         if (timerView == null) showOverlay()
         if (intent?.action == ACTION_SETUP || !prefs.contains("mode")) showSetupDialog()
-        handler.removeCallbacks(ticker)
-        handler.post(ticker)
+        refreshTicker()
         return START_STICKY
     }
 
@@ -105,9 +118,8 @@ class FloatingTimerService : Service() {
                     downX = event.rawX; downY = event.rawY
                     startX = p.x; startY = p.y
                     moved = false; longPress = false
-                    handler.postDelayed({
-                        if (!moved) longPress = true
-                    }, 550)
+                    handler.removeCallbacks(longPressRunnable)
+                    handler.postDelayed(longPressRunnable, 550)
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -115,18 +127,18 @@ class FloatingTimerService : Service() {
                     val dy = (event.rawY - downY).toInt()
                     if (kotlin.math.abs(dx) > 8 || kotlin.math.abs(dy) > 8) moved = true
                     if (moved) {
-                        handler.removeCallbacksAndMessages(null)
+                        handler.removeCallbacks(longPressRunnable)
                         p.x = startX + dx; p.y = startY + dy
                         windowManager?.updateViewLayout(view, p)
                     }
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    handler.removeCallbacksAndMessages(null)
+                    handler.removeCallbacks(longPressRunnable)
                     if (moved) prefs.edit().putInt("x", p.x).putInt("y", p.y).apply()
                     else if (longPress) showMenu()
                     else togglePause()
-                    handler.post(ticker)
+                    refreshTicker()
                     true
                 }
                 else -> true
@@ -172,7 +184,7 @@ class FloatingTimerService : Service() {
         prefs.edit().putLong("base", base)
             .putLong("anchor", SystemClock.elapsedRealtime())
             .putBoolean("running", !running).apply()
-        updateText()
+        refreshTicker()
     }
 
     private fun showMenu() {
@@ -186,11 +198,11 @@ class FloatingTimerService : Service() {
                         val down = prefs.getString("mode", "down") == "down"
                         val value = if (down) prefs.getLong("duration", 0) else 0L
                         prefs.edit().putLong("base", value).putLong("anchor", SystemClock.elapsedRealtime()).putBoolean("running", true).apply()
-                        updateText()
+                        refreshTicker()
                     }
                     2 -> {
                         prefs.edit().putLong("base", 0).putBoolean("running", false).apply()
-                        updateText()
+                        refreshTicker()
                     }
                     3 -> stopSelf()
                 }
@@ -207,7 +219,7 @@ class FloatingTimerService : Service() {
                 dialog.dismiss()
                 if (which == 0) showDurationDialog() else {
                     prefs.edit().putLong("base", 0).putLong("anchor", SystemClock.elapsedRealtime()).putBoolean("running", true).apply()
-                    updateText()
+                    refreshTicker()
                 }
             }
             .setNegativeButton("取消", null)
@@ -236,7 +248,7 @@ class FloatingTimerService : Service() {
                 prefs.edit().putString("mode", "down").putLong("duration", duration)
                     .putLong("base", duration).putLong("anchor", SystemClock.elapsedRealtime())
                     .putBoolean("running", duration > 0).apply()
-                updateText()
+                refreshTicker()
             }
             .setNegativeButton("取消", null)
             .showOverlayDialog()
