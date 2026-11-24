@@ -430,6 +430,9 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK
                         }
                         context.startActivity(home)
+                        // Leave the main activity at the top of the app task. Its next
+                        // launcher delivery will route to the preview manager.
+                        requireActivity().finish()
                     }
                     .onFailure {
                         Toast.makeText(context, "无法启动预览，正式参数未改变", Toast.LENGTH_LONG).show()
