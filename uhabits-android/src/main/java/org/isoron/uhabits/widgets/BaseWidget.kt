@@ -82,6 +82,13 @@ abstract class BaseWidget(val context: Context, val id: Int, val stacked: Boolea
         this.dimensions = dimensions
     }
 
+    fun defaultDimensions(): WidgetDimensions = WidgetDimensions(
+        defaultWidth,
+        defaultHeight,
+        defaultWidth,
+        defaultHeight
+    )
+
     protected abstract fun buildView(): View?
     protected abstract val defaultHeight: Int
     protected abstract val defaultWidth: Int
