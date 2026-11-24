@@ -36,19 +36,19 @@ class WidgetBehavior(
     private val notificationTray: NotificationTray,
     private val preferences: Preferences
 ) {
-    fun onAddRepetition(habit: Habit, date: LocalDate) {
+    fun onAddRepetition(habit: Habit, date: LocalDate, onFinished: (() -> Unit)? = null) {
         notificationTray.cancel(habit)
         val entry = habit.originalEntries.get(date)
-        setValue(habit, date, Entry.YES_MANUAL, entry.notes)
+        setValue(habit, date, Entry.YES_MANUAL, entry.notes, onFinished)
     }
 
-    fun onRemoveRepetition(habit: Habit, date: LocalDate) {
+    fun onRemoveRepetition(habit: Habit, date: LocalDate, onFinished: (() -> Unit)? = null) {
         notificationTray.cancel(habit)
         val entry = habit.originalEntries.get(date)
-        setValue(habit, date, Entry.NO, entry.notes)
+        setValue(habit, date, Entry.NO, entry.notes, onFinished)
     }
 
-    fun onToggleRepetition(habit: Habit, date: LocalDate) {
+    fun onToggleRepetition(habit: Habit, date: LocalDate, onFinished: (() -> Unit)? = null) {
         val entry = habit.originalEntries.get(date)
         val currentValue = entry.value
         val newValue = nextToggleValue(
@@ -56,7 +56,7 @@ class WidgetBehavior(
             isSkipEnabled = preferences.isSkipEnabled,
             areQuestionMarksEnabled = preferences.areQuestionMarksEnabled
         )
-        setValue(habit, date, newValue, entry.notes)
+        setValue(habit, date, newValue, entry.notes, onFinished)
         notificationTray.cancel(habit)
     }
 
@@ -74,9 +74,10 @@ class WidgetBehavior(
         notificationTray.cancel(habit)
     }
 
-    fun setValue(habit: Habit, date: LocalDate, newValue: Int, notes: String) {
+    fun setValue(habit: Habit, date: LocalDate, newValue: Int, notes: String, onFinished: (() -> Unit)? = null) {
         commandRunner.run(
-            CreateRepetitionCommand(habitList, habit, date, newValue, notes)
+            CreateRepetitionCommand(habitList, habit, date, newValue, notes),
+            onFinished
         )
     }
 }
