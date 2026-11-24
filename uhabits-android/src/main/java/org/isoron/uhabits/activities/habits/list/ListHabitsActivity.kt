@@ -202,12 +202,16 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
         when {
             target.startsWith("habit:") -> {
                 val habitId = target.removePrefix("habit:").toLongOrNull()
-                if (habitId != null) {
+                val habitExists = habitId?.let {
+                    (application as HabitsApplication).component.habitList.getById(it) != null
+                } ?: false
+                if (habitId != null && habitExists) {
                     startActivity(
                         Intent(this, org.isoron.uhabits.activities.habits.show.ShowHabitActivity::class.java)
                             .setData(android.net.Uri.parse("content://org.isoron.uhabits/habit/$habitId"))
                     )
                 } else {
+                    android.widget.Toast.makeText(this, "这个习惯可能已删除，请重新设置快捷方式", android.widget.Toast.LENGTH_LONG).show()
                     startActivity(Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java))
                 }
             }
