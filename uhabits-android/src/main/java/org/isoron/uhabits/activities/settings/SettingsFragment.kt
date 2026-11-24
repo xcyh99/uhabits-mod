@@ -163,7 +163,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         if ((targetPreference != null && targetPreference != "widgetManager") || openFeatureCenter) {
             view.post {
                 if (targetPreference == "historyWhiteWeight") {
-                    showParameterCenter()
+                    showHistoryWhiteWeightSetting()
                     return@post
                 }
                 val key = when (targetPreference) {
