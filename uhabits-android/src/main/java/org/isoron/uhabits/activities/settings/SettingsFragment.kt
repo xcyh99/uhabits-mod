@@ -432,6 +432,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             .show()
     }
 
+    fun openPreferenceByKey(key: String) {
+        findPreference<Preference>(key)?.performClick()
+    }
+
     fun openBatchWidgetPicker(intent: Intent) {
         showWidgetManager()
     }
