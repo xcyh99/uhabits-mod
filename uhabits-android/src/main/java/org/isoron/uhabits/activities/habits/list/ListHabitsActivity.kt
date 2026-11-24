@@ -86,7 +86,8 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
         }
 
         val launchPreferences = (application as HabitsApplication).component.preferences
-        if (launchPreferences.isHistoryChartWhiteWeightPreviewPending) {
+        if (launchPreferences.isHistoryChartWhiteWeightPreviewPending ||
+            launchPreferences.isCheckmarkWhiteWeightPreviewPending) {
             startActivity(Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
                 .putExtra("manage_parameter_preview", true))
             finish()
