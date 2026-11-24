@@ -24,6 +24,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AlertDialog
+import androidx.core.graphics.ColorUtils
 import android.content.SharedPreferences
 import org.json.JSONArray
 import org.json.JSONObject
@@ -78,10 +79,11 @@ class DesktopShortcutActivity : AppCompatActivity() {
     private var photoFile: File? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+        // Apply the selected app theme before Activity/AppCompat initializes views.
         val component = (application as HabitsApplication).component
         val themeSwitcher = AndroidThemeSwitcher(this, component.preferences)
         themeSwitcher.apply()
+        super.onCreate(savedInstanceState)
         title = "桌面快捷"
         targets.addAll(FeatureShortcutCatalog.getEntries(this).map { Target(it.key, it.title) })
         targets.add(Target("historyWhiteWeight", "历史组件白色数字权重"))
@@ -91,8 +93,12 @@ class DesktopShortcutActivity : AppCompatActivity() {
         // Resolve colors from the app theme because this screen is built programmatically.
         val styled = StyledResources(this)
         val pageBackground = styled.getColor(R.attr.contrast0)
-        val primaryText = styled.getColor(R.attr.contrast100)
-        val secondaryText = styled.getColor(R.attr.contrast80)
+        // Programmatic views on some Android skins can resolve theme attrs against
+        // the pre-switch theme. Derive text contrast from the actual page background
+        // so dark pages always get bright text and light pages get dark text.
+        val isDarkBackground = ColorUtils.calculateLuminance(pageBackground) < 0.5
+        val primaryText = if (isDarkBackground) Color.WHITE else Color.BLACK
+        val secondaryText = if (isDarkBackground) Color.LTGRAY else Color.DKGRAY
         fun label(value: String) = TextView(this).apply {
             text = value
             textSize = 14f
