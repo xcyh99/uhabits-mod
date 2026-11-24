@@ -71,6 +71,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
     private lateinit var iconSpinner: Spinner
     private lateinit var colorSpinner: Spinner
     private lateinit var photoStatus: TextView
+    private lateinit var saveButton: Button
     private var photoFile: File? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -125,6 +126,15 @@ class DesktopShortcutActivity : AppCompatActivity() {
             text = "从手机相册选择图片"
             setOnClickListener { choosePhoto() }
         })
+        content.addView(Button(this).apply {
+            text = "清除已选图片，改用内置图标"
+            setOnClickListener {
+                photoFile?.let { file -> runCatching { file.delete() } }
+                photoFile = null
+                photoStatus.text = "未选择相册图片（可选）"
+                iconSpinner.setSelection(0)
+            }
+        })
         content.addView(photoStatus)
         content.addView(TextView(this).apply {
             text = "创建后，Android 桌面会弹出确认界面。确认后图标才会添加到桌面。你可以重复创建多个快捷方式。"
@@ -132,10 +142,11 @@ class DesktopShortcutActivity : AppCompatActivity() {
             setTextColor(Color.GRAY)
             setPadding(0, dp(10), 0, dp(14))
         })
-        content.addView(Button(this).apply {
+        saveButton = Button(this).apply {
             text = "创建并添加到桌面"
             setOnClickListener { createShortcut() }
-        })
+        }
+        content.addView(saveButton)
         setContentView(content)
     }
 
@@ -219,6 +230,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
                 saveShortcuts(entries)
                 Toast.makeText(this, if (existing) "桌面快捷方式已更新" else "已提交桌面添加请求，请在桌面确认", Toast.LENGTH_LONG).show()
                 editingShortcutId = null
+                saveButton.text = "创建并添加到桌面"
                 finish()
             } else {
                 Toast.makeText(this, "桌面没有接受添加请求。", Toast.LENGTH_LONG).show()
@@ -309,7 +321,8 @@ class DesktopShortcutActivity : AppCompatActivity() {
         colorSpinner.setSelection(entry.colorIndex.coerceIn(colorNames.indices))
         photoFile = entry.photoPath?.let(::File)?.takeIf { it.exists() }
         photoStatus.text = if (photoFile != null) "已选择相册图片：${photoFile!!.name}" else "未选择相册图片（可选）"
-        Toast.makeText(this, "已载入快捷方式，请修改后点击“创建并添加到桌面”保存", Toast.LENGTH_LONG).show()
+        saveButton.text = "保存修改并更新桌面图标"
+        Toast.makeText(this, "已载入快捷方式，修改后点击下方按钮保存", Toast.LENGTH_LONG).show()
     }
 
     private fun confirmDeleteShortcut(entry: ShortcutEntry) {
