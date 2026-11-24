@@ -154,13 +154,13 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 val offsetBottomPadding = (-offsetPx * 2).coerceAtLeast(0)
                 views.setViewVisibility(viewId, if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE else android.view.View.VISIBLE)
                 if (index < 3) {
-                    // Keep the clipping viewport fixed and translate only the native TextClock.
-                    // Translation is a View property: it moves the already-laid-out child
-                    // without changing its measured size, font size, or the viewport bounds.
+                    // The TextClock is top-anchored inside a fixed clipping viewport.
+                    // A top margin therefore moves the native clock by the exact offset,
+                    // without changing its measured height, font size, or the viewport.
                     if (android.os.Build.VERSION.SDK_INT >= 31) {
                         views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
+                        views.setViewLayoutMargin(textIds[index], RemoteViews.MARGIN_TOP, offsetPx.toFloat(), android.util.TypedValue.COMPLEX_UNIT_PX)
                     }
-                    views.setFloat(textIds[index], "setTranslationY", offsetPx.toFloat())
                 } else if (android.os.Build.VERSION.SDK_INT >= 31) {
                     views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                     val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
