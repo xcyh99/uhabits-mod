@@ -44,7 +44,7 @@ class HistoryWidget(
     override val defaultWidth: Int = 250
 
     private fun widgetTheme(): WidgetTheme {
-        val chart = prefs.getWhiteOutlineSettings(WhiteOutlineTarget.APP_CHART)
+        val chart = prefs.getWhiteOutlineSettings(WhiteOutlineTarget.WIDGET_CALENDAR)
         val calendar = prefs.getWhiteOutlineSettings(WhiteOutlineTarget.WIDGET_CALENDAR)
         return WidgetTheme(
             isDarkWidgetTheme,
