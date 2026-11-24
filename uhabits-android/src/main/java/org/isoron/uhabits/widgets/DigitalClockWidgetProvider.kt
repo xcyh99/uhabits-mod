@@ -55,9 +55,14 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 prefs.getInt("digital_clock_shortcut_height", 37)
             ).map { it.coerceAtLeast(0) }
             fun fittedSize(rowIndex: Int, manualSize: Float): Float {
-                if (!autoLayout || rowHeights[rowIndex] <= 0) return manualSize
-                // Use most of the fixed row height while leaving a small clipping-safe margin.
-                return (rowHeights[rowIndex] * density / scaledDensity * 0.88f).coerceIn(1f, 300f)
+                if (rowHeights[rowIndex] <= 0) return manualSize
+                val mustFit = autoLayout || android.os.Build.VERSION.SDK_INT < 31
+                if (!mustFit) return manualSize
+                // Auto mode fills most of the row. On pre-Android 12, where RemoteViews
+                // cannot set a child's fixed height, cap oversized text so it cannot
+                // force the row to grow beyond its configured height.
+                val rowFit = rowHeights[rowIndex] * density / scaledDensity * 0.88f
+                return minOf(manualSize, rowFit).coerceIn(1f, 300f)
             }
             val hourSize = fittedSize(0, prefs.getFloat("digital_clock_hour_size", 48f))
             val minuteSize = fittedSize(1, prefs.getFloat("digital_clock_minute_size", 48f))
@@ -134,9 +139,9 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             val density = context.resources.displayMetrics.density
             val scaledDensity = context.resources.displayMetrics.scaledDensity
             val naturalHeightsDp = floatArrayOf(
-                prefs.getFloat("digital_clock_hour_size", 48f) * scaledDensity / density * 1.05f,
-                prefs.getFloat("digital_clock_minute_size", 48f) * scaledDensity / density * 1.05f,
-                prefs.getFloat("digital_clock_date_size", 15f) * scaledDensity / density * 1.05f,
+                hourSize * scaledDensity / density * 1.05f,
+                minuteSize * scaledDensity / density * 1.05f,
+                dateSize * scaledDensity / density * 1.05f,
                 37f
             )
             rowIds.forEachIndexed { index, viewId ->
