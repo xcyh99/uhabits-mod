@@ -44,9 +44,37 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
         private fun updateWidget(context: Context, manager: AppWidgetManager, widgetId: Int) {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context)
             val views = RemoteViews(context.packageName, R.layout.widget_digital_clock)
-            views.setTextViewTextSize(R.id.digital_clock_time, android.util.TypedValue.COMPLEX_UNIT_SP, prefs.getFloat("digital_clock_hour_size", 48f))
-            views.setTextViewTextSize(R.id.digital_clock_minute, android.util.TypedValue.COMPLEX_UNIT_SP, prefs.getFloat("digital_clock_minute_size", 48f))
-            views.setTextViewTextSize(R.id.digital_clock_date, android.util.TypedValue.COMPLEX_UNIT_SP, prefs.getFloat("digital_clock_date_size", 15f))
+            val autoLayout = prefs.getInt("digital_clock_layout_mode", 0) == 1
+            val keepDigitRatio = prefs.getBoolean("digital_clock_keep_digit_ratio", true)
+            val hourHeight = prefs.getInt("digital_clock_hour_height", 48).coerceAtLeast(0)
+            val minuteHeight = prefs.getInt("digital_clock_minute_height", 48).coerceAtLeast(0)
+            val dateHeight = prefs.getInt("digital_clock_date_height", 27).coerceAtLeast(0)
+            val density = context.resources.displayMetrics.density
+            val hourSize = prefs.getFloat("digital_clock_hour_size", 48f)
+            val minuteSize = prefs.getFloat("digital_clock_minute_size", 48f)
+            val dateSize = prefs.getFloat("digital_clock_date_size", 15f)
+            // In auto mode, text is fitted inside its fixed row; the row itself never grows.
+            val fittedHourSize = if (autoLayout && hourHeight > 0) minOf(hourSize, hourHeight * 0.86f) else hourSize
+            val fittedMinuteSize = if (autoLayout && minuteHeight > 0) minOf(minuteSize, minuteHeight * 0.86f) else minuteSize
+            val fittedDateSize = if (autoLayout && dateHeight > 0) minOf(dateSize, dateHeight * 0.86f) else dateSize
+            views.setTextViewTextSize(R.id.digital_clock_time, android.util.TypedValue.COMPLEX_UNIT_SP, fittedHourSize.coerceAtLeast(1f))
+            views.setTextViewTextSize(R.id.digital_clock_minute, android.util.TypedValue.COMPLEX_UNIT_SP, fittedMinuteSize.coerceAtLeast(1f))
+            views.setTextViewTextSize(R.id.digital_clock_date, android.util.TypedValue.COMPLEX_UNIT_SP, fittedDateSize.coerceAtLeast(1f))
+            val widgetWidthDp = manager.getAppWidgetOptions(widgetId)
+                .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 110).coerceAtLeast(80)
+            fun digitWidthScale(sizeSp: Float): Float {
+                val paint = android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                    textSize = sizeSp * density
+                    typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL)
+                }
+                val availablePx = (widgetWidthDp - 16).coerceAtLeast(48) * density
+                val naturalPx = paint.measureText("88").coerceAtLeast(1f)
+                return (availablePx / naturalPx).coerceIn(0.72f, 1.28f)
+            }
+            val hourScaleX = if (autoLayout && !keepDigitRatio) digitWidthScale(fittedHourSize) else 1f
+            val minuteScaleX = if (autoLayout && !keepDigitRatio) digitWidthScale(fittedMinuteSize) else 1f
+            views.setFloat(R.id.digital_clock_time, "setTextScaleX", hourScaleX)
+            views.setFloat(R.id.digital_clock_minute, "setTextScaleX", minuteScaleX)
             views.setTextColor(R.id.digital_clock_time, prefs.getInt("digital_clock_hour_color", prefs.getInt("digital_clock_time_color", Color.WHITE)))
             views.setTextColor(R.id.digital_clock_minute, prefs.getInt("digital_clock_minute_color", prefs.getInt("digital_clock_time_color", Color.WHITE)))
             views.setTextColor(R.id.digital_clock_date, prefs.getInt("digital_clock_date_color", Color.LTGRAY))
@@ -92,7 +120,10 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                         if (shortcutCount > 0) prefs.getInt("digital_clock_shortcut_height", 37) else 0
                     ).map { it.coerceAtLeast(0) }
                     val sum = heights.sum()
-                    val gap = if (sum <= totalDp) (totalDp - sum) / 3f else 0f
+                    val remaining = (totalDp - sum).coerceAtLeast(0)
+                    // Auto mode keeps a small visual safety gap and avoids oversized gaps.
+                    val rawGap = remaining / 3f
+                    val gap = if (autoLayout && remaining >= 6) rawGap.coerceIn(2f, 8f) else rawGap
                     rowIds.forEachIndexed { index, viewId ->
                         val rowHeight = heights[index]
                         views.setViewVisibility(viewId, if (rowHeight == 0) android.view.View.GONE else android.view.View.VISIBLE)
