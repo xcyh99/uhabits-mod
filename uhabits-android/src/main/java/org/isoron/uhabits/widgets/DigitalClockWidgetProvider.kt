@@ -44,21 +44,60 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
         private fun updateWidget(context: Context, manager: AppWidgetManager, widgetId: Int) {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context)
             val views = RemoteViews(context.packageName, R.layout.widget_digital_clock)
-            views.setTextViewTextSize(R.id.digital_clock_time, android.util.TypedValue.COMPLEX_UNIT_SP, prefs.getFloat("digital_clock_hour_size", 48f))
-            views.setTextViewTextSize(R.id.digital_clock_minute, android.util.TypedValue.COMPLEX_UNIT_SP, prefs.getFloat("digital_clock_minute_size", 48f))
-            views.setTextViewTextSize(R.id.digital_clock_date, android.util.TypedValue.COMPLEX_UNIT_SP, prefs.getFloat("digital_clock_date_size", 15f))
-            // Each text row has independent spacing and optional horizontal transformation.
+            val autoLayout = prefs.getInt("digital_clock_layout_mode", 0) == 1
+            val keepDigitRatio = prefs.getBoolean("digital_clock_keep_digit_ratio", true)
+            val density = context.resources.displayMetrics.density
+            val scaledDensity = context.resources.displayMetrics.scaledDensity
+            val rowHeights = intArrayOf(
+                prefs.getInt("digital_clock_hour_height", 48),
+                prefs.getInt("digital_clock_minute_height", 48),
+                prefs.getInt("digital_clock_date_height", 27),
+                prefs.getInt("digital_clock_shortcut_height", 37)
+            ).map { it.coerceAtLeast(0) }
+            fun fittedSize(rowIndex: Int, manualSize: Float): Float {
+                if (!autoLayout || rowHeights[rowIndex] <= 0) return manualSize
+                // Use most of the fixed row height while leaving a small clipping-safe margin.
+                return (rowHeights[rowIndex] * density / scaledDensity * 0.88f).coerceIn(1f, 300f)
+            }
+            val hourSize = fittedSize(0, prefs.getFloat("digital_clock_hour_size", 48f))
+            val minuteSize = fittedSize(1, prefs.getFloat("digital_clock_minute_size", 48f))
+            val dateSize = fittedSize(2, prefs.getFloat("digital_clock_date_size", 15f))
+            views.setTextViewTextSize(R.id.digital_clock_time, android.util.TypedValue.COMPLEX_UNIT_SP, hourSize)
+            views.setTextViewTextSize(R.id.digital_clock_minute, android.util.TypedValue.COMPLEX_UNIT_SP, minuteSize)
+            views.setTextViewTextSize(R.id.digital_clock_date, android.util.TypedValue.COMPLEX_UNIT_SP, dateSize)
+
+            val widthDp = manager.getAppWidgetOptions(widgetId)
+                .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 110).coerceAtLeast(80)
+            fun autoDigitWidth(sizeSp: Float): Float {
+                val paint = android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                    textSize = sizeSp * scaledDensity
+                    typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL)
+                }
+                val availablePx = (widthDp - 16).coerceAtLeast(48) * density
+                val naturalPx = paint.measureText("88").coerceAtLeast(1f)
+                return (availablePx / naturalPx).coerceIn(0.72f, 1.25f)
+            }
+            // Keep manual spacing/transforms intact; auto mode applies a safe spacing floor
+            // and optionally adapts digit width to the actual widget width.
             val textRows = listOf(
                 Triple(R.id.digital_clock_time, "hour", -0.04f),
                 Triple(R.id.digital_clock_minute, "minute", -0.04f),
                 Triple(R.id.digital_clock_date, "date", -0.04f)
             )
-            textRows.forEach { (textId, rowKey, defaultSpacing) ->
-                val letterSpacing = prefs.getFloat("digital_clock_${rowKey}_letter_spacing", defaultSpacing).coerceIn(-0.20f, 0.20f)
+            textRows.forEachIndexed { index, (textId, rowKey, defaultSpacing) ->
+                val savedSpacing = prefs.getFloat("digital_clock_${rowKey}_letter_spacing", defaultSpacing)
+                    .coerceIn(-0.20f, 0.20f)
+                val letterSpacing = if (autoLayout) savedSpacing.coerceAtLeast(-0.12f) else savedSpacing
                 val transformEnabled = prefs.getBoolean("digital_clock_${rowKey}_transform_enabled", false)
-                val horizontalScale = if (transformEnabled) prefs.getFloat("digital_clock_${rowKey}_horizontal_scale", 0.90f).coerceIn(0.60f, 1.20f) else 1f
+                val manualScale = if (transformEnabled) prefs.getFloat("digital_clock_${rowKey}_horizontal_scale", 0.90f).coerceIn(0.60f, 1.20f) else 1f
+                val horizontalScale = when {
+                    !autoLayout -> manualScale
+                    index == 2 || keepDigitRatio -> 1f
+                    index == 0 -> autoDigitWidth(hourSize)
+                    else -> autoDigitWidth(minuteSize)
+                }
                 views.setFloat(textId, "setLetterSpacing", letterSpacing)
-                // Scale the rendered text horizontally only; the row's measured height is unchanged.
+                // Horizontal adaptation never changes the fixed row height.
                 views.setFloat(textId, "setTextScaleX", horizontalScale)
             }
             views.setTextColor(R.id.digital_clock_time, prefs.getInt("digital_clock_hour_color", prefs.getInt("digital_clock_time_color", Color.WHITE)))
@@ -91,12 +130,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 R.id.digital_clock_date,
                 R.id.digital_clock_shortcut_row
             )
-            val heights = intArrayOf(
-                prefs.getInt("digital_clock_hour_height", 48),
-                prefs.getInt("digital_clock_minute_height", 48),
-                prefs.getInt("digital_clock_date_height", 27),
-                prefs.getInt("digital_clock_shortcut_height", 37)
-            ).map { it.coerceAtLeast(0) }
+            val heights = rowHeights
             val density = context.resources.displayMetrics.density
             val scaledDensity = context.resources.displayMetrics.scaledDensity
             val naturalHeightsDp = floatArrayOf(
