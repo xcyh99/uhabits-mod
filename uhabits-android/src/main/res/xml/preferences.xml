@@ -73,15 +73,9 @@
             android:title="备份与恢复">
 
         <Preference
-                android:key="createFullBackup"
-                android:title="完整备份"
-                android:summary="备份主数据库、时间记录、软件设置、小组件关联和悬浮计时器；不包含设备专属授权、铃声 URI 及桌面摆放位置。"
-                app:iconSpaceReserved="false" />
-
-        <Preference
-                android:key="restoreFullBackup"
-                android:title="完整恢复"
-                android:summary="从 .uhabitsbackup 恢复数据；恢复前保存本机安全副本，并重启应用。"
+                android:key="fullBackupRestore"
+                android:title="完整备份与恢复"
+                android:summary="创建完整备份，或从备份文件恢复数据。"
                 app:iconSpaceReserved="false" />
 
         <Preference
