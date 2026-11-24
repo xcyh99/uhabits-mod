@@ -37,7 +37,7 @@ import org.isoron.uhabits.core.models.Entry.Companion.SKIP
 import org.isoron.uhabits.core.models.Entry.Companion.UNKNOWN
 import org.isoron.uhabits.core.models.Entry.Companion.YES_AUTO
 import org.isoron.uhabits.core.models.Entry.Companion.YES_MANUAL
-import org.isoron.uhabits.core.preferences.Preferences
+import org.isoron.uhabits.core.preferences.Preferences\nimport org.isoron.uhabits.core.preferences.WhiteOutlineTarget
 import org.isoron.uhabits.core.ui.ThemeSwitcher
 import org.isoron.uhabits.core.ui.views.ColorOutline
 import org.isoron.uhabits.inject.HabitsApplicationComponent
@@ -159,7 +159,7 @@ class CheckmarkWidgetView : HabitWidgetView {
                 frame!!.right - halfStroke,
                 frame!!.bottom - halfStroke
             )
-            cardOutlinePaint.strokeWidth = dpToPixels(context, 0.2f)
+            cardOutlinePaint.strokeWidth = dpToPixels(context, (preferences?.getWhiteOutlineSettings(WhiteOutlineTarget.WIDGET_CHECKMARK)?.width ?: 0.2).toFloat())\n            val halfStroke = dpToPixels(context, (preferences?.getWhiteOutlineSettings(WhiteOutlineTarget.WIDGET_CHECKMARK)?.width ?: 0.2).toFloat() / 2f)
             canvas.drawRoundRect(
                 cardOutlineRect,
                 dpToPixels(context, 18f),
