@@ -79,6 +79,12 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        if (intent?.action == org.isoron.uhabits.activities.settings.DesktopShortcutActivity.ACTION_OPEN_DESKTOP_SHORTCUT) {
+            openDesktopShortcutTarget(intent)
+            finish()
+            return
+        }
+
         val launchPreferences = (application as HabitsApplication).component.preferences
         if (launchPreferences.isHistoryChartWhiteWeightPreviewPending) {
             startActivity(Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
@@ -185,6 +191,26 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
         super.onResume()
     }
 
+    private fun openDesktopShortcutTarget(source: Intent) {
+        val target = source.getStringExtra(
+            org.isoron.uhabits.activities.settings.DesktopShortcutActivity.EXTRA_TARGET
+        ) ?: "__settings"
+        when (target) {
+            "timeRecords" -> startActivity(Intent(this, org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
+            "__feature_center" -> startActivity(
+                Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
+                    .putExtra("open_feature_center", true)
+            )
+            "__settings" -> startActivity(
+                Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
+            )
+            else -> startActivity(
+                Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
+                    .putExtra("open_preference_key", target)
+            )
+        }
+    }
+
     private fun scheduleReminders() {
         appComponent.reminderScheduler.scheduleAll()
     }
@@ -221,6 +247,11 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         setIntent(intent)
+
+        if (intent.action == org.isoron.uhabits.activities.settings.DesktopShortcutActivity.ACTION_OPEN_DESKTOP_SHORTCUT) {
+            openDesktopShortcutTarget(intent)
+            return
+        }
 
         // A launcher tap can bring this task forward while a preview is awaiting a decision.
         if (intent?.action == Intent.ACTION_MAIN && prefs.isHistoryChartWhiteWeightPreviewPending) {
