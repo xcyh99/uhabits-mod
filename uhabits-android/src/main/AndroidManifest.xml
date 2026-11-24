@@ -29,6 +29,13 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name="org.isoron.uhabits.HabitsApplication"
         android:allowBackup="true"
@@ -104,6 +111,11 @@
             android:name="org.isoron.uhabits.activities.settings.DesktopShortcutActivity"
             android:exported="false"
             android:label="桌面快捷" />
+
+        <activity
+            android:name="org.isoron.uhabits.activities.settings.DesktopWidgetSettingsActivity"
+            android:exported="false"
+            android:label="桌面组件设置" />
 
         <activity
             android:name="org.isoron.uhabits.activities.settings.SettingsActivity"
