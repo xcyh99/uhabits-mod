@@ -54,19 +54,11 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 prefs.getInt("digital_clock_date_height", 27),
                 prefs.getInt("digital_clock_shortcut_height", 37)
             ).map { it.coerceAtLeast(0) }
-            fun fittedSize(rowIndex: Int, manualSize: Float): Float {
-                if (rowHeights[rowIndex] <= 0) return manualSize
-                val mustFit = autoLayout || android.os.Build.VERSION.SDK_INT < 31
-                if (!mustFit) return manualSize
-                // Auto mode fills most of the row. On pre-Android 12, where RemoteViews
-                // cannot set a child's fixed height, cap oversized text so it cannot
-                // force the row to grow beyond its configured height.
-                val rowFit = rowHeights[rowIndex] * density / scaledDensity * 0.88f
-                return minOf(manualSize, rowFit).coerceIn(1f, 300f)
-            }
-            val hourSize = fittedSize(0, prefs.getFloat("digital_clock_hour_size", 48f))
-            val minuteSize = fittedSize(1, prefs.getFloat("digital_clock_minute_size", 48f))
-            val dateSize = fittedSize(2, prefs.getFloat("digital_clock_date_size", 15f))
+            // Row height is a clipping viewport, never a font-size ceiling.
+            // Both layout modes preserve the exact user-selected font size.
+            val hourSize = prefs.getFloat("digital_clock_hour_size", 48f).coerceIn(1f, 300f)
+            val minuteSize = prefs.getFloat("digital_clock_minute_size", 48f).coerceIn(1f, 300f)
+            val dateSize = prefs.getFloat("digital_clock_date_size", 15f).coerceIn(1f, 300f)
             views.setTextViewTextSize(R.id.digital_clock_time, android.util.TypedValue.COMPLEX_UNIT_SP, hourSize)
             views.setTextViewTextSize(R.id.digital_clock_minute, android.util.TypedValue.COMPLEX_UNIT_SP, minuteSize)
             views.setTextViewTextSize(R.id.digital_clock_date, android.util.TypedValue.COMPLEX_UNIT_SP, dateSize)
@@ -145,13 +137,19 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             rowIds.forEachIndexed { index, viewId ->
                 val rowHeight = heights[index]
                 views.setViewVisibility(viewId, if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE else android.view.View.VISIBLE)
-                if (android.os.Build.VERSION.SDK_INT >= 31) {
-                    // Android 12+ supports changing a RemoteViews child's layout height directly.
+                if (index < 3) {
+                    // Keep the configured font size and clamp the TextClock viewport.
+                    val rowHeightPx = (rowHeight * density).toInt()
+                    if (android.os.Build.VERSION.SDK_INT >= 31) {
+                        views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
+                    } else {
+                        views.setInt(viewId, "setMinHeight", rowHeightPx)
+                        views.setInt(viewId, "setMaxHeight", rowHeightPx)
+                    }
+                    views.setViewPadding(viewId, 0, 0, 0, 0)
+                } else if (android.os.Build.VERSION.SDK_INT >= 31) {
                     views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                 } else {
-                    // Older RemoteViews cannot change layout_height dynamically. Use the
-                    // supported padding action to add the requested height without relying on
-                    // unsupported reflective calls such as TextView.setHeight().
                     val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
                     views.setViewPadding(viewId, 0, extraPaddingPx, 0, extraPaddingPx)
                 }
@@ -183,14 +181,18 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     views.setOnClickPendingIntent(container, createTargetPendingIntent(context, widgetId, i + 2, target))
                 }
             }
-            val timeTarget = prefs.getString("digital_clock_target_time", null)
-            if (timeTarget != "none") {
-                val timePending = createTargetPendingIntent(context, widgetId, 0, timeTarget)
-                views.setOnClickPendingIntent(R.id.digital_clock_time, timePending)
-                views.setOnClickPendingIntent(R.id.digital_clock_minute, timePending)
+            // Keep the former shared time target as a fallback for existing installations.
+            val legacyTimeTarget = prefs.getString("digital_clock_target_time", null)
+            val hourTarget = prefs.getString("digital_clock_target_hour", legacyTimeTarget)
+            val minuteTarget = prefs.getString("digital_clock_target_minute", legacyTimeTarget)
+            if (hourTarget != "none") {
+                views.setOnClickPendingIntent(R.id.digital_clock_time, createTargetPendingIntent(context, widgetId, 0, hourTarget))
+            }
+            if (minuteTarget != "none") {
+                views.setOnClickPendingIntent(R.id.digital_clock_minute, createTargetPendingIntent(context, widgetId, 1, minuteTarget))
             }
             val dateTarget = prefs.getString("digital_clock_target_date", null)
-            if (dateTarget != "none") views.setOnClickPendingIntent(R.id.digital_clock_date, createTargetPendingIntent(context, widgetId, 1, dateTarget))
+            if (dateTarget != "none") views.setOnClickPendingIntent(R.id.digital_clock_date, createTargetPendingIntent(context, widgetId, 2, dateTarget))
             manager.updateAppWidget(widgetId, views)
         }
         private fun resolveShortcut(context: Context, value: String?, index: Int): Pair<String, Bitmap?> {
