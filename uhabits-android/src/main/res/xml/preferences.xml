@@ -163,6 +163,12 @@
                 app:iconSpaceReserved="false" />
 
         <Preference
+                android:key="desktopShortcuts"
+                android:title="桌面快捷"
+                android:summary="创建桌面入口，直接打开功能中心、设置板块或具体功能；支持内置图标和相册图片。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
                 android:key="featureShortcuts"
                 android:title="@string/shortcut_settings"
                 android:summary="@string/shortcut_settings_summary"
