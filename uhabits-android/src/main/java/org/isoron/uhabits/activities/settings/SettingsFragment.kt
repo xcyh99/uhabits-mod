@@ -254,15 +254,14 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 return true
             }
             "restoreFullBackup" -> {
-                val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                // Use the same system document picker as ordinary data import.
+                // The selected content URI is streamed by the existing restore flow.
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
                     type = "*/*"
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
-                startActivityForResult(
-                    Intent.createChooser(intent, "选择完整备份文件"),
-                    FULL_BACKUP_RESTORE_REQUEST_CODE
-                )
+                startActivityForResult(intent, FULL_BACKUP_RESTORE_REQUEST_CODE)
                 return true
             }
             "timeRecords" -> {
