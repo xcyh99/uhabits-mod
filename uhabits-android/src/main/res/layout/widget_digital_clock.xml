@@ -5,10 +5,10 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center_horizontal"
-    android:paddingStart="8dp"
-    android:paddingEnd="8dp"
-    android:paddingTop="8dp"
-    android:paddingBottom="7dp"
+    android:paddingStart="0dp"
+    android:paddingEnd="0dp"
+    android:paddingTop="0dp"
+    android:paddingBottom="0dp"
     android:background="@drawable/time_record_widget_background">
     <TextClock
         android:id="@+id/digital_clock_time"
@@ -74,21 +74,11 @@
             android:padding="2dp">
             <ImageView
                 android:id="@+id/digital_clock_shortcut1_icon"
-                android:layout_width="16dp"
-                android:layout_height="16dp"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:src="@android:drawable/ic_menu_view"
                 android:contentDescription="快捷方式1"
-                android:tint="#FFFFFFFF" />
-            <TextView
-                android:id="@+id/digital_clock_shortcut1_label"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="快捷1"
-                android:textColor="#CCFFFFFF"
-                android:textSize="8sp"
-                android:maxLines="1"
-                android:ellipsize="end" />
+                android:scaleType="fitCenter" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/digital_clock_shortcut2"
@@ -100,21 +90,11 @@
             android:padding="2dp">
             <ImageView
                 android:id="@+id/digital_clock_shortcut2_icon"
-                android:layout_width="23dp"
-                android:layout_height="23dp"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:src="@android:drawable/ic_menu_view"
                 android:contentDescription="快捷方式2"
-                android:tint="#FFFFFFFF" />
-            <TextView
-                android:id="@+id/digital_clock_shortcut2_label"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="快捷2"
-                android:textColor="#CCFFFFFF"
-                android:textSize="8sp"
-                android:maxLines="1"
-                android:ellipsize="end" />
+                android:scaleType="fitCenter" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/digital_clock_shortcut3"
@@ -126,21 +106,11 @@
             android:padding="2dp">
             <ImageView
                 android:id="@+id/digital_clock_shortcut3_icon"
-                android:layout_width="23dp"
-                android:layout_height="23dp"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:src="@android:drawable/ic_menu_view"
                 android:contentDescription="快捷方式3"
-                android:tint="#FFFFFFFF" />
-            <TextView
-                android:id="@+id/digital_clock_shortcut3_label"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="快捷3"
-                android:textColor="#CCFFFFFF"
-                android:textSize="8sp"
-                android:maxLines="1"
-                android:ellipsize="end" />
+                android:scaleType="fitCenter" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/digital_clock_shortcut4"
@@ -152,21 +122,11 @@
             android:padding="2dp">
             <ImageView
                 android:id="@+id/digital_clock_shortcut4_icon"
-                android:layout_width="23dp"
-                android:layout_height="23dp"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:src="@android:drawable/ic_menu_view"
                 android:contentDescription="快捷方式4"
-                android:tint="#FFFFFFFF" />
-            <TextView
-                android:id="@+id/digital_clock_shortcut4_label"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="快捷4"
-                android:textColor="#CCFFFFFF"
-                android:textSize="8sp"
-                android:maxLines="1"
-                android:ellipsize="end" />
+                android:scaleType="fitCenter" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/digital_clock_shortcut5"
@@ -178,21 +138,11 @@
             android:padding="2dp">
             <ImageView
                 android:id="@+id/digital_clock_shortcut5_icon"
-                android:layout_width="23dp"
-                android:layout_height="23dp"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:src="@android:drawable/ic_menu_view"
                 android:contentDescription="快捷方式5"
-                android:tint="#FFFFFFFF" />
-            <TextView
-                android:id="@+id/digital_clock_shortcut5_label"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="快捷5"
-                android:textColor="#CCFFFFFF"
-                android:textSize="8sp"
-                android:maxLines="1"
-                android:ellipsize="end" />
+                android:scaleType="fitCenter" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/digital_clock_shortcut6"
@@ -204,21 +154,11 @@
             android:padding="2dp">
             <ImageView
                 android:id="@+id/digital_clock_shortcut6_icon"
-                android:layout_width="23dp"
-                android:layout_height="23dp"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:src="@android:drawable/ic_menu_view"
                 android:contentDescription="快捷方式6"
-                android:tint="#FFFFFFFF" />
-            <TextView
-                android:id="@+id/digital_clock_shortcut6_label"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="快捷6"
-                android:textColor="#CCFFFFFF"
-                android:textSize="8sp"
-                android:maxLines="1"
-                android:ellipsize="end" />
+                android:scaleType="fitCenter" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/digital_clock_shortcut7"
@@ -230,21 +170,11 @@
             android:padding="2dp">
             <ImageView
                 android:id="@+id/digital_clock_shortcut7_icon"
-                android:layout_width="23dp"
-                android:layout_height="23dp"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:src="@android:drawable/ic_menu_view"
                 android:contentDescription="快捷方式7"
-                android:tint="#FFFFFFFF" />
-            <TextView
-                android:id="@+id/digital_clock_shortcut7_label"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="快捷7"
-                android:textColor="#CCFFFFFF"
-                android:textSize="8sp"
-                android:maxLines="1"
-                android:ellipsize="end" />
+                android:scaleType="fitCenter" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/digital_clock_shortcut8"
@@ -256,21 +186,11 @@
             android:padding="2dp">
             <ImageView
                 android:id="@+id/digital_clock_shortcut8_icon"
-                android:layout_width="23dp"
-                android:layout_height="23dp"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:src="@android:drawable/ic_menu_view"
                 android:contentDescription="快捷方式8"
-                android:tint="#FFFFFFFF" />
-            <TextView
-                android:id="@+id/digital_clock_shortcut8_label"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="快捷8"
-                android:textColor="#CCFFFFFF"
-                android:textSize="8sp"
-                android:maxLines="1"
-                android:ellipsize="end" />
+                android:scaleType="fitCenter" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>
