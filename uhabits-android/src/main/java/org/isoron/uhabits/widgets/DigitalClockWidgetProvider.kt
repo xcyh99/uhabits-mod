@@ -34,10 +34,6 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             R.id.digital_clock_shortcut1_icon, R.id.digital_clock_shortcut2_icon, R.id.digital_clock_shortcut3_icon, R.id.digital_clock_shortcut4_icon,
             R.id.digital_clock_shortcut5_icon, R.id.digital_clock_shortcut6_icon, R.id.digital_clock_shortcut7_icon, R.id.digital_clock_shortcut8_icon
         )
-        private val labels = intArrayOf(
-            R.id.digital_clock_shortcut1_label, R.id.digital_clock_shortcut2_label, R.id.digital_clock_shortcut3_label, R.id.digital_clock_shortcut4_label,
-            R.id.digital_clock_shortcut5_label, R.id.digital_clock_shortcut6_label, R.id.digital_clock_shortcut7_label, R.id.digital_clock_shortcut8_label
-        )
         fun updateAll(context: Context, manager: AppWidgetManager, ids: IntArray) {
             ids.forEach { updateWidget(context, manager, it) }
         }
@@ -70,7 +66,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     textSize = sizeSp * scaledDensity
                     typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL)
                 }
-                val availablePx = (widthDp - 16).coerceAtLeast(48) * density
+                val availablePx = widthDp.coerceAtLeast(48) * density
                 val naturalPx = paint.measureText("88").coerceAtLeast(1f)
                 return (availablePx / naturalPx).coerceIn(0.72f, 1.25f)
             }
@@ -127,6 +123,15 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 R.id.digital_clock_date,
                 R.id.digital_clock_shortcut_row
             )
+            val offsets = intArrayOf(
+                prefs.getInt("digital_clock_hour_offset_y", 0),
+                prefs.getInt("digital_clock_minute_offset_y", 0),
+                prefs.getInt("digital_clock_date_offset_y", 0),
+                prefs.getInt("digital_clock_shortcut_offset_y", 0)
+            )
+            rowIds.forEachIndexed { index, viewId ->
+                views.setFloat(viewId, "setTranslationY", offsets[index].coerceIn(-40, 40) * density)
+            }
             val heights = rowHeights
             val naturalHeightsDp = floatArrayOf(
                 hourSize * scaledDensity / density * 1.05f,
@@ -158,8 +163,8 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             if (android.os.Build.VERSION.SDK_INT >= 31 && count > 0) {
                 val options = manager.getAppWidgetOptions(widgetId)
                 val widthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 110).coerceAtLeast(80)
-                val iconDp = ((widthDp / count) - 6).coerceIn(12, 32)
-                val iconPx = (iconDp * context.resources.displayMetrics.density).toInt()
+                val rowHeight = rowHeights[3].coerceAtLeast(16)
+                val iconDp = minOf((widthDp / count - 4).coerceAtLeast(12), (rowHeight - 2).coerceAtLeast(12)).coerceIn(12, 64)
                 icons.forEach { iconId ->
                     views.setViewLayoutWidth(iconId, iconDp.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                     views.setViewLayoutHeight(iconId, iconDp.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
@@ -172,10 +177,15 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     continue
                 }
                 views.setViewVisibility(container, android.view.View.VISIBLE)
+                val gravity = when (i) {
+                    0 -> android.view.Gravity.CENTER_VERTICAL or android.view.Gravity.START
+                    count - 1 -> android.view.Gravity.CENTER_VERTICAL or android.view.Gravity.END
+                    else -> android.view.Gravity.CENTER
+                }
+                views.setInt(container, "setGravity", gravity)
                 val target = prefs.getString("digital_clock_target_shortcut" + (i + 1), null)
                 val resolved = resolveShortcut(context, target, i + 1)
-                views.setTextViewText(labels[i], resolved.first)
-                if (resolved.second != null) views.setImageViewBitmap(icons[i], resolved.second)
+                resolved.second?.let { views.setImageViewBitmap(icons[i], it) }
                 if (target != "none") {
                     views.setOnClickPendingIntent(container, createTargetPendingIntent(context, widgetId, i + 2, target))
                 }
@@ -208,8 +218,10 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             }
             if (value.startsWith("feature:")) {
                 val key = value.removePrefix("feature:")
-                val raw = FeatureShortcutCatalog.getEntries(context).firstOrNull { it.key == key }?.title ?: "功能"
-                return raw.replace(Regex("^【[^】]+】\\s*"), "") to null
+                val entry = FeatureShortcutCatalog.getEntries(context).firstOrNull { it.key == key }
+                val icon = entry?.icon?.let(::drawableBitmap)
+                    ?: drawableBitmap(context.getDrawable(android.R.drawable.ic_menu_view)!!)
+                return (entry?.title ?: "功能").replace(Regex("^【[^】]+】\\s*"), "") to icon
             }
             return "快捷$index" to null
         }
