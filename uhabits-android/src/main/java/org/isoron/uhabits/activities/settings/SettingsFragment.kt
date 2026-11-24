@@ -1212,6 +1212,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
 
     private fun exportCurrentProgramApk() {
         val context = requireContext()
+        var destinationUri: Uri? = null
         try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
             val versionName = packageInfo.versionName?.replace(Regex("[^A-Za-z0-9._-]"), "_") ?: "unknown"
@@ -1220,21 +1221,60 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             val sourceApk = java.io.File(context.applicationInfo.sourceDir)
             if (!sourceApk.isFile) throw IllegalStateException("找不到当前程序安装包")
 
-            val archiveDir = java.io.File(context.cacheDir, "program_archive").apply { mkdirs() }
-            val archiveFile = java.io.File(archiveDir, "十字习惯APP_v${versionName}_${versionCode}.apk")
-            sourceApk.inputStream().use { input ->
-                java.io.FileOutputStream(archiveFile).use { output -> input.copyTo(output) }
-            }
+            val fileName = "十字习惯APP_v${versionName}_${versionCode}.apk"
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Save a real, user-visible file in Downloads instead of sharing an
+                // app-private cache file that some file managers cannot read.
+                val values = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.Downloads.DISPLAY_NAME, fileName)
+                    put(android.provider.MediaStore.Downloads.MIME_TYPE, "application/vnd.android.package-archive")
+                    put(android.provider.MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                    put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
+                }
+                destinationUri = context.contentResolver.insert(
+                    android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                    values
+                ) ?: throw java.io.IOException("无法在手机下载目录创建 APK 文件")
 
-            val uri = FileProvider.getUriForFile(context, context.packageName, archiveFile)
-            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "application/vnd.android.package-archive"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                clipData = ClipData.newUri(context.contentResolver, archiveFile.name, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                context.contentResolver.openOutputStream(destinationUri!!, "w")?.use { output ->
+                    sourceApk.inputStream().use { input -> input.copyTo(output) }
+                } ?: throw java.io.IOException("无法写入手机下载目录")
+
+                val completed = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
+                }
+                context.contentResolver.update(destinationUri!!, completed, null, null)
+                Toast.makeText(
+                    context,
+                    "APK 已导出到手机「下载」文件夹。请打开华为文件管理，进入下载文件夹，再上传到云空间。",
+                    Toast.LENGTH_LONG
+                ).show()
+            } else {
+                // Older Android versions: use the public Downloads directory.
+                val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                if (!downloads.exists() && !downloads.mkdirs()) {
+                    throw java.io.IOException("无法创建手机下载文件夹")
+                }
+                val destination = java.io.File(downloads, fileName)
+                sourceApk.inputStream().use { input ->
+                    java.io.FileOutputStream(destination).use { output -> input.copyTo(output) }
+                }
+                android.media.MediaScannerConnection.scanFile(
+                    context,
+                    arrayOf(destination.absolutePath),
+                    arrayOf("application/vnd.android.package-archive"),
+                    null
+                )
+                Toast.makeText(
+                    context,
+                    "APK 已导出到手机「下载」文件夹。请打开华为文件管理，进入下载文件夹，再上传到云空间。",
+                    Toast.LENGTH_LONG
+                ).show()
             }
-            startActivity(Intent.createChooser(shareIntent, "保存当前程序安装包"))
         } catch (error: Exception) {
+            destinationUri?.let { uri ->
+                runCatching { context.contentResolver.delete(uri, null, null) }
+            }
             Toast.makeText(context, error.message ?: "导出程序安装包失败", Toast.LENGTH_LONG).show()
         }
     }
