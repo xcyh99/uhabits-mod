@@ -143,7 +143,32 @@ class ListHabitsMenu(
         val selected = savedOrder?.takeIf { it.isNotEmpty() }
             ?: prefs.getStringSet("feature_shortcuts", emptySet())?.toList().orEmpty()
         val titles = FeatureShortcutCatalog.getEntries(activity).associate { it.key to it.title }
-        val available = selected.mapNotNull { key -> titles[key]?.let { key to it } }
+        val iconResources = listOf(
+            0,
+            android.R.drawable.ic_menu_view,
+            android.R.drawable.ic_menu_manage,
+            android.R.drawable.ic_menu_my_calendar,
+            android.R.drawable.ic_menu_sort_by_size,
+            android.R.drawable.ic_media_play,
+            android.R.drawable.ic_menu_edit,
+            android.R.drawable.ic_menu_recent_history
+        )
+        val available = selected.mapNotNull { key ->
+            titles[key]?.let { defaultTitle ->
+                val customTitle = prefs.getString("feature_shortcut_title_$key", "")?.trim().orEmpty()
+                val iconIndex = prefs.getInt("feature_shortcut_icon_$key", 0)
+                Triple(key, customTitle.ifBlank { defaultTitle }, iconResources.getOrElse(iconIndex) { 0 })
+            }
+        }
+        // PopupMenu hides icons by default on some Android versions; request icon display
+        // when the launcher/app theme supports it. Text-only entries remain supported.
+        runCatching {
+            val field = popup.javaClass.getDeclaredField("mPopup")
+            field.isAccessible = true
+            val helper = field.get(popup)
+            helper.javaClass.getMethod("setForceShowIcon", Boolean::class.javaPrimitiveType)
+                .invoke(helper, true)
+        }
 
         popup.menu.add(activity.getString(R.string.configure_shortcuts)).setOnMenuItemClickListener {
             activity.startActivity(
@@ -155,14 +180,16 @@ class ListHabitsMenu(
         if (available.isEmpty()) {
             popup.menu.add(activity.getString(R.string.no_shortcuts_configured)).isEnabled = false
         } else {
-            available.forEachIndexed { index, pair ->
-                popup.menu.add(0, index + 1, index, pair.second).setOnMenuItemClickListener {
-                    if (pair.first == "timeRecords") {
+            available.forEachIndexed { index, entry ->
+                val item = popup.menu.add(0, index + 1, index, entry.second)
+                if (entry.third != 0) item.setIcon(entry.third)
+                item.setOnMenuItemClickListener {
+                    if (entry.first == "timeRecords") {
                         activity.startActivity(Intent(activity, TimeRecordsActivity::class.java))
                     } else {
                         activity.startActivity(
                             Intent(activity, SettingsActivity::class.java)
-                                .putExtra("open_preference_key", pair.first)
+                                .putExtra("open_preference_key", entry.first)
                         )
                     }
                     true
