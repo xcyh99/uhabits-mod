@@ -6,7 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
-import android.view.View
+import android.view.LayoutInflater
 import android.view.LayoutInflater
 import android.widget.Button
 import android.widget.LinearLayout
@@ -174,8 +174,27 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         if (ids.isNotEmpty()) DigitalClockWidgetProvider.updateAll(this, manager, ids)
     }
 
-    private fun openExistingSettings(key: String) {
-        startActivity(Intent(this, SettingsActivity::class.java).putExtra("open_preference_key", key))
+    private fun showWidgetPreview() {
+        val preview = LayoutInflater.from(this).inflate(R.layout.widget_digital_clock, null, false)
+        AlertDialog.Builder(this)
+            .setTitle("数字时钟组件预览")
+            .setView(preview)
+            .setPositiveButton("关闭", null)
+            .show()
+    }
+
+    private fun confirmRestoreDefaults() {
+        AlertDialog.Builder(this)
+            .setTitle("恢复数字时钟默认设置")
+            .setMessage("将清除时间、日期和四个快捷入口的自定义点击目标。桌面组件将恢复默认点击行为。")
+            .setNegativeButton("取消", null)
+            .setPositiveButton("恢复默认") { _, _ ->
+                store.edit().apply { slots.forEach { remove(key(it.key)) } }.apply()
+                updateWidget()
+                render()
+                Toast.makeText(this, "数字时钟设置已恢复默认", Toast.LENGTH_SHORT).show()
+            }
+            .show()
     }
 
     private fun key(slot: String) = "digital_clock_target_$slot"
