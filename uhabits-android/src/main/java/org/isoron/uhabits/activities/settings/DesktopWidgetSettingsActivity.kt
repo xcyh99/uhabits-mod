@@ -47,51 +47,93 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         fun dp(v: Int) = (v * density).toInt()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(18), dp(12), dp(18), dp(24))
+            setPadding(dp(16), dp(10), dp(16), dp(28))
             setBackgroundColor(resolvePageBackground())
         }
-        fun heading(text: String) {
+        fun section(title: String, hint: String? = null) {
             root.addView(TextView(this).apply {
-                this.text = text
-                textSize = 18f
+                text = title
+                textSize = 17f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
                 setTextColor(resolvePrimaryText())
-                setPadding(0, dp(14), 0, dp(8))
+                setPadding(dp(2), dp(18), dp(2), dp(5))
+            })
+            if (hint != null) root.addView(TextView(this).apply {
+                text = hint
+                textSize = 12f
+                setTextColor(resolveSecondaryText())
+                setPadding(dp(2), 0, dp(2), dp(9))
             })
         }
-        fun button(text: String, action: () -> Unit) {
-            root.addView(Button(this).apply {
-                this.text = text
-                isAllCaps = false
+        fun actionCard(title: String, summary: String, action: () -> Unit) {
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(dp(16), dp(13), dp(14), dp(13))
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    setColor(if (isDark()) Color.rgb(45, 48, 55) else Color.WHITE)
+                    cornerRadius = dp(13).toFloat()
+                    setStroke(dp(1), if (isDark()) Color.rgb(70, 74, 82) else Color.rgb(230, 233, 238))
+                }
+                isClickable = true
+                isFocusable = true
                 setOnClickListener { action() }
-            }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(5) })
+            }
+            val textColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            textColumn.addView(TextView(this).apply {
+                text = title
+                textSize = 15f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setTextColor(resolvePrimaryText())
+            })
+            textColumn.addView(TextView(this).apply {
+                text = summary
+                textSize = 12f
+                setTextColor(resolveSecondaryText())
+                setPadding(0, dp(3), 0, 0)
+            })
+            card.addView(textColumn, LinearLayout.LayoutParams(0, -2, 1f))
+            card.addView(TextView(this).apply {
+                text = "›"
+                textSize = 27f
+                setTextColor(resolveSecondaryText())
+                gravity = android.view.Gravity.CENTER
+            })
+            root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
         }
-        heading("数字时钟组件（四行布局）")
-        root.addView(TextView(this).apply {
-            text = "从上到下分别为小时、分钟、日期星期和快捷入口。时间由系统时钟控件自动刷新，不增加应用后台定时唤醒。可在桌面支持的情况下调整组件整体大小。"
-            textSize = 13f
-            setTextColor(resolveSecondaryText())
-        })
-        button("添加数字时钟到桌面") { pinWidget() }
-        button("预览数字时钟") { showWidgetPreview() }
-        button("数字显示样式") { showAppearanceSettings() }
-        button("字符间距与数字变形") { showSpacingAndTransformSettings() }
-        button("四行高度与间距") { showRowSettings() }
-        button("背景颜色与透明度") { showBackgroundSettings() }
-        button("快捷入口数量") { chooseShortcutCount() }
-        button("恢复数字时钟默认设置") { confirmReset() }
-        heading("点击区域设置")
+
+        section("数字时钟组件", "四行布局：小时、分钟、日期星期、快捷入口")
+        actionCard("添加到桌面", "将数字时钟组件添加到手机桌面") { pinWidget() }
+        actionCard("预览效果", "先查看当前设置，不会修改参数") { showWidgetPreview() }
+
+        section("显示与排版", "每一行可分别调整，互不影响")
+        actionCard("数字显示样式", "字号、颜色、日期格式和时间制式") { showAppearanceSettings() }
+        actionCard("字符间距与数字变形", "小时、分钟、日期星期分别独立设置") { showSpacingAndTransformSettings() }
+        actionCard("四行高度与间距", "分别设置每一行的高度") { showRowSettings() }
+        actionCard("背景颜色与透明度", "调整组件底色和透明程度") { showBackgroundSettings() }
+
+        section("快捷入口", "设置桌面组件底部显示几个快捷入口")
+        actionCard("快捷入口数量", "当前显示 ${store.getInt(KEY_SHORTCUT_COUNT, 4).coerceIn(0, 8)} 个") { chooseShortcutCount() }
+
+        section("点击区域", "点击组件不同区域时，打开对应功能或手机应用")
         slots.forEach { slot ->
             if (slot.key.startsWith("shortcut") && slot.key.removePrefix("shortcut").toInt() > store.getInt(KEY_SHORTCUT_COUNT, 4)) return@forEach
             val current = store.getString(key(slot.key), null)?.let(::targetLabel) ?: "未设置"
-            button("${slot.title}    ·    $current") { chooseTarget(slot) }
+            actionCard(slot.title, "当前：$current") { chooseTarget(slot) }
         }
+
+        section("其他")
+        actionCard("恢复数字时钟默认设置", "只重置数字时钟，不影响其他组件或参数中心") { confirmReset() }
         root.addView(TextView(this).apply {
-            text = "当前这里只管理数字时钟组件。白字权重、白边、颜色阈值等显示参数仍由「参数中心」统一管理。"
+            text = "白字权重、白边、颜色阈值等显示参数仍由「参数中心」统一管理。"
             textSize = 12f
             setTextColor(resolveSecondaryText())
-            setPadding(0, dp(14), 0, 0)
+            setPadding(dp(2), dp(10), dp(2), 0)
         })
-        setContentView(android.widget.ScrollView(this).apply { addView(root) })
+        setContentView(android.widget.ScrollView(this).apply {
+            isFillViewport = true
+            addView(root)
+        })
     }
 
     private fun showWidgetPreview() {
