@@ -69,9 +69,9 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 setOnClickListener { action() }
             }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(5) })
         }
-        heading("数字时钟组件（2×3）")
+        heading("数字时钟组件（四行布局）")
         root.addView(TextView(this).apply {
-            text = "顶部时间、中间日期星期、底部四个快捷入口。每个区域都可以独立指定打开的手机应用或十字习惯功能。"
+            text = "从上到下分别为小时、分钟、日期星期和快捷入口。时间由系统时钟控件自动刷新，不增加应用后台定时唤醒。可在桌面支持的情况下调整组件整体大小。"
             textSize = 13f
             setTextColor(resolveSecondaryText())
         })
@@ -84,7 +84,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             button("${slot.title}    ·    $current") { chooseTarget(slot) }
         }
         root.addView(TextView(this).apply {
-            text = "当前这里只管理数字时钟组件。以后新增桌面组件时，再逐项加入。白字权重、白边、颜色阈值等显示参数仍由「参数中心」统一管理。"
+            text = "当前这里只管理数字时钟组件。白字权重、白边、颜色阈值等显示参数仍由「参数中心」统一管理。"
             textSize = 12f
             setTextColor(resolveSecondaryText())
             setPadding(0, dp(14), 0, 0)
