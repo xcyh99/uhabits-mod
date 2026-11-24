@@ -37,7 +37,7 @@ import org.isoron.uhabits.core.models.Entry.Companion.UNKNOWN
 import org.isoron.uhabits.core.models.Entry.Companion.YES_AUTO
 import org.isoron.uhabits.core.models.Entry.Companion.YES_MANUAL
 import org.isoron.uhabits.core.preferences.Preferences
-import org.isoron.uhabits.core.preferences.WhiteOutlineTarget\nimport org.isoron.uhabits.core.preferences.WhiteOutlineTarget
+import org.isoron.uhabits.core.preferences.WhiteOutlineTarget
 import org.isoron.uhabits.core.ui.views.ColorOutline
 import org.isoron.uhabits.inject.ActivityContext
 import org.isoron.uhabits.utils.drawNotesIndicator
