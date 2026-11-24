@@ -219,7 +219,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         val filtered = options.toMutableList()
         val search = android.widget.EditText(this).apply {
             hint = "搜索程序或功能"
-            singleLine = true
+            setSingleLine(true)
             inputType = android.text.InputType.TYPE_CLASS_TEXT
             setPadding(dp(14), dp(10), dp(14), dp(10))
         }
