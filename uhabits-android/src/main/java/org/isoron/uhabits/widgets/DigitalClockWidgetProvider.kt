@@ -85,7 +85,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 if (shortcutCount > 0) rowIds.add(R.id.digital_clock_shortcut_row)
                 val sum = weights.sum().coerceAtLeast(1)
                 rowIds.forEachIndexed { i, viewId ->
-                    views.setViewLayoutHeight(viewId, (totalPx * weights[i] / sum).coerceAtLeast(1))
+                    views.setViewLayoutHeight(viewId, (totalDp * weights[i] / sum).coerceAtLeast(1).toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                 }
             }
             val count = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
@@ -96,8 +96,8 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 val iconDp = ((widthDp / count) - 6).coerceIn(12, 32)
                 val iconPx = (iconDp * context.resources.displayMetrics.density).toInt()
                 icons.forEach { iconId ->
-                    views.setViewLayoutWidth(iconId, iconPx)
-                    views.setViewLayoutHeight(iconId, iconPx)
+                    views.setViewLayoutWidth(iconId, iconDp.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
+                    views.setViewLayoutHeight(iconId, iconDp.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                 }
             }
             for (i in containers.indices) {
