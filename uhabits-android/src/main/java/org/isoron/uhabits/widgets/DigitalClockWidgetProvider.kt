@@ -162,7 +162,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     } else {
                         // Compatibility fallback for older widget hosts.
                         val rowHeightPx = (rowHeight * density).toInt()
-                        views.setInt(viewId, "setHeight", rowHeightPx)
+                        views.setInt(textIds[index], "setHeight", rowHeightPx)
                         views.setViewPadding(textIds[index], 0, offsetTopPadding, 0, offsetBottomPadding)
                     }
                 } else if (android.os.Build.VERSION.SDK_INT >= 31) {
