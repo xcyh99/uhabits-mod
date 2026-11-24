@@ -24,12 +24,8 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
     private val store by lazy { PreferenceManager.getDefaultSharedPreferences(this) }
     private val slots = listOf(
         Slot("time", "时间区域", "点击桌面时间后打开"),
-        Slot("date", "日期星期区域", "点击日期或星期后打开"),
-        Slot("shortcut1", "快捷入口一", "底部第一个位置"),
-        Slot("shortcut2", "快捷入口二", "底部第二个位置"),
-        Slot("shortcut3", "快捷入口三", "底部第三个位置"),
-        Slot("shortcut4", "快捷入口四", "底部第四个位置")
-    )
+        Slot("date", "日期星期区域", "点击日期或星期后打开")
+    ) + (1..8).map { Slot("shortcut$it", "快捷入口$it", "底部第$it个位置") }
     private data class Slot(val key: String, val title: String, val hint: String)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,9 +74,13 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         button("添加数字时钟到桌面") { pinWidget() }
         button("预览数字时钟") { showWidgetPreview() }
         button("数字显示样式") { showAppearanceSettings() }
+        button("四行布局比例") { showRowSettings() }
+        button("背景颜色与透明度") { showBackgroundSettings() }
+        button("快捷入口数量") { chooseShortcutCount() }
         button("恢复数字时钟默认设置") { confirmReset() }
         heading("点击区域设置")
         slots.forEach { slot ->
+            if (slot.key.startsWith("shortcut") && slot.key.removePrefix("shortcut").toInt() > store.getInt(KEY_SHORTCUT_COUNT, 4)) return@forEach
             val current = store.getString(key(slot.key), null)?.let(::targetLabel) ?: "未设置"
             button("${slot.title}    ·    $current") { chooseTarget(slot) }
         }
@@ -124,6 +124,11 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             .setNegativeButton("取消", null)
             .setPositiveButton("恢复默认") { _, _ ->
                 slots.forEach { store.edit().remove(key(it.key)).apply() }
+                listOf(KEY_HOUR_SIZE, KEY_MINUTE_SIZE, KEY_DATE_SIZE, KEY_TIME_COLOR, KEY_DATE_COLOR, KEY_DATE_FORMAT,
+                    KEY_TIME_MODE, KEY_BG_COLOR, KEY_BG_ALPHA, KEY_SHORTCUT_COUNT,
+                    KEY_HOUR_WEIGHT, KEY_MINUTE_WEIGHT, KEY_DATE_WEIGHT, KEY_SHORTCUT_WEIGHT).forEach {
+                    store.edit().remove(it).apply()
+                }
                 updateWidget()
                 render()
                 Toast.makeText(this, "数字时钟设置已恢复默认", Toast.LENGTH_SHORT).show()
@@ -192,7 +197,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
 
 
     private fun showAppearanceSettings() {
-        val items = arrayOf("小时字号", "分钟字号", "日期字号", "时间数字颜色", "日期文字颜色", "日期显示格式")
+        val items = arrayOf("小时字号", "分钟字号", "日期字号", "时间数字颜色", "日期文字颜色", "日期显示格式", "时间制式")
         AlertDialog.Builder(this)
             .setTitle("数字显示样式")
             .setItems(items) { _, which ->
@@ -203,6 +208,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                     3 -> chooseColor("时间数字颜色", KEY_TIME_COLOR, Color.WHITE)
                     4 -> chooseColor("日期文字颜色", KEY_DATE_COLOR, Color.LTGRAY)
                     5 -> chooseDateFormat()
+                    6 -> chooseTimeMode()
                 }
             }
             .setNegativeButton("关闭", null)
@@ -266,6 +272,91 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             .show()
     }
 
+
+    private fun chooseTimeMode() {
+        val labels = arrayOf("跟随手机系统", "12 小时制", "24 小时制")
+        val selected = store.getInt(KEY_TIME_MODE, 0).coerceIn(0, 2)
+        AlertDialog.Builder(this).setTitle("时间制式")
+            .setSingleChoiceItems(labels, selected) { dialog, which ->
+                store.edit().putInt(KEY_TIME_MODE, which).apply()
+                updateWidget()
+                dialog.dismiss()
+                showAppearanceSettings()
+            }.setNegativeButton("取消", null).show()
+    }
+
+    private fun chooseShortcutCount() {
+        val values = (0..8).toList()
+        val current = store.getInt(KEY_SHORTCUT_COUNT, 4).coerceIn(0, 8)
+        val labels = values.map { if (it == 0) "不显示快捷入口" else "$it 个" }.toTypedArray()
+        AlertDialog.Builder(this).setTitle("快捷入口数量")
+            .setSingleChoiceItems(labels, current) { dialog, which ->
+                store.edit().putInt(KEY_SHORTCUT_COUNT, values[which]).apply()
+                updateWidget()
+                dialog.dismiss()
+                render()
+            }.setNegativeButton("取消", null).show()
+    }
+
+    private fun showRowSettings() {
+        val rows = listOf(
+            Triple("小时行比例", KEY_HOUR_WEIGHT, 115),
+            Triple("分钟行比例", KEY_MINUTE_WEIGHT, 115),
+            Triple("日期行比例", KEY_DATE_WEIGHT, 65),
+            Triple("快捷栏比例", KEY_SHORTCUT_WEIGHT, 90)
+        )
+        val labels = rows.map { (title, key, default) -> "$title：${store.getInt(key, default)}" }.toTypedArray()
+        AlertDialog.Builder(this).setTitle("四行布局比例")
+            .setItems(labels) { _, which ->
+                val row = rows[which]
+                val values = (30..200 step 10).toList()
+                val current = store.getInt(row.second, row.third)
+                val selected = values.indexOf(current).coerceAtLeast(values.indexOf(row.third).coerceAtLeast(0))
+                AlertDialog.Builder(this).setTitle(row.first)
+                    .setSingleChoiceItems(values.map { "$it" }.toTypedArray(), selected) { dialog, index ->
+                        store.edit().putInt(row.second, values[index]).apply()
+                        updateWidget()
+                        dialog.dismiss()
+                        showRowSettings()
+                    }.setNegativeButton("取消", null).show()
+            }.setNegativeButton("关闭", null).show()
+    }
+
+    private fun showBackgroundSettings() {
+        val choices = arrayOf("选择背景颜色", "调整背景透明度")
+        AlertDialog.Builder(this).setTitle("背景设置")
+            .setItems(choices) { _, which ->
+                if (which == 0) chooseBackgroundColor() else chooseBackgroundAlpha()
+            }.setNegativeButton("关闭", null).show()
+    }
+
+    private fun chooseBackgroundColor() {
+        val current = store.getInt(KEY_BG_COLOR, Color.rgb(35, 45, 60))
+        val picker = org.isoron.uhabits.activities.common.dialogs.ColorPickerDialog().apply {
+            setInitialColor(current)
+            setDialogTitle("选择组件背景颜色")
+            setListener { color ->
+                store.edit().putInt(KEY_BG_COLOR, color.argb).apply()
+                updateWidget()
+            }
+        }
+        picker.show(supportFragmentManager, "digital_clock_background_picker")
+    }
+
+    private fun chooseBackgroundAlpha() {
+        val seek = android.widget.SeekBar(this).apply {
+            max = 100
+            progress = store.getInt(KEY_BG_ALPHA, 90).coerceIn(0, 100)
+        }
+        AlertDialog.Builder(this).setTitle("背景透明度")
+            .setMessage("0% 为完全透明，100% 为完全不透明。")
+            .setView(seek)
+            .setPositiveButton("应用") { _, _ ->
+                store.edit().putInt(KEY_BG_ALPHA, seek.progress).apply()
+                updateWidget()
+            }.setNegativeButton("取消", null).show()
+    }
+
     private fun key(slot: String) = "digital_clock_target_$slot"
 
     companion object {
@@ -275,6 +366,14 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         private const val KEY_TIME_COLOR = "digital_clock_time_color"
         private const val KEY_DATE_COLOR = "digital_clock_date_color"
         private const val KEY_DATE_FORMAT = "digital_clock_date_format"
+        private const val KEY_TIME_MODE = "digital_clock_time_mode"
+        private const val KEY_BG_COLOR = "digital_clock_bg_color"
+        private const val KEY_BG_ALPHA = "digital_clock_bg_alpha"
+        private const val KEY_SHORTCUT_COUNT = "digital_clock_shortcut_count"
+        private const val KEY_HOUR_WEIGHT = "digital_clock_hour_weight"
+        private const val KEY_MINUTE_WEIGHT = "digital_clock_minute_weight"
+        private const val KEY_DATE_WEIGHT = "digital_clock_date_weight"
+        private const val KEY_SHORTCUT_WEIGHT = "digital_clock_shortcut_weight"
     }
     private fun resolvePageBackground() = org.isoron.uhabits.utils.StyledResources(this).getColor(R.attr.contrast0)
     private fun resolvePrimaryText(): Int = if (isDark()) Color.WHITE else Color.BLACK
