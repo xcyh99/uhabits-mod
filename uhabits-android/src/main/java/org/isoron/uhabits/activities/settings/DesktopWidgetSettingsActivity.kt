@@ -97,11 +97,11 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         val preview = LayoutInflater.from(this).inflate(R.layout.widget_digital_clock, null, false)
         preview.findViewById<TextView>(R.id.digital_clock_time).apply {
             textSize = store.getFloat(KEY_HOUR_SIZE, 48f)
-            setTextColor(store.getInt(KEY_TIME_COLOR, Color.WHITE))
+            setTextColor(store.getInt(KEY_HOUR_COLOR, store.getInt(KEY_TIME_COLOR, Color.WHITE)))
         }
         preview.findViewById<TextView>(R.id.digital_clock_minute).apply {
             textSize = store.getFloat(KEY_MINUTE_SIZE, 48f)
-            setTextColor(store.getInt(KEY_TIME_COLOR, Color.WHITE))
+            setTextColor(store.getInt(KEY_MINUTE_COLOR, store.getInt(KEY_TIME_COLOR, Color.WHITE)))
         }
         preview.findViewById<android.widget.TextClock>(R.id.digital_clock_date).apply {
             textSize = store.getFloat(KEY_DATE_SIZE, 15f)
@@ -124,7 +124,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             .setNegativeButton("取消", null)
             .setPositiveButton("恢复默认") { _, _ ->
                 slots.forEach { store.edit().remove(key(it.key)).apply() }
-                listOf(KEY_HOUR_SIZE, KEY_MINUTE_SIZE, KEY_DATE_SIZE, KEY_TIME_COLOR, KEY_DATE_COLOR, KEY_DATE_FORMAT,
+                listOf(KEY_HOUR_SIZE, KEY_MINUTE_SIZE, KEY_DATE_SIZE, KEY_TIME_COLOR, KEY_HOUR_COLOR, KEY_MINUTE_COLOR, KEY_DATE_COLOR, KEY_DATE_FORMAT,
                     KEY_TIME_MODE, KEY_BG_COLOR, KEY_BG_ALPHA, KEY_SHORTCUT_COUNT,
                     KEY_HOUR_HEIGHT, KEY_MINUTE_HEIGHT, KEY_DATE_HEIGHT, KEY_SHORTCUT_HEIGHT, KEY_HOUR_WEIGHT, KEY_MINUTE_WEIGHT, KEY_DATE_WEIGHT, KEY_SHORTCUT_WEIGHT).forEach {
                     store.edit().remove(it).apply()
@@ -197,38 +197,62 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
 
 
     private fun showAppearanceSettings() {
-        val items = arrayOf("小时字号", "分钟字号", "日期字号", "时间数字颜色", "日期文字颜色", "日期显示格式", "时间制式")
+        val items = arrayOf("小时字号", "分钟字号", "日期字号", "小时数字颜色", "分钟数字颜色", "日期文字颜色", "日期显示格式", "时间制式")
         AlertDialog.Builder(this)
             .setTitle("数字显示样式")
             .setItems(items) { _, which ->
                 when (which) {
-                    0 -> chooseSize("小时字号", KEY_HOUR_SIZE, 48f, listOf(28f, 32f, 36f, 40f, 44f, 48f, 52f, 56f, 60f))
-                    1 -> chooseSize("分钟字号", KEY_MINUTE_SIZE, 48f, listOf(28f, 32f, 36f, 40f, 44f, 48f, 52f, 56f, 60f))
-                    2 -> chooseSize("日期字号", KEY_DATE_SIZE, 15f, listOf(10f, 11f, 12f, 13f, 14f, 15f, 16f, 18f, 20f))
-                    3 -> chooseColor("时间数字颜色", KEY_TIME_COLOR, Color.WHITE)
-                    4 -> chooseColor("日期文字颜色", KEY_DATE_COLOR, Color.LTGRAY)
-                    5 -> chooseDateFormat()
-                    6 -> chooseTimeMode()
+                    0 -> chooseSize("小时字号", KEY_HOUR_SIZE, 48f)
+                    1 -> chooseSize("分钟字号", KEY_MINUTE_SIZE, 48f)
+                    2 -> chooseSize("日期字号", KEY_DATE_SIZE, 15f)
+                    3 -> chooseColor("小时数字颜色", KEY_HOUR_COLOR, Color.WHITE)
+                    4 -> chooseColor("分钟数字颜色", KEY_MINUTE_COLOR, Color.WHITE)
+                    5 -> chooseColor("日期文字颜色", KEY_DATE_COLOR, Color.LTGRAY)
+                    6 -> chooseDateFormat()
+                    7 -> chooseTimeMode()
                 }
             }
             .setNegativeButton("关闭", null)
             .show()
     }
 
-    private fun chooseSize(title: String, key: String, defaultValue: Float, values: List<Float>) {
+    private fun chooseSize(title: String, key: String, defaultValue: Float) {
         val current = store.getFloat(key, defaultValue)
-        val labels = values.map { "${it.toInt()} sp" }.toTypedArray()
-        val selected = values.indexOf(current).coerceAtLeast(values.indexOf(defaultValue).coerceAtLeast(0))
-        AlertDialog.Builder(this)
+        val input = android.widget.EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setText(if (current % 1f == 0f) current.toInt().toString() else current.toString())
+            setSelection(text.length)
+            hint = "输入 1～300"
+        }
+        val container = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding((24 * resources.displayMetrics.density).toInt(), 0, (24 * resources.displayMetrics.density).toInt(), 0)
+            addView(input)
+            addView(android.widget.TextView(this@DesktopWidgetSettingsActivity).apply {
+                text = "直接输入字号，单位 sp；允许范围 1～300。小时和分钟分别保存、分别生效。"
+                textSize = 12f
+                setTextColor(resolveSecondaryText())
+            })
+        }
+        val dialog = AlertDialog.Builder(this)
             .setTitle(title)
-            .setSingleChoiceItems(labels, selected) { dialog, which ->
-                store.edit().putFloat(key, values[which]).apply()
+            .setView(container)
+            .setPositiveButton("应用", null)
+            .setNegativeButton("取消", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val value = input.text.toString().toFloatOrNull()
+                if (value == null || value !in 1f..300f) {
+                    input.error = "请输入 1～300 之间的数字"
+                    return@setOnClickListener
+                }
+                store.edit().putFloat(key, value).apply()
                 updateWidget()
                 dialog.dismiss()
-                showAppearanceSettings()
             }
-            .setNegativeButton("取消", null)
-            .show()
+        }
+        dialog.show()
     }
 
     private fun chooseColor(title: String, key: String, defaultValue: Int) {
@@ -485,6 +509,8 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         private const val KEY_MINUTE_SIZE = "digital_clock_minute_size"
         private const val KEY_DATE_SIZE = "digital_clock_date_size"
         private const val KEY_TIME_COLOR = "digital_clock_time_color"
+        private const val KEY_HOUR_COLOR = "digital_clock_hour_color"
+        private const val KEY_MINUTE_COLOR = "digital_clock_minute_color"
         private const val KEY_DATE_COLOR = "digital_clock_date_color"
         private const val KEY_DATE_FORMAT = "digital_clock_date_format"
         private const val KEY_TIME_MODE = "digital_clock_time_mode"
