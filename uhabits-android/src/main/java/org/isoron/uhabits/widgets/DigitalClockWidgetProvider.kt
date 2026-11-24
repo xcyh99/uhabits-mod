@@ -143,8 +143,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     if (android.os.Build.VERSION.SDK_INT >= 31) {
                         views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                     } else {
-                        views.setInt(viewId, "setMinHeight", rowHeightPx)
-                        views.setInt(viewId, "setMaxHeight", rowHeightPx)
+                        views.setInt(viewId, "setHeight", rowHeightPx)
                     }
                     views.setViewPadding(viewId, 0, 0, 0, 0)
                 } else if (android.os.Build.VERSION.SDK_INT >= 31) {
