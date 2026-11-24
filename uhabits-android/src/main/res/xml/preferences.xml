@@ -163,6 +163,12 @@
                 app:iconSpaceReserved="false" />
 
         <Preference
+                android:key="puzzleGames"
+                android:title="益智游戏"
+                android:summary="扫雷、2048、数独、推箱子和飞鸟穿越；离线运行，可关闭音效。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
                 android:key="widgetManager"
                 android:title="桌面组件管理"
                 android:summary="选择多个组件，一次发起添加到手机桌面的请求。"
