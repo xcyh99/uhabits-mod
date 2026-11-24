@@ -1202,14 +1202,15 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     private fun createFullBackup() {
         val appContext = requireContext().applicationContext
         val backupManager = FullBackupManager(appContext)
-        val backupDirectory = java.io.File(appContext.cacheDir, "full-backup-share").apply {
-            if (!exists() && !mkdirs()) throw IllegalStateException("无法创建备份暂存目录")
-        }
-        val backupFile = java.io.File(backupDirectory, backupManager.suggestedFileName())
 
         Toast.makeText(requireContext(), "正在创建完整备份…", Toast.LENGTH_SHORT).show()
         Thread {
             val result = runCatching {
+                val backupDirectory = java.io.File(appContext.cacheDir, "full-backup-share")
+                if (!backupDirectory.exists() && !backupDirectory.mkdirs()) {
+                    throw java.io.IOException("无法创建备份暂存目录")
+                }
+                val backupFile = java.io.File(backupDirectory, backupManager.suggestedFileName())
                 backupManager.createBackup(backupFile)
                 backupFile
             }
