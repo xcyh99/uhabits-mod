@@ -38,12 +38,13 @@ class IntentFactory() {
         buildViewIntent(context.getString(R.string.translateURL))
 
     fun openDocument(): Intent {
-        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+        // Match the app's existing document-picker flow used for shortcut photos:
+        // open the system document picker directly instead of routing through an app chooser.
+        return Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
             type = "*/*"
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        return Intent.createChooser(intent, "选择要导入的数据文件")
     }
 
     fun rateApp(context: Context) =
