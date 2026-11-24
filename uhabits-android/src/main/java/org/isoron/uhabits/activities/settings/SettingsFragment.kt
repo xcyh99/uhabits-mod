@@ -223,7 +223,8 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     "parameterEmergencyReset",
                     "whiteOutline",
                     "desktopShortcuts",
-                    "puzzleGames"
+                    "puzzleGames",
+                    "desktopWidgetSettings"
                 )
                 if (key in directActionKeys) {
                     findPreference(key)?.performClick()
@@ -290,8 +291,8 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     .show()
                 return true
             }
-            "digitalClockWidget" -> {
-                showDigitalClockWidgetSettings()
+            "desktopWidgetSettings" -> {
+                startActivity(Intent(requireContext(), DesktopWidgetSettingsActivity::class.java))
                 return true
             }
             "widgetManager" -> {
