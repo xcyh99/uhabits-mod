@@ -248,7 +248,7 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
         super.onNewIntent(intent)
         setIntent(intent)
 
-        if (intent.action == org.isoron.uhabits.activities.settings.DesktopShortcutActivity.ACTION_OPEN_DESKTOP_SHORTCUT) {
+        if (intent?.action == org.isoron.uhabits.activities.settings.DesktopShortcutActivity.ACTION_OPEN_DESKTOP_SHORTCUT) {
             openDesktopShortcutTarget(intent)
             return
         }
