@@ -151,6 +151,8 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
     }
 
     override fun onResume() {
+        // Refresh configurable drawing thresholds and widths after returning from Settings.
+        component.themeSwitcher.apply()
         androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
             .edit().putString("startup_page_last", "main").apply()
         screen.refresh()
