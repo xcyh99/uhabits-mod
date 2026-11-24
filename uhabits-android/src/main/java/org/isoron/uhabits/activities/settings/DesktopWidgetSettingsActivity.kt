@@ -110,7 +110,8 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         section("显示与排版", "每一行可分别调整，互不影响")
         actionCard("数字显示样式", "字号、颜色、日期格式和时间制式") { showAppearanceSettings() }
         actionCard("字符间距与数字变形", "小时、分钟、日期星期分别独立设置") { showSpacingAndTransformSettings() }
-        actionCard("四行高度与自动布局", "手动调整或让数字自动适配每一行") { showRowSettings() }
+        actionCard("四行高度与自动布局", "四行窗口高度、自动布局与数字比例") { showRowSettings() }
+        actionCard("四行垂直位置", "小时、分钟、日期、快捷图标分别上下移动") { showVerticalOffsetSettings() }
         actionCard("背景颜色与透明度", "调整组件底色和透明程度") { showBackgroundSettings() }
 
         section("快捷入口", "设置桌面组件底部显示几个快捷入口")
@@ -168,6 +169,15 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             format12Hour = format
             format24Hour = format
         }
+        listOf(
+            R.id.digital_clock_time to "digital_clock_hour_offset_y",
+            R.id.digital_clock_minute to "digital_clock_minute_offset_y",
+            R.id.digital_clock_date to "digital_clock_date_offset_y",
+            R.id.digital_clock_shortcut_row to "digital_clock_shortcut_offset_y"
+        ).forEach { (viewId, prefKey) ->
+            preview.findViewById<android.view.View>(viewId).translationY =
+                store.getInt(prefKey, 0).coerceIn(-40, 40) * resources.displayMetrics.density
+        }
         AlertDialog.Builder(this)
             .setTitle("数字时钟组件预览")
             .setView(preview)
@@ -186,7 +196,9 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 val resetKeys = listOf(KEY_HOUR_SIZE, KEY_MINUTE_SIZE, KEY_DATE_SIZE, KEY_TIME_COLOR, KEY_HOUR_COLOR, KEY_MINUTE_COLOR, KEY_DATE_COLOR, KEY_DATE_FORMAT,
                     KEY_TIME_MODE, KEY_BG_COLOR, KEY_BG_ALPHA, KEY_SHORTCUT_COUNT,
                     KEY_HOUR_HEIGHT, KEY_MINUTE_HEIGHT, KEY_DATE_HEIGHT, KEY_SHORTCUT_HEIGHT, KEY_HOUR_WEIGHT, KEY_MINUTE_WEIGHT, KEY_DATE_WEIGHT, KEY_SHORTCUT_WEIGHT,
-                    "digital_clock_letter_spacing", "digital_clock_transform_enabled", "digital_clock_horizontal_scale", KEY_LAYOUT_MODE, KEY_KEEP_DIGIT_RATIO) +
+                    "digital_clock_letter_spacing", "digital_clock_transform_enabled", "digital_clock_horizontal_scale",
+                    "digital_clock_hour_offset_y", "digital_clock_minute_offset_y", "digital_clock_date_offset_y", "digital_clock_shortcut_offset_y",
+                    KEY_LAYOUT_MODE, KEY_KEEP_DIGIT_RATIO) +
                     listOf("hour", "minute", "date").flatMap { row ->
                         listOf("digital_clock_${row}_letter_spacing", "digital_clock_${row}_transform_enabled", "digital_clock_${row}_horizontal_scale")
                     }
@@ -588,6 +600,82 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    private fun showVerticalOffsetSettings() {
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+        val specs = listOf(
+            Triple("第一行 · 小时", "digital_clock_hour_offset_y", 0),
+            Triple("第二行 · 分钟", "digital_clock_minute_offset_y", 0),
+            Triple("第三行 · 日期星期", "digital_clock_date_offset_y", 0),
+            Triple("第四行 · 快捷图标", "digital_clock_shortcut_offset_y", 0)
+        )
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(8), dp(20), dp(8))
+        }
+        panel.addView(TextView(this).apply {
+            text = "每一行独立上下移动，不改变字号和行高。负数向上，正数向下；移动范围为 -40～+40dp，仍受组件边界限制。"
+            textSize = 13f
+            setTextColor(resolveSecondaryText())
+            setPadding(0, 0, 0, dp(10))
+        })
+        val bars = specs.map { (label, key, defaultValue) ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(0, dp(5), 0, dp(8))
+            }
+            val header = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+            }
+            header.addView(TextView(this).apply {
+                text = label
+                textSize = 14f
+                setTextColor(resolvePrimaryText())
+            }, LinearLayout.LayoutParams(0, -2, 1f))
+            val value = TextView(this).apply {
+                text = "${store.getInt(key, defaultValue)} dp"
+                textSize = 14f
+                setTextColor(resolvePrimaryText())
+            }
+            header.addView(value)
+            row.addView(header)
+            val bar = android.widget.SeekBar(this).apply {
+                max = 80
+                progress = store.getInt(key, defaultValue).coerceIn(-40, 40) + 40
+            }
+            bar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                    value.text = "${progress - 40} dp"
+                }
+                override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
+            })
+            row.addView(bar)
+            panel.addView(row)
+            key to bar
+        }
+        AlertDialog.Builder(this)
+            .setTitle("四行垂直位置")
+            .setView(panel)
+            .setNegativeButton("取消", null)
+            .setPositiveButton("应用") { _, _ ->
+                val editor = store.edit()
+                bars.forEach { (key, bar) -> editor.putInt(key, bar.progress - 40) }
+                editor.apply()
+                updateWidget()
+                Toast.makeText(this, "四行垂直位置已保存", Toast.LENGTH_SHORT).show()
+            }
+            .setNeutralButton("全部归零", null)
+            .create().also { dialog ->
+                dialog.setOnShowListener {
+                    dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                        bars.forEach { (_, bar) -> bar.progress = 40 }
+                    }
+                }
+            }.show()
+    }
+
     private fun showSpacingAndTransformSettings() {
         val rows = listOf(
             Triple("第一行 · 小时", "hour", -0.04f),
@@ -783,6 +871,10 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         private const val KEY_SHORTCUT_WEIGHT = "digital_clock_shortcut_weight"
         private const val KEY_LAYOUT_MODE = "digital_clock_layout_mode"
         private const val KEY_KEEP_DIGIT_RATIO = "digital_clock_keep_digit_ratio"
+        private const val KEY_HOUR_OFFSET_Y = "digital_clock_hour_offset_y"
+        private const val KEY_MINUTE_OFFSET_Y = "digital_clock_minute_offset_y"
+        private const val KEY_DATE_OFFSET_Y = "digital_clock_date_offset_y"
+        private const val KEY_SHORTCUT_OFFSET_Y = "digital_clock_shortcut_offset_y"
     }
     private fun resolvePageBackground() = org.isoron.uhabits.utils.StyledResources(this).getColor(R.attr.contrast0)
     private fun resolvePrimaryText(): Int = if (isDark()) Color.WHITE else Color.BLACK
