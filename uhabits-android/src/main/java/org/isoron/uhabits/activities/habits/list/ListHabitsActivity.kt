@@ -199,8 +199,19 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
         val target = source.getStringExtra(
             org.isoron.uhabits.activities.settings.DesktopShortcutActivity.EXTRA_TARGET
         ) ?: "__settings"
-        when (target) {
-            "timeRecords" -> startActivity(Intent(this, org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
+        when {
+            target.startsWith("habit:") -> {
+                val habitId = target.removePrefix("habit:").toLongOrNull()
+                if (habitId != null) {
+                    startActivity(
+                        Intent(this, org.isoron.uhabits.activities.habits.show.ShowHabitActivity::class.java)
+                            .setData(android.net.Uri.parse("content://org.isoron.uhabits/habit/$habitId"))
+                    )
+                } else {
+                    startActivity(Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java))
+                }
+            }
+            target == "timeRecords" -> startActivity(Intent(this, org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
             "__feature_center" -> startActivity(
                 Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
                     .putExtra("open_feature_center", true)
