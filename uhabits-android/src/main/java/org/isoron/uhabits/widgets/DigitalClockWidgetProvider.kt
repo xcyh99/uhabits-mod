@@ -32,15 +32,15 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
         private fun updateWidget(context: Context, manager: AppWidgetManager, widgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_digital_clock)
             val slots = listOf(
-                "time" to android.R.id.text1,
-                "date" to android.R.id.text2,
+                "time" to R.id.digital_clock_time,
+                "date" to R.id.digital_clock_date,
                 "shortcut1" to R.id.digital_clock_shortcut1,
                 "shortcut2" to R.id.digital_clock_shortcut2,
                 "shortcut3" to R.id.digital_clock_shortcut3,
                 "shortcut4" to R.id.digital_clock_shortcut4
             )
             slots.forEachIndexed { index, (slot, viewId) ->
-                val value = context.getSharedPreferences("default", Context.MODE_PRIVATE)
+                val value = androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
                     .getString("digital_clock_target_$slot", null)
                 val pending = createTargetPendingIntent(context, widgetId, index, value)
                 views.setOnClickPendingIntent(viewId, pending)
