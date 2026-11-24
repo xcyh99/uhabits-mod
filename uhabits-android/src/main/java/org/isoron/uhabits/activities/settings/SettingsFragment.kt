@@ -290,6 +290,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     .show()
                 return true
             }
+            "digitalClockWidget" -> {
+                showDigitalClockWidgetSettings()
+                return true
+            }
             "widgetManager" -> {
                 showWidgetManager()
                 return true
@@ -399,6 +403,33 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         findPreference("reminderSound").isVisible = false
     }
 
+
+    private fun showDigitalClockWidgetSettings() {
+        val context = requireContext()
+        val manager = android.appwidget.AppWidgetManager.getInstance(context)
+        val provider = android.content.ComponentName(
+            context,
+            org.isoron.uhabits.widgets.DigitalClockWidgetProvider::class.java
+        )
+        AlertDialog.Builder(context)
+            .setTitle("数字时钟组件（2×3）")
+            .setMessage(
+                "这是十字习惯的桌面组件。布局为：顶部数字时钟、中间日期和星期、底部四个快捷入口位置。\n\n" +
+                    "添加后可在手机桌面长按组件进行移动或移除。当前版本先提供布局预览，快捷入口和外观自定义将在后续版本完善。"
+            )
+            .setNegativeButton("关闭", null)
+            .setPositiveButton("添加到桌面") { _, _ ->
+                if (android.os.Build.VERSION.SDK_INT >= 26 && manager.isRequestPinAppWidgetSupported) {
+                    val accepted = manager.requestPinAppWidget(provider, null, null)
+                    if (!accepted) {
+                        Toast.makeText(context, "桌面暂不支持直接添加，请从桌面组件列表中选择“十字习惯—数字时钟”。", Toast.LENGTH_LONG).show()
+                    }
+                } else {
+                    Toast.makeText(context, "请在手机桌面长按空白处，进入组件列表，选择“十字习惯—数字时钟”。", Toast.LENGTH_LONG).show()
+                }
+            }
+            .show()
+    }
 
     fun openBatchWidgetPicker(intent: Intent) {
         showWidgetManager()
