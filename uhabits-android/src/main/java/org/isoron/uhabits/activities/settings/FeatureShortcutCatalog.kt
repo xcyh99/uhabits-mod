@@ -1,6 +1,7 @@
 package org.isoron.uhabits.activities.settings
 
 import android.content.Context
+import android.graphics.drawable.Drawable
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceManager
@@ -13,7 +14,7 @@ import org.isoron.uhabits.R
  * so additions to Feature Center or Settings do not require a second list.
  */
 object FeatureShortcutCatalog {
-    data class Entry(val key: String, val title: String)
+    data class Entry(val key: String, val title: String, val icon: Drawable? = null)
 
     private val excludedKeys = setOf(
         "featureShortcuts", "desktopShortcuts", "reminderSound", "bugReport", "repairDB", "rateApp",
@@ -35,7 +36,7 @@ object FeatureShortcutCatalog {
                 val categoryKey = preference.key
                 val categoryTitle = preference.title?.toString()?.trim().orEmpty()
                 if (!categoryKey.isNullOrBlank() && categoryTitle.isNotBlank()) {
-                    result.add(Entry(categoryKey, "【板块】 $categoryTitle"))
+                    result.add(Entry(categoryKey, "【板块】 $categoryTitle", preference.icon))
                 }
                 for (index in 0 until preference.preferenceCount) {
                     visit(preference.getPreference(index))
@@ -50,7 +51,7 @@ object FeatureShortcutCatalog {
             ) {
                 val featureKeys = setOf("parameterCenter", "timeRecords", "floatingTimer", "desktopDoodle", "statusBarDays", "widgetManager", "puzzleGames", "digitalClockWidget", "desktopWidgetSettings")
                 val typeLabel = if (key in featureKeys) "【功能】" else "【设置】"
-                result.add(Entry(key, "$typeLabel $title"))
+                result.add(Entry(key, "$typeLabel $title", preference.icon))
             }
         }
 
