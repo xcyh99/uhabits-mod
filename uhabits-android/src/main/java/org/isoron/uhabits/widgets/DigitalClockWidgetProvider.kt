@@ -118,11 +118,18 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             val alpha = prefs.getInt("digital_clock_bg_alpha", 90).coerceIn(0, 100) * 255 / 100
             views.setInt(R.id.digital_clock_widget_root, "setBackgroundColor", Color.argb(alpha, Color.red(bg), Color.green(bg), Color.blue(bg)))
             val shortcutCount = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
+            // The first three rows are fixed clipping windows. Their native TextClock
+            // children move inside the windows; the windows themselves never move.
             val rowIds = intArrayOf(
+                R.id.digital_clock_time_clip,
+                R.id.digital_clock_minute_clip,
+                R.id.digital_clock_date_clip,
+                R.id.digital_clock_shortcut_row
+            )
+            val textIds = intArrayOf(
                 R.id.digital_clock_time,
                 R.id.digital_clock_minute,
-                R.id.digital_clock_date,
-                R.id.digital_clock_shortcut_row
+                R.id.digital_clock_date
             )
             val offsets = intArrayOf(
                 prefs.getInt("digital_clock_hour_offset_y", 0),
@@ -147,14 +154,17 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 val offsetBottomPadding = (-offsetPx * 2).coerceAtLeast(0)
                 views.setViewVisibility(viewId, if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE else android.view.View.VISIBLE)
                 if (index < 3) {
-                    // Keep the configured font size and clamp the TextClock viewport.
-                    val rowHeightPx = (rowHeight * density).toInt()
+                    // Keep a stable row viewport and move only the TextClock child.
+                    // A top-margin delta of 2x shifts a centered child by x in FrameLayout.
                     if (android.os.Build.VERSION.SDK_INT >= 31) {
                         views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
+                        views.setViewLayoutMargin(textIds[index], RemoteViews.MARGIN_TOP, (offsetPx * 2).toFloat(), android.util.TypedValue.COMPLEX_UNIT_PX)
                     } else {
+                        // Compatibility fallback for older widget hosts.
+                        val rowHeightPx = (rowHeight * density).toInt()
                         views.setInt(viewId, "setHeight", rowHeightPx)
+                        views.setViewPadding(textIds[index], 0, offsetTopPadding, 0, offsetBottomPadding)
                     }
-                    views.setViewPadding(viewId, 0, offsetTopPadding, 0, offsetBottomPadding)
                 } else if (android.os.Build.VERSION.SDK_INT >= 31) {
                     views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                     val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
