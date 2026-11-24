@@ -73,6 +73,31 @@ object ColorUtils {
         }
     }
 
+    /**
+     * Chooses black or white text against an opaque completed habit color,
+     * using the same weighted contrast rule as completed history squares.
+     * The weight changes preference only; it never forces a text color.
+     */
+    @JvmStatic
+    fun getWeightedCheckInTextColor(backgroundColor: Int, whitePreferenceWeight: Double): Int {
+        fun linearize(channel: Int): Double {
+            val value = channel / 255.0
+            return if (value <= 0.04045) value / 12.92
+            else Math.pow((value + 0.055) / 1.055, 2.4)
+        }
+
+        val luminance =
+            0.2126 * linearize(Color.red(backgroundColor)) +
+            0.7152 * linearize(Color.green(backgroundColor)) +
+            0.0722 * linearize(Color.blue(backgroundColor))
+        val whiteContrast = 1.05 / (luminance + 0.05)
+        val blackContrast = (luminance + 0.05) / 0.05
+        val safeWeight = whitePreferenceWeight.takeIf {
+            !it.isNaN() && !it.isInfinite() && it >= 0.1 && it <= 100.0
+        } ?: 6.6
+        return if (blackContrast / whiteContrast <= safeWeight) Color.WHITE else Color.BLACK
+    }
+
     private const val ALPHA_CHANNEL = 24
     private const val RED_CHANNEL = 16
     private const val GREEN_CHANNEL = 8
