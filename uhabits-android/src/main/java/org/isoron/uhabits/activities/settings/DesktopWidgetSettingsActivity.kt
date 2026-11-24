@@ -104,6 +104,14 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             textSize = store.getFloat(KEY_MINUTE_SIZE, 48f)
             setTextColor(store.getInt(KEY_MINUTE_COLOR, store.getInt(KEY_TIME_COLOR, Color.WHITE)))
         }
+        val previewSpacing = store.getFloat(KEY_LETTER_SPACING, -0.04f)
+        val previewScale = if (store.getBoolean(KEY_TRANSFORM_ENABLED, false)) store.getFloat(KEY_HORIZONTAL_SCALE, 0.90f) else 1f
+        listOf(R.id.digital_clock_time, R.id.digital_clock_minute, R.id.digital_clock_date).forEach { id ->
+            preview.findViewById<TextView>(id).apply {
+                letterSpacing = previewSpacing
+                scaleX = previewScale
+            }
+        }
         preview.findViewById<android.widget.TextClock>(R.id.digital_clock_date).apply {
             textSize = store.getFloat(KEY_DATE_SIZE, 15f)
             setTextColor(store.getInt(KEY_DATE_COLOR, Color.LTGRAY))
@@ -127,7 +135,8 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 slots.forEach { store.edit().remove(key(it.key)).apply() }
                 listOf(KEY_HOUR_SIZE, KEY_MINUTE_SIZE, KEY_DATE_SIZE, KEY_TIME_COLOR, KEY_HOUR_COLOR, KEY_MINUTE_COLOR, KEY_DATE_COLOR, KEY_DATE_FORMAT,
                     KEY_TIME_MODE, KEY_BG_COLOR, KEY_BG_ALPHA, KEY_SHORTCUT_COUNT,
-                    KEY_HOUR_HEIGHT, KEY_MINUTE_HEIGHT, KEY_DATE_HEIGHT, KEY_SHORTCUT_HEIGHT, KEY_HOUR_WEIGHT, KEY_MINUTE_WEIGHT, KEY_DATE_WEIGHT, KEY_SHORTCUT_WEIGHT).forEach {
+                    KEY_HOUR_HEIGHT, KEY_MINUTE_HEIGHT, KEY_DATE_HEIGHT, KEY_SHORTCUT_HEIGHT, KEY_HOUR_WEIGHT, KEY_MINUTE_WEIGHT, KEY_DATE_WEIGHT, KEY_SHORTCUT_WEIGHT,
+                    KEY_LETTER_SPACING, KEY_TRANSFORM_ENABLED, KEY_HORIZONTAL_SCALE).forEach {
                     store.edit().remove(it).apply()
                 }
                 updateWidget()
