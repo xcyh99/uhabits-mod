@@ -7,6 +7,8 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import org.isoron.uhabits.R
+import org.isoron.uhabits.HabitsApplication
+import org.isoron.uhabits.activities.AndroidThemeSwitcher
 import org.isoron.uhabits.activities.timerecords.TimeRecordStore
 import org.isoron.uhabits.activities.timerecords.TimeRecordsActivity
 import java.time.LocalDate
@@ -17,6 +19,8 @@ class TimeRecordWidgetConfigureActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val app = application as HabitsApplication
+        AndroidThemeSwitcher(this, app.component.preferences).apply()
         setResult(RESULT_CANCELED)
         widgetId = intent?.extras?.getInt(
             AppWidgetManager.EXTRA_APPWIDGET_ID,
