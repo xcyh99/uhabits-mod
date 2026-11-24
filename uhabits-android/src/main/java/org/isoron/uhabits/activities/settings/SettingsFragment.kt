@@ -249,13 +249,17 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 return true
             }
             "restoreFullBackup" -> {
-                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
-                    // Cloud providers may report backup files with different MIME types.
-                    // Accept any file here; FullBackupManager validates the archive before restore.
+                    // Offer installed file/cloud apps in the system chooser. The selected
+                    // content URI is streamed into the app cache by the restore flow.
                     type = "*/*"
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
-                startActivityForResult(intent, FULL_BACKUP_RESTORE_REQUEST_CODE)
+                startActivityForResult(
+                    Intent.createChooser(intent, "选择完整备份文件"),
+                    FULL_BACKUP_RESTORE_REQUEST_CODE
+                )
                 return true
             }
             "timeRecords" -> {
