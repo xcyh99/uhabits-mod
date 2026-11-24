@@ -85,6 +85,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 }
             }
             val count = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
+            views.setViewVisibility(R.id.digital_clock_shortcut_row, if (count == 0) android.view.View.GONE else android.view.View.VISIBLE)
             for (i in containers.indices) {
                 val container = containers[i]
                 if (i >= count) {
@@ -92,7 +93,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     continue
                 }
                 views.setViewVisibility(container, android.view.View.VISIBLE)
-                val target = prefs.getString("digital_clock_target_shortcut\${i + 1}", null)
+                val target = prefs.getString("digital_clock_target_shortcut" + (i + 1), null)
                 val resolved = resolveShortcut(context, target, i + 1)
                 views.setTextViewText(labels[i], resolved.first)
                 if (resolved.second != null) views.setImageViewBitmap(icons[i], resolved.second)
