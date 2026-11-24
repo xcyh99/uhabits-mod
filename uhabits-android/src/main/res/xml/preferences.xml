@@ -171,7 +171,7 @@
         <Preference
                 android:key="desktopWidgetSettings"
                 android:title="桌面组件设置"
-                android:summary="统一管理数字时钟、历史组件、标记组件及其点击入口。"
+                android:summary="管理数字时钟组件及其点击区域设置。"
                 app:iconSpaceReserved="false" />
 
         <Preference
