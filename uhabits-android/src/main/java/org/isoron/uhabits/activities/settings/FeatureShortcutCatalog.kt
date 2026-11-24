@@ -48,7 +48,7 @@ object FeatureShortcutCatalog {
             if (!key.isNullOrBlank() && key !in excludedKeys &&
                 title.isNotBlank() && preference.isSelectable
             ) {
-                val featureKeys = setOf("parameterCenter", "timeRecords", "floatingTimer", "desktopDoodle", "statusBarDays", "widgetManager")
+                val featureKeys = setOf("parameterCenter", "timeRecords", "floatingTimer", "desktopDoodle", "statusBarDays", "widgetManager", "puzzleGames")
                 val typeLabel = if (key in featureKeys) "【功能】" else "【设置】"
                 result.add(Entry(key, "$typeLabel $title"))
             }
