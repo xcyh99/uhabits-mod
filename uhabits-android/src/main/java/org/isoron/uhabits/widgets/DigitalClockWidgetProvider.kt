@@ -74,12 +74,16 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 val options = manager.getAppWidgetOptions(widgetId)
                 val totalDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 180).coerceAtLeast(100)
                 val totalPx = (totalDp * context.resources.displayMetrics.density).toInt()
-                val weights = intArrayOf(
-                    prefs.getInt("digital_clock_hour_weight", 115), prefs.getInt("digital_clock_minute_weight", 115),
-                    prefs.getInt("digital_clock_date_weight", 65), prefs.getInt("digital_clock_shortcut_weight", 90)
-                ).map { it.coerceIn(20, 250) }
+                val shortcutCount = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
+                val weights = mutableListOf(
+                    prefs.getInt("digital_clock_hour_weight", 115).coerceIn(20, 250),
+                    prefs.getInt("digital_clock_minute_weight", 115).coerceIn(20, 250),
+                    prefs.getInt("digital_clock_date_weight", 65).coerceIn(20, 250)
+                )
+                if (shortcutCount > 0) weights.add(prefs.getInt("digital_clock_shortcut_weight", 90).coerceIn(20, 250))
+                val rowIds = mutableListOf(R.id.digital_clock_time, R.id.digital_clock_minute, R.id.digital_clock_date)
+                if (shortcutCount > 0) rowIds.add(R.id.digital_clock_shortcut_row)
                 val sum = weights.sum().coerceAtLeast(1)
-                val rowIds = intArrayOf(R.id.digital_clock_time, R.id.digital_clock_minute, R.id.digital_clock_date, R.id.digital_clock_shortcut_row)
                 rowIds.forEachIndexed { i, viewId ->
                     views.setViewLayoutHeight(viewId, (totalPx * weights[i] / sum).coerceAtLeast(1))
                 }
@@ -102,7 +106,11 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 }
             }
             val timeTarget = prefs.getString("digital_clock_target_time", null)
-            if (timeTarget != "none") views.setOnClickPendingIntent(R.id.digital_clock_time, createTargetPendingIntent(context, widgetId, 0, timeTarget))
+            if (timeTarget != "none") {
+                val timePending = createTargetPendingIntent(context, widgetId, 0, timeTarget)
+                views.setOnClickPendingIntent(R.id.digital_clock_time, timePending)
+                views.setOnClickPendingIntent(R.id.digital_clock_minute, timePending)
+            }
             val dateTarget = prefs.getString("digital_clock_target_date", null)
             if (dateTarget != "none") views.setOnClickPendingIntent(R.id.digital_clock_date, createTargetPendingIntent(context, widgetId, 1, dateTarget))
             manager.updateAppWidget(widgetId, views)

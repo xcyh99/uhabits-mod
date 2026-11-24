@@ -232,23 +232,15 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
     }
 
     private fun chooseColor(title: String, key: String, defaultValue: Int) {
-        val names = arrayOf("白色", "浅灰", "黑色", "黄色", "青色", "浅蓝", "粉色")
-        val colors = intArrayOf(
-            Color.WHITE, Color.LTGRAY, Color.BLACK, Color.YELLOW,
-            Color.CYAN, Color.rgb(120, 190, 255), Color.rgb(255, 170, 190)
-        )
-        val current = store.getInt(key, defaultValue)
-        val selected = colors.indexOf(current)
-        AlertDialog.Builder(this)
-            .setTitle(title)
-            .setSingleChoiceItems(names, selected) { dialog, which ->
-                store.edit().putInt(key, colors[which]).apply()
+        val picker = org.isoron.uhabits.activities.common.dialogs.ColorPickerDialog().apply {
+            setInitialColor(store.getInt(key, defaultValue))
+            setDialogTitle(title)
+            setListener { color ->
+                store.edit().putInt(key, color.argb).apply()
                 updateWidget()
-                dialog.dismiss()
-                showAppearanceSettings()
             }
-            .setNegativeButton("取消", null)
-            .show()
+        }
+        picker.show(supportFragmentManager, "digital_clock_color_picker_$key")
     }
 
     private fun chooseDateFormat() {
