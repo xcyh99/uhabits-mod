@@ -97,12 +97,24 @@ class CheckmarkWidgetView : HabitWidgetView {
         val fgColor: Int
         setShadowAlpha(0x4f)
         when (entryState) {
-            YES_MANUAL, SKIP, YES_AUTO -> {
+            YES_MANUAL, YES_AUTO -> {
                 bgColor = activeColor
-                fgColor = getContrastingTextColor(bgColor, 255, isDarkTheme)
+                // Completed check-ins use the same weighted black/white contrast
+                // rule as completed history squares. The active color is opaque,
+                // so widget/card transparency is intentionally not part of this test.
+                fgColor = org.isoron.uhabits.utils.ColorUtils.getWeightedCheckInTextColor(
+                    bgColor,
+                    preferences?.checkmarkWhiteWeight ?: Preferences.DEFAULT_CHECKMARK_WHITE_WEIGHT
+                )
                 // Keep completed checkmarks fully colored, as in the original widget.
                 // setWidgetBackgroundColor() applies widget opacity and can wash out
                 // the habit color; the active state must retain its opaque fill.
+                backgroundPaint!!.color = bgColor
+                frame!!.setBackgroundDrawable(background)
+            }
+            SKIP -> {
+                bgColor = activeColor
+                fgColor = getContrastingTextColor(bgColor, 255, isDarkTheme)
                 backgroundPaint!!.color = bgColor
                 frame!!.setBackgroundDrawable(background)
             }
