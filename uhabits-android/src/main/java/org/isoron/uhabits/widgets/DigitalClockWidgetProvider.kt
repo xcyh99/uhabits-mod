@@ -12,6 +12,7 @@ import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.widget.RemoteViews
 import androidx.preference.PreferenceManager
+import kotlin.math.roundToInt
 import org.isoron.uhabits.R
 import org.isoron.uhabits.activities.habits.list.ListHabitsActivity
 import org.isoron.uhabits.activities.settings.DesktopShortcutActivity
@@ -138,7 +139,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             )
             rowIds.forEachIndexed { index, viewId ->
                 val rowHeight = heights[index]
-                val offsetPx = (offsets[index].coerceIn(-40, 40) * density).toInt()
+                val offsetPx = (offsets[index].coerceIn(-40, 40) * density).roundToInt()
                 // RemoteViews on older Android/HarmonyOS builds cannot reliably apply
                 // View.setTranslationY. Asymmetric padding moves the row content while
                 // keeping the widget update within the supported RemoteViews API.
