@@ -254,6 +254,37 @@ class PreferencesTest : BaseUnitTest() {
     }
 
     @Test
+    fun testWhiteOutlineDefaultsAreIndependent() {
+        assertEquals(WhiteOutlineSettings(0.004, 0.3), prefs.getWhiteOutlineSettings(WhiteOutlineTarget.APP_CALENDAR))
+        assertEquals(WhiteOutlineSettings(0.008, 0.3), prefs.getWhiteOutlineSettings(WhiteOutlineTarget.APP_CHART))
+        assertEquals(WhiteOutlineSettings(0.008, 0.2), prefs.getWhiteOutlineSettings(WhiteOutlineTarget.APP_CHECKMARK))
+        assertEquals(WhiteOutlineSettings(0.004, 0.2), prefs.getWhiteOutlineSettings(WhiteOutlineTarget.WIDGET_CALENDAR))
+        assertEquals(WhiteOutlineSettings(0.008, 0.2), prefs.getWhiteOutlineSettings(WhiteOutlineTarget.WIDGET_CHECKMARK))
+    }
+
+    @Test
+    fun testWhiteOutlineSettingsAndPreviewAreIndependent() {
+        prefs.setWhiteOutlineSettings(WhiteOutlineTarget.APP_CALENDAR, WhiteOutlineSettings(0.006, 0.45))
+        prefs.beginWhiteOutlinePreview(WhiteOutlineTarget.APP_CALENDAR, WhiteOutlineSettings(0.009, 0.6))
+        assertEquals(WhiteOutlineSettings(0.009, 0.6), prefs.getWhiteOutlineSettings(WhiteOutlineTarget.APP_CALENDAR))
+        assertEquals(WhiteOutlineSettings(0.008, 0.3), prefs.getWhiteOutlineSettings(WhiteOutlineTarget.APP_CHART))
+
+        prefs.cancelWhiteOutlinePreview(WhiteOutlineTarget.APP_CALENDAR)
+        assertEquals(WhiteOutlineSettings(0.006, 0.45), prefs.getWhiteOutlineSettings(WhiteOutlineTarget.APP_CALENDAR))
+    }
+
+    @Test
+    fun testWhiteOutlinePreviewCanBeSavedAndDefaultsRestored() {
+        prefs.beginWhiteOutlinePreview(WhiteOutlineTarget.WIDGET_CHECKMARK, WhiteOutlineSettings(0.02, 0.4))
+        assertEquals(WhiteOutlineTarget.WIDGET_CHECKMARK, prefs.pendingWhiteOutlinePreview())
+        prefs.saveWhiteOutlinePreview(WhiteOutlineTarget.WIDGET_CHECKMARK)
+        assertEquals(WhiteOutlineSettings(0.02, 0.4), prefs.getWhiteOutlineSettings(WhiteOutlineTarget.WIDGET_CHECKMARK))
+
+        prefs.restoreParameterDefaults()
+        assertEquals(WhiteOutlineSettings(0.008, 0.2), prefs.getWhiteOutlineSettings(WhiteOutlineTarget.WIDGET_CHECKMARK))
+    }
+
+    @Test
     fun testMidnightDelay() {
         assertFalse(prefs.isMidnightDelayEnabled)
         prefs.isMidnightDelayEnabled = true
