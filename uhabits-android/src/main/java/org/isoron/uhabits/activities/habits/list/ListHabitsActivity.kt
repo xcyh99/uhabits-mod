@@ -212,11 +212,11 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
                 }
             }
             target == "timeRecords" -> startActivity(Intent(this, org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
-            "__feature_center" -> startActivity(
+            target == "__feature_center" -> startActivity(
                 Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
                     .putExtra("open_feature_center", true)
             )
-            "__settings" -> startActivity(
+            target == "__settings" -> startActivity(
                 Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
             )
             else -> startActivity(
