@@ -62,6 +62,7 @@ class CheckmarkWidgetView : HabitWidgetView {
     private val notesIndicatorPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var notesIndicatorColor: Int = 0
     private var cardOutlineEnabled = false
+    private var cardOutlineWidth = 0.2f
     private val cardOutlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         style = Paint.Style.STROKE
@@ -135,6 +136,7 @@ class CheckmarkWidgetView : HabitWidgetView {
         val isCompleted = entryState == YES_MANUAL || entryState == YES_AUTO
         val outline = preferences?.getWhiteOutlineSettings(WhiteOutlineTarget.WIDGET_CHECKMARK)
             ?: WhiteOutlineSettings(0.008, 0.2)
+        cardOutlineWidth = outline.width.toFloat()
         cardOutlineEnabled = isCompleted && ColorOutline.shouldUseLightOutline(
             Color.luminance(res.getColor(R.attr.cardBgColor)).toDouble(),
             Color.luminance(activeColor).toDouble(),
@@ -157,15 +159,14 @@ class CheckmarkWidgetView : HabitWidgetView {
     override fun dispatchDraw(canvas: Canvas) {
         super.dispatchDraw(canvas)
         if (cardOutlineEnabled && frame != null) {
-            val outlineWidth = preferences?.getWhiteOutlineSettings(WhiteOutlineTarget.WIDGET_CHECKMARK)?.width ?: 0.2
-            val halfStroke = dpToPixels(context, outlineWidth.toFloat() / 2f)
+            val halfStroke = dpToPixels(context, cardOutlineWidth / 2f)
             cardOutlineRect.set(
                 frame!!.left + halfStroke,
                 frame!!.top + halfStroke,
                 frame!!.right - halfStroke,
                 frame!!.bottom - halfStroke
             )
-            cardOutlinePaint.strokeWidth = dpToPixels(context, outlineWidth.toFloat())
+            cardOutlinePaint.strokeWidth = dpToPixels(context, cardOutlineWidth)
             canvas.drawRoundRect(
                 cardOutlineRect,
                 dpToPixels(context, 18f),
