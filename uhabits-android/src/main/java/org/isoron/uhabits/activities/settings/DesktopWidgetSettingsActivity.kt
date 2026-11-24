@@ -200,9 +200,9 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
 
     private fun chooseTarget(slot: Slot) {
         val options = mutableListOf<Pair<String, String>>()
-        options += "none" to "不设置（点击无动作）"
+        options += "none" to "【不设置】点击无动作"
         FeatureShortcutCatalog.getEntries(this).forEach {
-            options += "feature:${it.key}" to "十字习惯 · ${it.title}"
+            options += "feature:${it.key}" to "【十字习惯】${it.title}"
         }
         val pm = packageManager
         val launchIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
@@ -212,7 +212,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             .sortedBy { it.loadLabel(pm).toString().lowercase() }
         apps.forEach { info ->
             val component = ComponentName(info.activityInfo.packageName, info.activityInfo.name)
-            options += "app:${component.flattenToString()}" to "手机应用 · ${info.loadLabel(pm)}"
+            options += "app:${component.flattenToString()}" to "【手机应用】${info.loadLabel(pm)}"
         }
 
         // Every clickable slot shares this searchable target picker.
@@ -246,7 +246,24 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                     setPadding(dp(16), dp(13), dp(16), dp(13))
                     minHeight = dp(48)
                 }
-                row.text = getItem(position).second
+                val label = getItem(position).second
+                val close = label.indexOf('】')
+                if (label.startsWith("【") && close > 0) {
+                    val styled = android.text.SpannableString(label)
+                    val tagColor = when (label.substring(1, close)) {
+                        "手机应用" -> android.graphics.Color.rgb(55, 125, 220)
+                        "十字习惯" -> android.graphics.Color.rgb(35, 155, 105)
+                        else -> android.graphics.Color.rgb(145, 145, 145)
+                    }
+                    styled.setSpan(
+                        android.text.style.ForegroundColorSpan(tagColor),
+                        0, close + 1,
+                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                    row.text = styled
+                } else {
+                    row.text = label
+                }
                 return row
             }
         }
