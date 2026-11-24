@@ -221,13 +221,20 @@ class DesktopShortcutActivity : AppCompatActivity() {
             val accepted = if (existing) manager.updateShortcuts(listOf(info)) else manager.requestPinShortcut(info, null)
             if (accepted) {
                 val entries = readShortcuts().toMutableList()
+                val selectedPhotoPath = if (iconSpinner.selectedItemPosition == iconNames.lastIndex) {
+                    photoFile?.absolutePath
+                } else null
                 val entry = ShortcutEntry(
                     id, name, target.key, iconSpinner.selectedItemPosition,
-                    colorSpinner.selectedItemPosition, photoFile?.absolutePath
+                    colorSpinner.selectedItemPosition, selectedPhotoPath
                 )
                 val oldIndex = entries.indexOfFirst { it.id == id }
+                val oldPhotoPath = entries.getOrNull(oldIndex)?.photoPath
                 if (oldIndex >= 0) entries[oldIndex] = entry else entries.add(entry)
                 saveShortcuts(entries)
+                if (oldPhotoPath != null && oldPhotoPath != selectedPhotoPath) {
+                    runCatching { File(oldPhotoPath).delete() }
+                }
                 Toast.makeText(this, if (existing) "桌面快捷方式已更新" else "已提交桌面添加请求，请在桌面确认", Toast.LENGTH_LONG).show()
                 editingShortcutId = null
                 saveButton.text = "创建并添加到桌面"
@@ -374,8 +381,10 @@ class DesktopShortcutActivity : AppCompatActivity() {
     }
 
     private fun buildIcon(): Bitmap {
-        photoFile?.takeIf { it.exists() }?.let {
-            BitmapFactory.decodeFile(it.absolutePath)?.let { bitmap -> return cropSquare(bitmap, 192) }
+        if (iconSpinner.selectedItemPosition == iconNames.lastIndex) {
+            photoFile?.takeIf { it.exists() }?.let {
+                BitmapFactory.decodeFile(it.absolutePath)?.let { bitmap -> return cropSquare(bitmap, 192) }
+            }
         }
         val size = 192
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
