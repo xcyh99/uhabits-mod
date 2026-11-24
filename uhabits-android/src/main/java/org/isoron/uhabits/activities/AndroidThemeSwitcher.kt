@@ -26,7 +26,8 @@ import android.content.res.Configuration.UI_MODE_NIGHT_YES
 import android.os.Build.VERSION.SDK_INT
 import androidx.core.content.ContextCompat
 import org.isoron.uhabits.R
-import org.isoron.uhabits.core.preferences.Preferences\nimport org.isoron.uhabits.core.preferences.WhiteOutlineTarget
+import org.isoron.uhabits.core.preferences.Preferences
+import org.isoron.uhabits.core.preferences.WhiteOutlineTarget\nimport org.isoron.uhabits.core.preferences.WhiteOutlineTarget
 import org.isoron.uhabits.core.ui.ThemeSwitcher
 import org.isoron.uhabits.core.ui.views.DarkTheme
 import org.isoron.uhabits.core.ui.views.LightTheme
