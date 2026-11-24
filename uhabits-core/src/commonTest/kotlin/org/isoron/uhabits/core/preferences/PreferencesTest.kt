@@ -171,6 +171,46 @@ class PreferencesTest : BaseUnitTest() {
     }
 
     @Test
+    fun testHistoryChartWhiteWeightPreviewDoesNotOverwriteCommittedValue() {
+        prefs.historyChartWhiteWeight = 8.8
+        prefs.beginHistoryChartWhiteWeightPreview(9.9)
+
+        assertEquals(8.8, prefs.committedHistoryChartWhiteWeight)
+        assertEquals(9.9, prefs.historyChartWhiteWeight)
+        assertTrue(prefs.isHistoryChartWhiteWeightPreviewPending)
+
+        prefs.markHistoryChartWhiteWeightPreviewHandled()
+        assertFalse(prefs.isHistoryChartWhiteWeightPreviewPending)
+        assertEquals(9.9, prefs.historyChartWhiteWeight)
+
+        assertEquals(9.9, prefs.saveHistoryChartWhiteWeightPreview())
+        assertEquals(9.9, prefs.committedHistoryChartWhiteWeight)
+        assertNull(prefs.historyChartWhiteWeightPreview)
+    }
+
+    @Test
+    fun testInterruptedHistoryChartWhiteWeightPreviewIsDiscardedOnColdStart() {
+        prefs.historyChartWhiteWeight = 8.8
+        prefs.beginHistoryChartWhiteWeightPreview(9.9)
+
+        val restartedPreferences = Preferences(storage)
+        assertTrue(restartedPreferences.recoverInterruptedHistoryChartWhiteWeightPreview())
+        assertEquals(8.8, restartedPreferences.historyChartWhiteWeight)
+        assertNull(restartedPreferences.historyChartWhiteWeightPreview)
+        assertFalse(restartedPreferences.isHistoryChartWhiteWeightPreviewPending)
+    }
+
+    @Test
+    fun testCancellingHistoryChartWhiteWeightPreviewRestoresCommittedValue() {
+        prefs.historyChartWhiteWeight = 8.8
+        prefs.beginHistoryChartWhiteWeightPreview(9.9)
+
+        assertEquals(8.8, prefs.cancelHistoryChartWhiteWeightPreview())
+        assertEquals(8.8, prefs.historyChartWhiteWeight)
+        assertNull(prefs.historyChartWhiteWeightPreview)
+    }
+
+    @Test
     fun testMidnightDelay() {
         assertFalse(prefs.isMidnightDelayEnabled)
         prefs.isMidnightDelayEnabled = true
