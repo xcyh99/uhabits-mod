@@ -74,6 +74,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         button("添加数字时钟到桌面") { pinWidget() }
         button("预览数字时钟") { showWidgetPreview() }
         button("数字显示样式") { showAppearanceSettings() }
+        button("字符间距与数字变形") { showSpacingAndTransformSettings() }
         button("四行高度与间距") { showRowSettings() }
         button("背景颜色与透明度") { showBackgroundSettings() }
         button("快捷入口数量") { chooseShortcutCount() }
@@ -383,6 +384,89 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    private fun showSpacingAndTransformSettings() {
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(8), dp(20), dp(4))
+        }
+        panel.addView(TextView(this).apply {
+            text = "先缩小字符之间的空隙；负值越大，字符越紧。变形开关默认关闭，开启后只横向压缩或拉宽文字，不改变字号和行高。"
+            textSize = 13f
+            setTextColor(resolveSecondaryText())
+            setPadding(0, 0, 0, dp(10))
+        })
+        val spacingLabel = TextView(this).apply {
+            text = "字符间距（em，默认 -0.04）"
+            textSize = 14f
+            setTextColor(resolvePrimaryText())
+        }
+        panel.addView(spacingLabel)
+        val spacingInput = android.widget.EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_SIGNED or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setSingleLine(true)
+            setText(store.getFloat(KEY_LETTER_SPACING, -0.04f).toString())
+            hint = "-0.20 ～ 0.20"
+        }
+        panel.addView(spacingInput)
+        val transformSwitch = android.widget.Switch(this).apply {
+            text = "启用数字横向变形"
+            setTextColor(resolvePrimaryText())
+            isChecked = store.getBoolean(KEY_TRANSFORM_ENABLED, false)
+            setPadding(0, dp(8), 0, dp(8))
+        }
+        panel.addView(transformSwitch)
+        val scaleLabel = TextView(this).apply {
+            text = "横向宽度比例（0.60～1.20，默认 0.90）"
+            textSize = 14f
+            setTextColor(resolvePrimaryText())
+        }
+        panel.addView(scaleLabel)
+        val scaleInput = android.widget.EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setSingleLine(true)
+            setText(store.getFloat(KEY_HORIZONTAL_SCALE, 0.90f).toString())
+            hint = "0.60 ～ 1.20"
+        }
+        panel.addView(scaleInput)
+        fun refreshScaleEnabled() {
+            scaleLabel.alpha = if (transformSwitch.isChecked) 1f else 0.45f
+            scaleInput.isEnabled = transformSwitch.isChecked
+            scaleInput.alpha = if (transformSwitch.isChecked) 1f else 0.45f
+        }
+        transformSwitch.setOnCheckedChangeListener { _, _ -> refreshScaleEnabled() }
+        refreshScaleEnabled()
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("字符间距与数字变形")
+            .setView(panel)
+            .setNegativeButton("取消", null)
+            .setPositiveButton("应用", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val spacing = spacingInput.text.toString().trim().toFloatOrNull()
+                val scale = scaleInput.text.toString().trim().toFloatOrNull()
+                if (spacing == null || spacing !in -0.20f..0.20f) {
+                    spacingInput.error = "请输入 -0.20～0.20"
+                    return@setOnClickListener
+                }
+                if (scale == null || scale !in 0.60f..1.20f) {
+                    scaleInput.error = "请输入 0.60～1.20"
+                    return@setOnClickListener
+                }
+                store.edit()
+                    .putFloat(KEY_LETTER_SPACING, spacing)
+                    .putBoolean(KEY_TRANSFORM_ENABLED, transformSwitch.isChecked)
+                    .putFloat(KEY_HORIZONTAL_SCALE, scale)
+                    .apply()
+                updateWidget()
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
+    }
+
     private fun showBackgroundSettings() {
         val choices = arrayOf("选择背景颜色", "调整背景透明度")
         AlertDialog.Builder(this).setTitle("背景设置")
@@ -441,6 +525,9 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         private const val KEY_MINUTE_WEIGHT = "digital_clock_minute_weight"
         private const val KEY_DATE_WEIGHT = "digital_clock_date_weight"
         private const val KEY_SHORTCUT_WEIGHT = "digital_clock_shortcut_weight"
+        private const val KEY_LETTER_SPACING = "digital_clock_letter_spacing"
+        private const val KEY_TRANSFORM_ENABLED = "digital_clock_transform_enabled"
+        private const val KEY_HORIZONTAL_SCALE = "digital_clock_horizontal_scale"
     }
     private fun resolvePageBackground() = org.isoron.uhabits.utils.StyledResources(this).getColor(R.attr.contrast0)
     private fun resolvePrimaryText(): Int = if (isDark()) Color.WHITE else Color.BLACK
