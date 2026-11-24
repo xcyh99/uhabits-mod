@@ -16,7 +16,7 @@ object FeatureShortcutCatalog {
     data class Entry(val key: String, val title: String)
 
     private val excludedKeys = setOf(
-        "featureShortcuts", "reminderSound", "bugReport", "repairDB", "rateApp",
+        "featureShortcuts", "desktopShortcuts", "reminderSound", "bugReport", "repairDB", "rateApp",
         "pref_developer", "pref_sync_base_url", "pref_sync_key", "pref_encryption_key"
     )
 
