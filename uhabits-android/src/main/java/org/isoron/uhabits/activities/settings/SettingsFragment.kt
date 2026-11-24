@@ -251,7 +251,9 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             "restoreFullBackup" -> {
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
-                    type = "application/octet-stream"
+                    // Cloud providers may report backup files with different MIME types.
+                    // Accept any file here; FullBackupManager validates the archive before restore.
+                    type = "*/*"
                 }
                 startActivityForResult(intent, FULL_BACKUP_RESTORE_REQUEST_CODE)
                 return true
