@@ -107,12 +107,20 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         actionCard("添加到桌面", "将数字时钟组件添加到手机桌面") { pinWidget() }
         actionCard("预览效果", "先查看当前设置，不会修改参数") { showWidgetPreview() }
 
-        section("显示与排版", "每一行可分别调整，互不影响")
-        actionCard("数字显示样式", "字号、颜色、日期格式和时间制式") { showAppearanceSettings() }
-        actionCard("字符间距与数字变形", "小时、分钟、日期星期分别独立设置") { showSpacingAndTransformSettings() }
-        actionCard("四行高度与自动布局", "四行窗口高度、自动布局与数字比例") { showRowSettings() }
+        section("尺寸与裁切", "四行分别控制尺寸、窗口和位置")
+        actionCard("字号设置", "小时、分钟、日期星期分别设置字号") { showSizeSettings() }
+        actionCard("字符间距与数字变形", "前三行分别调整字符间距和横向比例") { showSpacingAndTransformSettings() }
+        actionCard("四行高度与自动布局", "独立设置四行窗口高度、自动适配与数字比例") { showRowSettings() }
         actionCard("四行垂直位置", "小时、分钟、日期、快捷图标分别上下移动") { showVerticalOffsetSettings() }
+
+        section("颜色与效果")
+        actionCard("颜色设置", "小时、分钟、日期分别设置颜色") { showColorSettings() }
+
+        section("布局与背景")
         actionCard("背景颜色与透明度", "调整组件底色和透明程度") { showBackgroundSettings() }
+
+        section("时间与日期")
+        actionCard("时间制式与日期格式", "设置12/24小时制和日期星期显示格式") { showTimeDateSettings() }
 
         section("快捷入口", "设置桌面组件底部显示几个快捷入口")
         actionCard("快捷入口数量", "当前显示 ${store.getInt(KEY_SHORTCUT_COUNT, 4).coerceIn(0, 8)} 个") { chooseShortcutCount() }
@@ -351,24 +359,39 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
 
 
 
-    private fun showAppearanceSettings() {
-        val items = arrayOf("小时字号", "分钟字号", "日期字号", "小时数字颜色", "分钟数字颜色", "日期文字颜色", "日期显示格式", "时间制式")
-        AlertDialog.Builder(this)
-            .setTitle("数字显示样式")
+    private fun showSizeSettings() {
+        val items = arrayOf("小时字号", "分钟字号", "日期星期字号")
+        AlertDialog.Builder(this).setTitle("字号设置")
             .setItems(items) { _, which ->
                 when (which) {
                     0 -> chooseSize("小时字号", KEY_HOUR_SIZE, 48f)
                     1 -> chooseSize("分钟字号", KEY_MINUTE_SIZE, 48f)
-                    2 -> chooseSize("日期字号", KEY_DATE_SIZE, 15f)
-                    3 -> chooseColor("小时数字颜色", KEY_HOUR_COLOR, Color.WHITE)
-                    4 -> chooseColor("分钟数字颜色", KEY_MINUTE_COLOR, Color.WHITE)
-                    5 -> chooseColor("日期文字颜色", KEY_DATE_COLOR, Color.LTGRAY)
-                    6 -> chooseDateFormat()
-                    7 -> chooseTimeMode()
+                    2 -> chooseSize("日期星期字号", KEY_DATE_SIZE, 15f)
                 }
-            }
-            .setNegativeButton("关闭", null)
-            .show()
+            }.setNegativeButton("关闭", null).show()
+    }
+
+    private fun showColorSettings() {
+        val items = arrayOf("小时数字颜色", "分钟数字颜色", "日期星期颜色")
+        AlertDialog.Builder(this).setTitle("颜色设置")
+            .setItems(items) { _, which ->
+                when (which) {
+                    0 -> chooseColor("小时数字颜色", KEY_HOUR_COLOR, Color.WHITE)
+                    1 -> chooseColor("分钟数字颜色", KEY_MINUTE_COLOR, Color.WHITE)
+                    2 -> chooseColor("日期星期颜色", KEY_DATE_COLOR, Color.LTGRAY)
+                }
+            }.setNegativeButton("关闭", null).show()
+    }
+
+    private fun showTimeDateSettings() {
+        val items = arrayOf("日期显示格式", "时间制式")
+        AlertDialog.Builder(this).setTitle("时间与日期")
+            .setItems(items) { _, which ->
+                when (which) {
+                    0 -> chooseDateFormat()
+                    1 -> chooseTimeMode()
+                }
+            }.setNegativeButton("关闭", null).show()
     }
 
     private fun chooseSize(title: String, key: String, defaultValue: Float) {
@@ -437,7 +460,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 store.edit().putString(KEY_DATE_FORMAT, formats[which].first).apply()
                 updateWidget()
                 dialog.dismiss()
-                showAppearanceSettings()
+                showTimeDateSettings()
             }
             .setNegativeButton("取消", null)
             .show()
@@ -452,7 +475,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 store.edit().putInt(KEY_TIME_MODE, which).apply()
                 updateWidget()
                 dialog.dismiss()
-                showAppearanceSettings()
+                showTimeDateSettings()
             }.setNegativeButton("取消", null).show()
     }
 
