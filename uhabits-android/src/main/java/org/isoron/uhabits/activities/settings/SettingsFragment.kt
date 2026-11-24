@@ -203,6 +203,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 val directActionKeys = setOf(
                     "createFullBackup",
                     "restoreFullBackup",
+                    "exportProgramApk",
                     "exportDB",
                     "exportLegacyDB",
                     "exportCSV",
@@ -246,6 +247,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         when (key) {
             "createFullBackup" -> {
                 createFullBackup()
+                return true
+            }
+            "exportProgramApk" -> {
+                exportCurrentProgramApk()
                 return true
             }
             "restoreFullBackup" -> {
@@ -1203,6 +1208,35 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         // instead of leaving the user on the Settings screen.
         requireActivity().finish()
         requireActivity().overridePendingTransition(0, 0)
+    }
+
+    private fun exportCurrentProgramApk() {
+        val context = requireContext()
+        try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            val versionName = packageInfo.versionName?.replace(Regex("[^A-Za-z0-9._-]"), "_") ?: "unknown"
+            @Suppress("DEPRECATION")
+            val versionCode = packageInfo.versionCode
+            val sourceApk = java.io.File(context.applicationInfo.sourceDir)
+            if (!sourceApk.isFile) throw IllegalStateException("找不到当前程序安装包")
+
+            val archiveDir = java.io.File(context.cacheDir, "program_archive").apply { mkdirs() }
+            val archiveFile = java.io.File(archiveDir, "十字习惯APP_v${versionName}_${versionCode}.apk")
+            sourceApk.inputStream().use { input ->
+                java.io.FileOutputStream(archiveFile).use { output -> input.copyTo(output) }
+            }
+
+            val uri = FileProvider.getUriForFile(context, context.packageName, archiveFile)
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/vnd.android.package-archive"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                clipData = ClipData.newUri(context.contentResolver, archiveFile.name, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(shareIntent, "保存当前程序安装包"))
+        } catch (error: Exception) {
+            Toast.makeText(context, error.message ?: "导出程序安装包失败", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun createFullBackup() {
