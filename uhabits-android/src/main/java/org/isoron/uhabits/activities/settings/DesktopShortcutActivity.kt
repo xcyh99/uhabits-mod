@@ -1,6 +1,6 @@
 package org.isoron.uhabits.activities.settings
 
-import android.app.ShortcutInfo
+import android.content.pm.ShortcutInfo
 import android.content.Intent
 import android.content.pm.ShortcutManager
 import android.graphics.Bitmap
