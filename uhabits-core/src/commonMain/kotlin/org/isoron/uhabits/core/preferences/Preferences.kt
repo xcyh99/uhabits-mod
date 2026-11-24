@@ -34,11 +34,13 @@ enum class WhiteOutlineTarget(
     val defaultWidth: Double,
     val displayName: String
 ) {
-    APP_CALENDAR("app_calendar", 0.004, 0.3, "APP 日历"),
-    APP_CHART("app_chart", 0.008, 0.3, "APP 其他图表"),
-    APP_CHECKMARK("app_checkmark", 0.008, 0.2, "APP 标记按钮"),
-    WIDGET_CALENDAR("widget_calendar", 0.004, 0.2, "桌面日历小组件"),
-    WIDGET_CHECKMARK("widget_checkmark", 0.008, 0.2, "桌面标记小组件")
+    // Keep the original storage keys for existing surfaces so prior user values remain intact.
+    APP_CALENDAR("app_calendar", 0.004, 0.3, "项目日历"),
+    APP_CHART("app_chart", 0.008, 0.3, "项目图表"),
+    APP_CHECKMARK("app_checkmark", 0.008, 0.2, "列表打卡"),
+    WIDGET_CALENDAR("widget_calendar", 0.004, 0.2, "历史组件"),
+    WIDGET_CHECKMARK("widget_checkmark", 0.008, 0.2, "标记组件"),
+    WIDGET_OTHER("widget_other", 0.008, 0.2, "其他组件")
 }
 
 data class WhiteOutlineSettings(val threshold: Double, val width: Double)
