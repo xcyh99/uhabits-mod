@@ -73,9 +73,15 @@
             android:title="备份与恢复">
 
         <Preference
-                android:key="fullBackupRestore"
-                android:title="完整备份与恢复"
-                android:summary="创建完整备份，或从备份文件恢复数据。"
+                android:key="createFullBackup"
+                android:title="创建完整备份"
+                android:summary="生成包含习惯、打卡、时间记录和相关设置的完整备份，并可发送到网盘等应用。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
+                android:key="restoreFullBackup"
+                android:title="恢复完整备份"
+                android:summary="从本机文件或网盘选择完整备份文件，检查后恢复数据。"
                 app:iconSpaceReserved="false" />
 
         <Preference
