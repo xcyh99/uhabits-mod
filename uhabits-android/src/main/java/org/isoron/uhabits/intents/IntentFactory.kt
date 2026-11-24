@@ -37,9 +37,13 @@ class IntentFactory() {
     fun helpTranslate(context: Context) =
         buildViewIntent(context.getString(R.string.translateURL))
 
-    fun openDocument() = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-        addCategory(Intent.CATEGORY_OPENABLE)
-        type = "*/*"
+    fun openDocument(): Intent {
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        return Intent.createChooser(intent, "选择要导入的数据文件")
     }
 
     fun rateApp(context: Context) =
