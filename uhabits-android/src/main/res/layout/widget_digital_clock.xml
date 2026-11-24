@@ -74,8 +74,10 @@
             android:padding="2dp">
             <ImageView
                 android:id="@+id/digital_clock_shortcut1_icon"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
+                android:maxWidth="64dp"
+                android:maxHeight="64dp"
                 android:src="@android:drawable/ic_menu_view"
                 android:contentDescription="快捷方式1"
                 android:scaleType="fitCenter" />
@@ -90,8 +92,10 @@
             android:padding="2dp">
             <ImageView
                 android:id="@+id/digital_clock_shortcut2_icon"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
+                android:maxWidth="64dp"
+                android:maxHeight="64dp"
                 android:src="@android:drawable/ic_menu_view"
                 android:contentDescription="快捷方式2"
                 android:scaleType="fitCenter" />
@@ -106,8 +110,10 @@
             android:padding="2dp">
             <ImageView
                 android:id="@+id/digital_clock_shortcut3_icon"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
+                android:maxWidth="64dp"
+                android:maxHeight="64dp"
                 android:src="@android:drawable/ic_menu_view"
                 android:contentDescription="快捷方式3"
                 android:scaleType="fitCenter" />
@@ -122,8 +128,10 @@
             android:padding="2dp">
             <ImageView
                 android:id="@+id/digital_clock_shortcut4_icon"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
+                android:maxWidth="64dp"
+                android:maxHeight="64dp"
                 android:src="@android:drawable/ic_menu_view"
                 android:contentDescription="快捷方式4"
                 android:scaleType="fitCenter" />
@@ -138,8 +146,10 @@
             android:padding="2dp">
             <ImageView
                 android:id="@+id/digital_clock_shortcut5_icon"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
+                android:maxWidth="64dp"
+                android:maxHeight="64dp"
                 android:src="@android:drawable/ic_menu_view"
                 android:contentDescription="快捷方式5"
                 android:scaleType="fitCenter" />
@@ -154,8 +164,10 @@
             android:padding="2dp">
             <ImageView
                 android:id="@+id/digital_clock_shortcut6_icon"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
+                android:maxWidth="64dp"
+                android:maxHeight="64dp"
                 android:src="@android:drawable/ic_menu_view"
                 android:contentDescription="快捷方式6"
                 android:scaleType="fitCenter" />
@@ -170,8 +182,10 @@
             android:padding="2dp">
             <ImageView
                 android:id="@+id/digital_clock_shortcut7_icon"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
+                android:maxWidth="64dp"
+                android:maxHeight="64dp"
                 android:src="@android:drawable/ic_menu_view"
                 android:contentDescription="快捷方式7"
                 android:scaleType="fitCenter" />
@@ -186,8 +200,10 @@
             android:padding="2dp">
             <ImageView
                 android:id="@+id/digital_clock_shortcut8_icon"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
+                android:maxWidth="64dp"
+                android:maxHeight="64dp"
                 android:src="@android:drawable/ic_menu_view"
                 android:contentDescription="快捷方式8"
                 android:scaleType="fitCenter" />
