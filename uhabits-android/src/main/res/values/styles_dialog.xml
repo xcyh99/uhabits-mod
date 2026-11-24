@@ -33,7 +33,7 @@
         <item name="android:minWidth">90dp</item>
         <item name="android:gravity">left</item>
         <item name="android:paddingLeft">6dp</item>
-        <item name="android:textColor">?attr/contrast60</item>
+        <item name="android:textColor">?attr/contrast80</item>
     </style>
 
     <style name="dialogFormRow">
