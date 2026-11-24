@@ -222,7 +222,8 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     "parameterCenter",
                     "parameterEmergencyReset",
                     "whiteOutline",
-                    "desktopShortcuts"
+                    "desktopShortcuts",
+                    "puzzleGames"
                 )
                 if (key in directActionKeys) {
                     findPreference(key)?.performClick()
@@ -266,6 +267,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             }
             "timeRecords" -> {
                 startActivity(Intent(requireContext(), org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
+                return true
+            }
+            "puzzleGames" -> {
+                startActivity(Intent(requireContext(), org.isoron.uhabits.activities.games.PuzzleGamesActivity::class.java))
                 return true
             }
             "parameterCenter" -> {
