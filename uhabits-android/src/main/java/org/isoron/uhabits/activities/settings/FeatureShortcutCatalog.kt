@@ -25,8 +25,8 @@ object FeatureShortcutCatalog {
         val screen: PreferenceScreen =
             manager.inflateFromResource(context, R.xml.preferences, null)
         val result = mutableListOf(
-            Entry("__feature_center", "整个功能中心"),
-            Entry("__settings", "设置首页")
+            Entry("__feature_center", "[板块] 整个功能中心"),
+            Entry("__settings", "[板块] 设置首页")
         )
 
         fun visit(preference: Preference) {
@@ -35,7 +35,7 @@ object FeatureShortcutCatalog {
                 val categoryKey = preference.key
                 val categoryTitle = preference.title?.toString()?.trim().orEmpty()
                 if (!categoryKey.isNullOrBlank() && categoryTitle.isNotBlank()) {
-                    result.add(Entry(categoryKey, categoryTitle))
+                    result.add(Entry(categoryKey, "[板块] $categoryTitle"))
                 }
                 for (index in 0 until preference.preferenceCount) {
                     visit(preference.getPreference(index))
@@ -48,7 +48,9 @@ object FeatureShortcutCatalog {
             if (!key.isNullOrBlank() && key !in excludedKeys &&
                 title.isNotBlank() && preference.isSelectable
             ) {
-                result.add(Entry(key, title))
+                val featureKeys = setOf("parameterCenter", "timeRecords", "floatingTimer", "desktopDoodle", "statusBarDays", "widgetManager")
+                val typeLabel = if (key in featureKeys) "[功能]" else "[设置]"
+                result.add(Entry(key, "$typeLabel $title"))
             }
         }
 
@@ -63,7 +65,7 @@ object FeatureShortcutCatalog {
             app.component.habitList
                 .filter { !it.isArchived && it.id != null }
                 .forEach { habit ->
-                    result.add(Entry("habit:${habit.id}", "习惯：${habit.name}"))
+                    result.add(Entry("habit:${habit.id}", "[项目] ${habit.name}"))
                 }
         }
 
