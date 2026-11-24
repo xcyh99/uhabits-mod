@@ -41,7 +41,14 @@ class TimeRecordWidgetProvider : BaseWidgetProvider() {
             val recordId = context.getSharedPreferences(WIDGET_PREFS, Context.MODE_PRIVATE)
                 .getString(widgetId.toString(), null)
             val widget = TimeRecordWidget(context, widgetId, recordId?.let { TimeRecordStore.get(context, it) })
-            widget.setDimensions(provider.getDimensionsFromOptions(context, manager.getAppWidgetOptions(widgetId)))
+            widget.setDimensions(
+                provider.getDimensionsFromOptions(
+                    context,
+                    manager.getAppWidgetOptions(widgetId),
+                    widgetId,
+                    widget.defaultDimensions()
+                )
+            )
             BaseWidgetProvider.updateAppWidget(manager, widget)
         }
     }
