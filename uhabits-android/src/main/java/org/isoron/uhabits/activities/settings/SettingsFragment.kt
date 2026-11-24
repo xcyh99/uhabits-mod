@@ -1088,7 +1088,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         val savedPhoto = store.getString("feature_shortcut_photo_$key", null)
         val iconSpinner = Spinner(requireContext()).apply {
             adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, iconNames)
-            val defaultIcon = if (!savedPhoto.isNullOrBlank()) 8 else store.getInt("feature_shortcut_icon_$key", 0)
+            val defaultIcon = store.getInt(
+                "feature_shortcut_icon_$key",
+                if (!savedPhoto.isNullOrBlank()) 8 else 0
+            )
             setSelection(defaultIcon.coerceIn(iconNames.indices))
         }
         val content = LinearLayout(requireContext()).apply {
@@ -1128,7 +1131,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 addView(Button(requireContext()).apply {
                     text = "清除相册图片"
                     setOnClickListener {
-                        store.edit().remove("feature_shortcut_photo_$key").apply()
+                        store.edit()
+                            .remove("feature_shortcut_photo_$key")
+                            .putInt("feature_shortcut_icon_$key", 0)
+                            .apply()
                         showShortcutCustomizationDialog(selected, store, index)
                     }
                 })
