@@ -86,8 +86,8 @@
 
         <Preference
                 android:key="exportProgramApk"
-                android:title="程序存档（导出当前安装包）"
-                android:summary="导出当前版本 APK，可保存到网盘或文件夹；以后可重新安装这个版本。此操作不包含习惯和打卡数据。"
+                android:title="单独导出本机 APK"
+                android:summary="提取并导出手机当前安装的 APP 安装包，可保存到网盘或文件夹，供以后重新安装；不包含习惯和打卡数据，也不需要联网。"
                 app:iconSpaceReserved="false" />
 
         <Preference
