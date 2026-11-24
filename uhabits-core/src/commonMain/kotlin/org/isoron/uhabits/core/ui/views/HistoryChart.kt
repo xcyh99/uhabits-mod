@@ -316,7 +316,9 @@ class HistoryChart(
             val safeWhitePreferenceWeight = whitePreferenceWeight.takeIf {
                 !it.isNaN() && !it.isInfinite() && it >= 0.1 && it <= 100.0
             } ?: 6.6
-            if (blackContrast / whiteContrast <= safeWhitePreferenceWeight) {
+            if (safeWhitePreferenceWeight >= 100.0 ||
+                blackContrast / whiteContrast <= safeWhitePreferenceWeight
+            ) {
                 Color.WHITE
             } else {
                 Color.BLACK
