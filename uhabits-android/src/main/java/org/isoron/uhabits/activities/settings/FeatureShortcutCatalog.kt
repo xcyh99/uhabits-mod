@@ -47,6 +47,18 @@ object FeatureShortcutCatalog {
         for (index in 0 until screen.preferenceCount) {
             visit(screen.getPreference(index))
         }
+
+        // Individual habits are valid shortcut destinations as well as settings pages.
+        // IDs are stable across renames, so changing a habit name does not break its shortcut.
+        runCatching {
+            val app = context.applicationContext as org.isoron.uhabits.HabitsApplication
+            app.component.habitList
+                .filter { !it.isArchived && it.id != null }
+                .forEach { habit ->
+                    result.add(Entry("habit:${habit.id}", "习惯：${habit.name}"))
+                }
+        }
+
         return result.distinctBy { it.key }
     }
 }
