@@ -223,6 +223,21 @@ class PreferencesTest : BaseUnitTest() {
     }
 
     @Test
+    fun testRestoringOneWidgetWeightDoesNotChangeTheOther() {
+        prefs.committedHistoryChartWhiteWeight = 8.8
+        prefs.committedCheckmarkWhiteWeight = 9.9
+
+        prefs.restoreCheckmarkWhiteWeightDefault()
+        assertEquals(8.8, prefs.committedHistoryChartWhiteWeight)
+        assertEquals(6.6, prefs.committedCheckmarkWhiteWeight)
+
+        prefs.committedCheckmarkWhiteWeight = 7.7
+        prefs.restoreHistoryChartWhiteWeightDefault()
+        assertEquals(6.6, prefs.committedHistoryChartWhiteWeight)
+        assertEquals(7.7, prefs.committedCheckmarkWhiteWeight)
+    }
+
+    @Test
     fun testCheckmarkWhiteWeightPreviewAndColdStartRecovery() {
         prefs.committedCheckmarkWhiteWeight = 8.8
         prefs.beginCheckmarkWhiteWeightPreview(9.9)
