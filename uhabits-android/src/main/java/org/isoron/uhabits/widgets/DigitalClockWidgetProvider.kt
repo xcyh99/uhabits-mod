@@ -119,10 +119,15 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             views.setInt(R.id.digital_clock_widget_root, "setBackgroundColor", Color.argb(alpha, Color.red(bg), Color.green(bg), Color.blue(bg)))
             val shortcutCount = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
             val rowIds = intArrayOf(
-                R.id.digital_clock_time,
-                R.id.digital_clock_minute,
-                R.id.digital_clock_date,
+                R.id.digital_clock_time_viewport,
+                R.id.digital_clock_minute_viewport,
+                R.id.digital_clock_date_viewport,
                 R.id.digital_clock_shortcut_row
+            )
+            val positionIds = intArrayOf(
+                R.id.digital_clock_time_position,
+                R.id.digital_clock_minute_position,
+                R.id.digital_clock_date_position
             )
             val offsets = intArrayOf(
                 prefs.getInt("digital_clock_hour_offset_y", 0),
@@ -147,14 +152,20 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 val offsetBottomPadding = (-offsetPx * 2).coerceAtLeast(0)
                 views.setViewVisibility(viewId, if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE else android.view.View.VISIBLE)
                 if (index < 3) {
-                    // Keep the configured font size and clamp the TextClock viewport.
+                    // Layer 1: fixed clipping viewport. Layer 2: position holder.
+                    // Layer 3: native TextClock; its own padding is never changed.
                     val rowHeightPx = (rowHeight * density).toInt()
                     if (android.os.Build.VERSION.SDK_INT >= 31) {
                         views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                     } else {
                         views.setInt(viewId, "setHeight", rowHeightPx)
                     }
-                    views.setViewPadding(viewId, 0, offsetTopPadding, 0, offsetBottomPadding)
+                    val positionId = positionIds[index]
+                    val moveDownPx = offsetPx.coerceAtLeast(0)
+                    val moveUpPx = (-offsetPx).coerceAtLeast(0)
+                    views.setViewPadding(positionId, 0, moveDownPx, 0, moveUpPx)
+                    val verticalGravity = if (offsetPx < 0) android.view.Gravity.BOTTOM else android.view.Gravity.TOP
+                    views.setInt(positionId, "setGravity", android.view.Gravity.CENTER_HORIZONTAL or verticalGravity)
                 } else if (android.os.Build.VERSION.SDK_INT >= 31) {
                     views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                     val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
@@ -201,13 +212,13 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             val hourTarget = prefs.getString("digital_clock_target_hour", legacyTimeTarget)
             val minuteTarget = prefs.getString("digital_clock_target_minute", legacyTimeTarget)
             if (hourTarget != "none") {
-                views.setOnClickPendingIntent(R.id.digital_clock_time, createTargetPendingIntent(context, widgetId, 0, hourTarget))
+                views.setOnClickPendingIntent(R.id.digital_clock_time_viewport, createTargetPendingIntent(context, widgetId, 0, hourTarget))
             }
             if (minuteTarget != "none") {
-                views.setOnClickPendingIntent(R.id.digital_clock_minute, createTargetPendingIntent(context, widgetId, 1, minuteTarget))
+                views.setOnClickPendingIntent(R.id.digital_clock_minute_viewport, createTargetPendingIntent(context, widgetId, 1, minuteTarget))
             }
             val dateTarget = prefs.getString("digital_clock_target_date", null)
-            if (dateTarget != "none") views.setOnClickPendingIntent(R.id.digital_clock_date, createTargetPendingIntent(context, widgetId, 2, dateTarget))
+            if (dateTarget != "none") views.setOnClickPendingIntent(R.id.digital_clock_date_viewport, createTargetPendingIntent(context, widgetId, 2, dateTarget))
             manager.updateAppWidget(widgetId, views)
         }
         private fun resolveShortcut(context: Context, value: String?, index: Int): Pair<String, Bitmap?> {
