@@ -162,6 +162,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         val openFeatureCenter = requireActivity().intent.getBooleanExtra("open_feature_center", false)
         if ((targetPreference != null && targetPreference != "widgetManager") || openFeatureCenter) {
             view.post {
+                if (targetPreference == "historyWhiteWeight") {
+                    showParameterCenter()
+                    return@post
+                }
                 val key = when (targetPreference) {
                     "autoBackupNow", "autoBackupStatus", "publicBackupFolder" -> "autoBackup"
                     else -> targetPreference ?: "featureCenterCategory"
@@ -185,7 +189,8 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     "desktopDoodle",
                     "statusBarDays",
                     "parameterCenter",
-                    "parameterEmergencyReset"
+                    "parameterEmergencyReset",
+                    "desktopShortcuts"
                 )
                 if (key in directActionKeys) {
                     findPreference(key)?.performClick()
@@ -289,6 +294,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             }
             "featureShortcuts" -> {
                 showFeatureShortcutSettings()
+                return true
+            }
+            "desktopShortcuts" -> {
+                startActivity(Intent(requireContext(), DesktopShortcutActivity::class.java))
                 return true
             }
             "reminderSound" -> {
