@@ -24,7 +24,6 @@ import androidx.preference.PreferenceFragmentCompat
 import org.isoron.uhabits.R
 import android.graphics.Color
 import org.isoron.uhabits.activities.common.dialogs.ColorPickerDialog
-import org.isoron.uhabits.widgets.TimeRecordWidgetProvider
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -678,7 +677,6 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
                         selectedColor
                     )
                 )
-                TimeRecordWidgetProvider.updateAll(context)
                 dialog.dismiss()
                 refreshPreferences()
             }
@@ -690,7 +688,6 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
                         .setNegativeButton(R.string.clear_label, null)
                         .setPositiveButton(R.string.delete) { _, _ ->
                             TimeRecordStore.delete(context, existing.id)
-                            TimeRecordWidgetProvider.updateAll(context)
                             refreshPreferences()
                         }
                         .show()

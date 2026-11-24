@@ -23,7 +23,8 @@ import org.isoron.uhabits.widgets.DigitalClockWidgetProvider
 class DesktopWidgetSettingsActivity : AppCompatActivity() {
     private val store by lazy { PreferenceManager.getDefaultSharedPreferences(this) }
     private val slots = listOf(
-        Slot("time", "时间区域", "点击桌面时间后打开"),
+        Slot("hour", "小时区域", "单独设置点击小时数字后打开的目标"),
+        Slot("minute", "分钟区域", "单独设置点击分钟数字后打开的目标"),
         Slot("date", "日期星期区域", "点击日期或星期后打开")
     ) + (1..8).map { Slot("shortcut$it", "快捷入口$it", "底部第${it}个位置") }
     private data class Slot(val key: String, val title: String, val hint: String)
@@ -106,11 +107,20 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         actionCard("添加到桌面", "将数字时钟组件添加到手机桌面") { pinWidget() }
         actionCard("预览效果", "先查看当前设置，不会修改参数") { showWidgetPreview() }
 
-        section("显示与排版", "每一行可分别调整，互不影响")
-        actionCard("数字显示样式", "字号、颜色、日期格式和时间制式") { showAppearanceSettings() }
-        actionCard("字符间距与数字变形", "小时、分钟、日期星期分别独立设置") { showSpacingAndTransformSettings() }
-        actionCard("四行高度与间距", "分别设置每一行的高度") { showRowSettings() }
+        section("尺寸与裁切", "四行分别控制尺寸、窗口和位置")
+        actionCard("字号设置", "小时、分钟、日期星期分别设置字号") { showSizeSettings() }
+        actionCard("字符间距与数字变形", "前三行分别调整字符间距和横向比例") { showSpacingAndTransformSettings() }
+        actionCard("四行高度与自动布局", "独立设置四行窗口高度、自动适配与数字比例") { showRowSettings() }
+        actionCard("四行垂直位置", "小时、分钟、日期、快捷图标分别上下移动") { showVerticalOffsetSettings() }
+
+        section("颜色与效果")
+        actionCard("颜色设置", "小时、分钟、日期分别设置颜色") { showColorSettings() }
+
+        section("布局与背景")
         actionCard("背景颜色与透明度", "调整组件底色和透明程度") { showBackgroundSettings() }
+
+        section("时间与日期")
+        actionCard("时间制式与日期格式", "设置12/24小时制和日期星期显示格式") { showTimeDateSettings() }
 
         section("快捷入口", "设置桌面组件底部显示几个快捷入口")
         actionCard("快捷入口数量", "当前显示 ${store.getInt(KEY_SHORTCUT_COUNT, 4).coerceIn(0, 8)} 个") { chooseShortcutCount() }
@@ -118,7 +128,8 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         section("点击区域", "点击组件不同区域时，打开对应功能或手机应用")
         slots.forEach { slot ->
             if (slot.key.startsWith("shortcut") && slot.key.removePrefix("shortcut").toInt() > store.getInt(KEY_SHORTCUT_COUNT, 4)) return@forEach
-            val current = store.getString(key(slot.key), null)?.let(::targetLabel) ?: "未设置"
+            val legacyTimeTarget = if (slot.key == "hour" || slot.key == "minute") store.getString("digital_clock_target_time", null) else null
+            val current = (store.getString(key(slot.key), null) ?: legacyTimeTarget)?.let(::targetLabel) ?: "未设置"
             actionCard(slot.title, "当前：$current") { chooseTarget(slot) }
         }
 
@@ -166,6 +177,15 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             format12Hour = format
             format24Hour = format
         }
+        listOf(
+            R.id.digital_clock_time to "digital_clock_hour_offset_y",
+            R.id.digital_clock_minute to "digital_clock_minute_offset_y",
+            R.id.digital_clock_date to "digital_clock_date_offset_y",
+            R.id.digital_clock_shortcut_row to "digital_clock_shortcut_offset_y"
+        ).forEach { (viewId, prefKey) ->
+            preview.findViewById<android.view.View>(viewId).translationY =
+                store.getInt(prefKey, 0).coerceIn(-40, 40) * resources.displayMetrics.density
+        }
         AlertDialog.Builder(this)
             .setTitle("数字时钟组件预览")
             .setView(preview)
@@ -180,10 +200,13 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             .setNegativeButton("取消", null)
             .setPositiveButton("恢复默认") { _, _ ->
                 slots.forEach { store.edit().remove(key(it.key)).apply() }
+                store.edit().remove("digital_clock_target_time").apply()
                 val resetKeys = listOf(KEY_HOUR_SIZE, KEY_MINUTE_SIZE, KEY_DATE_SIZE, KEY_TIME_COLOR, KEY_HOUR_COLOR, KEY_MINUTE_COLOR, KEY_DATE_COLOR, KEY_DATE_FORMAT,
                     KEY_TIME_MODE, KEY_BG_COLOR, KEY_BG_ALPHA, KEY_SHORTCUT_COUNT,
                     KEY_HOUR_HEIGHT, KEY_MINUTE_HEIGHT, KEY_DATE_HEIGHT, KEY_SHORTCUT_HEIGHT, KEY_HOUR_WEIGHT, KEY_MINUTE_WEIGHT, KEY_DATE_WEIGHT, KEY_SHORTCUT_WEIGHT,
-                    "digital_clock_letter_spacing", "digital_clock_transform_enabled", "digital_clock_horizontal_scale") +
+                    "digital_clock_letter_spacing", "digital_clock_transform_enabled", "digital_clock_horizontal_scale",
+                    "digital_clock_hour_offset_y", "digital_clock_minute_offset_y", "digital_clock_date_offset_y", "digital_clock_shortcut_offset_y",
+                    KEY_LAYOUT_MODE, KEY_KEEP_DIGIT_RATIO) +
                     listOf("hour", "minute", "date").flatMap { row ->
                         listOf("digital_clock_${row}_letter_spacing", "digital_clock_${row}_transform_enabled", "digital_clock_${row}_horizontal_scale")
                     }
@@ -197,9 +220,9 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
 
     private fun chooseTarget(slot: Slot) {
         val options = mutableListOf<Pair<String, String>>()
-        options += "none" to "不设置（点击无动作）"
+        options += "none" to "【静默】点击无动作"
         FeatureShortcutCatalog.getEntries(this).forEach {
-            options += "feature:${it.key}" to "十字习惯 · ${it.title}"
+            options += "feature:${it.key}" to "【功能】${it.title}"
         }
         val pm = packageManager
         val launchIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
@@ -209,19 +232,100 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             .sortedBy { it.loadLabel(pm).toString().lowercase() }
         apps.forEach { info ->
             val component = ComponentName(info.activityInfo.packageName, info.activityInfo.name)
-            options += "app:${component.flattenToString()}" to "手机应用 · ${info.loadLabel(pm)}"
+            options += "app:${component.flattenToString()}" to "【应用】${info.loadLabel(pm)}"
         }
-        val labels = options.map { it.second }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle("设置${slot.title}的点击目标")
-            .setItems(labels) { _, which ->
-                store.edit().putString(key(slot.key), options[which].first).apply()
-                updateWidget()
-                render()
+
+        // Every clickable slot shares this searchable target picker.
+        val filtered = options.toMutableList()
+        val search = android.widget.EditText(this).apply {
+            hint = "搜索程序或功能"
+            setSingleLine(true)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            setPadding(dp(14), dp(10), dp(14), dp(10))
+        }
+        val list = android.widget.ListView(this).apply {
+            dividerHeight = dp(1)
+            isTextFilterEnabled = false
+        }
+        val empty = TextView(this).apply {
+            text = "没有找到匹配的程序或功能"
+            textSize = 14f
+            gravity = android.view.Gravity.CENTER
+            setTextColor(resolveSecondaryText())
+            visibility = android.view.View.GONE
+        }
+        val adapter = object : android.widget.BaseAdapter() {
+            override fun getCount() = filtered.size
+            override fun getItem(position: Int) = filtered[position]
+            override fun getItemId(position: Int) = position.toLong()
+            override fun getView(position: Int, convertView: android.view.View?, parent: android.view.ViewGroup): android.view.View {
+                val row = (convertView as? TextView) ?: TextView(this@DesktopWidgetSettingsActivity).apply {
+                    textSize = 15f
+                    setTextColor(resolvePrimaryText())
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    setPadding(dp(16), dp(13), dp(16), dp(13))
+                    minHeight = dp(48)
+                }
+                val label = getItem(position).second
+                val close = label.indexOf('】')
+                if (label.startsWith("【") && close > 0) {
+                    val styled = android.text.SpannableString(label)
+                    val tagColor = when (label.substring(1, close)) {
+                        "板块" -> android.graphics.Color.rgb(135, 95, 190)
+                        "功能" -> android.graphics.Color.rgb(35, 155, 105)
+                        "设置" -> android.graphics.Color.rgb(210, 135, 45)
+                        "项目" -> android.graphics.Color.rgb(195, 65, 125)
+                        "应用" -> android.graphics.Color.rgb(55, 125, 220)
+                        "静默" -> android.graphics.Color.rgb(145, 145, 145)
+                        else -> android.graphics.Color.rgb(145, 145, 145)
+                    }
+                    styled.setSpan(
+                        android.text.style.ForegroundColorSpan(tagColor),
+                        0, close + 1,
+                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                    row.text = styled
+                } else {
+                    row.text = label
+                }
+                return row
             }
+        }
+        list.adapter = adapter
+        list.emptyView = empty
+        search.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s?.toString()?.trim()?.lowercase().orEmpty()
+                filtered.clear()
+                filtered.addAll(if (query.isEmpty()) options else options.filter { it.second.lowercase().contains(query) })
+                adapter.notifyDataSetChanged()
+            }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(4), dp(12), dp(4))
+            addView(search, LinearLayout.LayoutParams(-1, -2))
+            addView(list, LinearLayout.LayoutParams(-1, dp(360)))
+            addView(empty, LinearLayout.LayoutParams(-1, dp(360)))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("设置${slot.title}的点击目标")
+            .setView(content)
             .setNegativeButton("取消", null)
-            .show()
+            .create()
+        list.setOnItemClickListener { _, _, position, _ ->
+            val selected = filtered[position]
+            store.edit().putString(key(slot.key), selected.first).apply()
+            updateWidget()
+            dialog.dismiss()
+            render()
+        }
+        dialog.show()
     }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun targetLabel(value: String): String {
         if (value == "none") return "不设置"
@@ -255,24 +359,39 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
 
 
 
-    private fun showAppearanceSettings() {
-        val items = arrayOf("小时字号", "分钟字号", "日期字号", "小时数字颜色", "分钟数字颜色", "日期文字颜色", "日期显示格式", "时间制式")
-        AlertDialog.Builder(this)
-            .setTitle("数字显示样式")
+    private fun showSizeSettings() {
+        val items = arrayOf("小时字号", "分钟字号", "日期星期字号")
+        AlertDialog.Builder(this).setTitle("字号设置")
             .setItems(items) { _, which ->
                 when (which) {
                     0 -> chooseSize("小时字号", KEY_HOUR_SIZE, 48f)
                     1 -> chooseSize("分钟字号", KEY_MINUTE_SIZE, 48f)
-                    2 -> chooseSize("日期字号", KEY_DATE_SIZE, 15f)
-                    3 -> chooseColor("小时数字颜色", KEY_HOUR_COLOR, Color.WHITE)
-                    4 -> chooseColor("分钟数字颜色", KEY_MINUTE_COLOR, Color.WHITE)
-                    5 -> chooseColor("日期文字颜色", KEY_DATE_COLOR, Color.LTGRAY)
-                    6 -> chooseDateFormat()
-                    7 -> chooseTimeMode()
+                    2 -> chooseSize("日期星期字号", KEY_DATE_SIZE, 15f)
                 }
-            }
-            .setNegativeButton("关闭", null)
-            .show()
+            }.setNegativeButton("关闭", null).show()
+    }
+
+    private fun showColorSettings() {
+        val items = arrayOf("小时数字颜色", "分钟数字颜色", "日期星期颜色")
+        AlertDialog.Builder(this).setTitle("颜色设置")
+            .setItems(items) { _, which ->
+                when (which) {
+                    0 -> chooseColor("小时数字颜色", KEY_HOUR_COLOR, Color.WHITE)
+                    1 -> chooseColor("分钟数字颜色", KEY_MINUTE_COLOR, Color.WHITE)
+                    2 -> chooseColor("日期星期颜色", KEY_DATE_COLOR, Color.LTGRAY)
+                }
+            }.setNegativeButton("关闭", null).show()
+    }
+
+    private fun showTimeDateSettings() {
+        val items = arrayOf("日期显示格式", "时间制式")
+        AlertDialog.Builder(this).setTitle("时间与日期")
+            .setItems(items) { _, which ->
+                when (which) {
+                    0 -> chooseDateFormat()
+                    1 -> chooseTimeMode()
+                }
+            }.setNegativeButton("关闭", null).show()
     }
 
     private fun chooseSize(title: String, key: String, defaultValue: Float) {
@@ -341,7 +460,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 store.edit().putString(KEY_DATE_FORMAT, formats[which].first).apply()
                 updateWidget()
                 dialog.dismiss()
-                showAppearanceSettings()
+                showTimeDateSettings()
             }
             .setNegativeButton("取消", null)
             .show()
@@ -356,7 +475,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 store.edit().putInt(KEY_TIME_MODE, which).apply()
                 updateWidget()
                 dialog.dismiss()
-                showAppearanceSettings()
+                showTimeDateSettings()
             }.setNegativeButton("取消", null).show()
     }
 
@@ -381,11 +500,69 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             setPadding(dp(20), dp(8), dp(20), dp(4))
         }
         panel.addView(TextView(this).apply {
-            text = "分别填写四行的高度，单位 dp，只接受整数。输入值会原样保存；桌面实际显示还受组件容器和系统控件内容限制。"
+            text = "行高只决定每一行可显示的窗口高度，不再限制字号。字号按你设置的数值绘制，超出行高的部分由窗口裁切。自动适配只调整数字横向宽度，不改变字号和行高。"
             textSize = 13f
             setTextColor(resolveSecondaryText())
-            setPadding(0, 0, 0, dp(12))
+            setPadding(0, 0, 0, dp(10))
         })
+
+        val modeTitle = TextView(this).apply {
+            text = "布局方式"
+            textSize = 15f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(resolvePrimaryText())
+            setPadding(0, dp(4), 0, dp(4))
+        }
+        panel.addView(modeTitle)
+        val modeCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(if (isDark()) Color.rgb(45, 48, 55) else Color.rgb(245, 247, 250))
+                cornerRadius = dp(12).toFloat()
+                setStroke(dp(1), if (isDark()) Color.rgb(70, 74, 82) else Color.rgb(230, 233, 238))
+            }
+        }
+        val modeGroup = android.widget.RadioGroup(this).apply {
+            orientation = android.widget.RadioGroup.VERTICAL
+        }
+        val manualOption = android.widget.RadioButton(this).apply {
+            id = android.view.View.generateViewId()
+            text = "手动布局"
+            textSize = 14f
+            setTextColor(resolvePrimaryText())
+        }
+        val autoOption = android.widget.RadioButton(this).apply {
+            id = android.view.View.generateViewId()
+            text = "自动适配"
+            textSize = 14f
+            setTextColor(resolvePrimaryText())
+        }
+        modeGroup.addView(manualOption)
+        modeGroup.addView(autoOption)
+        val savedMode = store.getInt(KEY_LAYOUT_MODE, 0).coerceIn(0, 1)
+        modeGroup.check(if (savedMode == 1) autoOption.id else manualOption.id)
+        modeCard.addView(modeGroup)
+
+        val ratioCheck = android.widget.CheckBox(this).apply {
+            text = "保持数字原始比例"
+            textSize = 14f
+            setTextColor(resolvePrimaryText())
+            isChecked = store.getBoolean(KEY_KEEP_DIGIT_RATIO, true)
+            isEnabled = savedMode == 1
+        }
+        modeCard.addView(ratioCheck)
+        modeCard.addView(TextView(this).apply {
+            text = "选中：数字保持原始宽高比例；不选中：自动模式允许数字横向加宽或变窄。此选项只影响宽度，不影响字号与行高。"
+            textSize = 12f
+            setTextColor(resolveSecondaryText())
+            setPadding(dp(4), dp(2), dp(4), dp(4))
+        })
+        modeGroup.setOnCheckedChangeListener { _, checkedId ->
+            ratioCheck.isEnabled = checkedId == autoOption.id
+        }
+        panel.addView(modeCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
+
         val rowSpecs = listOf(
             Triple("第一行 · 小时", KEY_HOUR_HEIGHT, 48),
             Triple("第二行 · 分钟", KEY_MINUTE_HEIGHT, 48),
@@ -434,12 +611,92 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 rowSpecs.forEachIndexed { index, spec ->
                     store.edit().putInt(spec.second, values[index]!!).apply()
                 }
+                store.edit()
+                    .putInt(KEY_LAYOUT_MODE, if (modeGroup.checkedRadioButtonId == autoOption.id) 1 else 0)
+                    .putBoolean(KEY_KEEP_DIGIT_RATIO, ratioCheck.isChecked)
+                    .apply()
                 updateWidget()
                 dialog.dismiss()
                 Toast.makeText(this, "四行高度已保存", Toast.LENGTH_SHORT).show()
             }
         }
         dialog.show()
+    }
+
+    private fun showVerticalOffsetSettings() {
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+        val specs = listOf(
+            Triple("第一行 · 小时", "digital_clock_hour_offset_y", 0),
+            Triple("第二行 · 分钟", "digital_clock_minute_offset_y", 0),
+            Triple("第三行 · 日期星期", "digital_clock_date_offset_y", 0),
+            Triple("第四行 · 快捷图标", "digital_clock_shortcut_offset_y", 0)
+        )
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(8), dp(20), dp(8))
+        }
+        panel.addView(TextView(this).apply {
+            text = "每一行独立上下移动，不改变字号和行高。负数向上，正数向下；移动范围为 -40～+40dp，仍受组件边界限制。"
+            textSize = 13f
+            setTextColor(resolveSecondaryText())
+            setPadding(0, 0, 0, dp(10))
+        })
+        val bars = specs.map { (label, key, defaultValue) ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(0, dp(5), 0, dp(8))
+            }
+            val header = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+            }
+            header.addView(TextView(this).apply {
+                text = label
+                textSize = 14f
+                setTextColor(resolvePrimaryText())
+            }, LinearLayout.LayoutParams(0, -2, 1f))
+            val value = TextView(this).apply {
+                text = "${store.getInt(key, defaultValue)} dp"
+                textSize = 14f
+                setTextColor(resolvePrimaryText())
+            }
+            header.addView(value)
+            row.addView(header)
+            val bar = android.widget.SeekBar(this).apply {
+                max = 80
+                progress = store.getInt(key, defaultValue).coerceIn(-40, 40) + 40
+            }
+            bar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                    value.text = "${progress - 40} dp"
+                }
+                override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
+            })
+            row.addView(bar)
+            panel.addView(row)
+            key to bar
+        }
+        AlertDialog.Builder(this)
+            .setTitle("四行垂直位置")
+            .setView(panel)
+            .setNegativeButton("取消", null)
+            .setPositiveButton("应用") { _, _ ->
+                val editor = store.edit()
+                bars.forEach { (key, bar) -> editor.putInt(key, bar.progress - 40) }
+                editor.apply()
+                updateWidget()
+                Toast.makeText(this, "四行垂直位置已保存", Toast.LENGTH_SHORT).show()
+            }
+            .setNeutralButton("全部归零", null)
+            .create().also { dialog ->
+                dialog.setOnShowListener {
+                    dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                        bars.forEach { (_, bar) -> bar.progress = 40 }
+                    }
+                }
+            }.show()
     }
 
     private fun showSpacingAndTransformSettings() {
@@ -635,6 +892,12 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         private const val KEY_MINUTE_WEIGHT = "digital_clock_minute_weight"
         private const val KEY_DATE_WEIGHT = "digital_clock_date_weight"
         private const val KEY_SHORTCUT_WEIGHT = "digital_clock_shortcut_weight"
+        private const val KEY_LAYOUT_MODE = "digital_clock_layout_mode"
+        private const val KEY_KEEP_DIGIT_RATIO = "digital_clock_keep_digit_ratio"
+        private const val KEY_HOUR_OFFSET_Y = "digital_clock_hour_offset_y"
+        private const val KEY_MINUTE_OFFSET_Y = "digital_clock_minute_offset_y"
+        private const val KEY_DATE_OFFSET_Y = "digital_clock_date_offset_y"
+        private const val KEY_SHORTCUT_OFFSET_Y = "digital_clock_shortcut_offset_y"
     }
     private fun resolvePageBackground() = org.isoron.uhabits.utils.StyledResources(this).getColor(R.attr.contrast0)
     private fun resolvePrimaryText(): Int = if (isDark()) Color.WHITE else Color.BLACK
