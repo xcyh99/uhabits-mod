@@ -47,11 +47,16 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             views.setTextViewTextSize(R.id.digital_clock_time, android.util.TypedValue.COMPLEX_UNIT_SP, prefs.getFloat("digital_clock_hour_size", 48f))
             views.setTextViewTextSize(R.id.digital_clock_minute, android.util.TypedValue.COMPLEX_UNIT_SP, prefs.getFloat("digital_clock_minute_size", 48f))
             views.setTextViewTextSize(R.id.digital_clock_date, android.util.TypedValue.COMPLEX_UNIT_SP, prefs.getFloat("digital_clock_date_size", 15f))
-            // Tighten character spacing first. Negative values reduce gaps without changing glyph proportions.
-            val letterSpacing = prefs.getFloat("digital_clock_letter_spacing", -0.04f).coerceIn(-0.20f, 0.20f)
-            val transformEnabled = prefs.getBoolean("digital_clock_transform_enabled", false)
-            val horizontalScale = if (transformEnabled) prefs.getFloat("digital_clock_horizontal_scale", 0.90f).coerceIn(0.60f, 1.20f) else 1f
-            listOf(R.id.digital_clock_time, R.id.digital_clock_minute, R.id.digital_clock_date).forEach { textId ->
+            // Each text row has independent spacing and optional horizontal transformation.
+            val textRows = listOf(
+                Triple(R.id.digital_clock_time, "hour", -0.04f),
+                Triple(R.id.digital_clock_minute, "minute", -0.04f),
+                Triple(R.id.digital_clock_date, "date", -0.04f)
+            )
+            textRows.forEach { (textId, rowKey, defaultSpacing) ->
+                val letterSpacing = prefs.getFloat("digital_clock_${rowKey}_letter_spacing", defaultSpacing).coerceIn(-0.20f, 0.20f)
+                val transformEnabled = prefs.getBoolean("digital_clock_${rowKey}_transform_enabled", false)
+                val horizontalScale = if (transformEnabled) prefs.getFloat("digital_clock_${rowKey}_horizontal_scale", 0.90f).coerceIn(0.60f, 1.20f) else 1f
                 views.setFloat(textId, "setLetterSpacing", letterSpacing)
                 // Scale the rendered text horizontally only; the row's measured height is unchanged.
                 views.setFloat(textId, "setScaleX", horizontalScale)
