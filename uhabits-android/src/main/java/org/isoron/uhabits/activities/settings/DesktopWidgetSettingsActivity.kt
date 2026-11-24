@@ -503,7 +503,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         val transformCard = card()
         label(transformCard, "横向变形", 16f)
         val transformSwitch = android.widget.Switch(this).apply {
-            text = "只对$rowTitle启用"
+            text = "只对${rowTitle}启用"
             setTextColor(resolvePrimaryText())
             isChecked = store.getBoolean(enabledKey, false)
         }
