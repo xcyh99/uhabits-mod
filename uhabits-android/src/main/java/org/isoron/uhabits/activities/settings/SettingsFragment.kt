@@ -373,7 +373,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             setPadding(48, 8, 48, 0)
             addView(input)
             addView(TextView(context).apply {
-                text = "数值越大，历史打卡方格越倾向使用白色数字。正式值：$current。\\n有效范围：0.1–100.0。每次正式修改前会自动保存上一有效值。"
+                text = "数值越大，历史打卡方格越倾向使用白色数字。正式值：$current。\n有效范围：0.1–100.0。每次正式修改前会自动保存上一有效值。"
                 textSize = 12f
                 setPadding(0, 12, 0, 0)
             })
@@ -450,7 +450,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         prefs.markHistoryChartWhiteWeightPreviewHandled()
         AlertDialog.Builder(context)
             .setTitle("临时预览管理")
-            .setMessage("当前正式值：$committed\\n临时预览值：$preview\\n\\n请选择如何处理这次预览。")
+            .setMessage("当前正式值：$committed\n临时预览值：$preview\n\n请选择如何处理这次预览。")
             .setCancelable(false)
             .setPositiveButton("保存为永久配置") { _, _ ->
                 val saved = prefs.saveHistoryChartWhiteWeightPreview()
@@ -948,7 +948,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 val selected = files[which]
                 AlertDialog.Builder(requireContext())
                     .setTitle("确认恢复设置")
-                    .setMessage("将使用以下备份覆盖本机对应的软件设置：\\n\\n$selected\\n\\n此操作不会修改习惯和打卡数据库。")
+                    .setMessage("将使用以下备份覆盖本机对应的软件设置：\n\n$selected\n\n此操作不会修改习惯和打卡数据库。")
                     .setNegativeButton("取消", null)
                     .setPositiveButton("确认恢复") { _, _ ->
                         Thread {
