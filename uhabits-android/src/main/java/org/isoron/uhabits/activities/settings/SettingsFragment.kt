@@ -1107,7 +1107,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         }
         var selectedIndex = initialSelectedIndex.coerceIn(0, selected.lastIndex)
         val titles = FeatureShortcutCatalog.getEntries(requireContext()).associate { it.key to it.title }
-        val labels = selected.map { key -> titles[key] ?: key }.toTypedArray()
+        val labels = selected.map { key ->
+            val custom = store.getString("feature_shortcut_title_$key", "")?.trim().orEmpty()
+            custom.ifBlank { titles[key] ?: key }
+        }.toTypedArray()
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.shortcut_order_title)
             .setSingleChoiceItems(labels, selectedIndex) { _, which -> selectedIndex = which }
