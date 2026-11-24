@@ -200,9 +200,9 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
 
     private fun chooseTarget(slot: Slot) {
         val options = mutableListOf<Pair<String, String>>()
-        options += "none" to "【不设置】点击无动作"
+        options += "none" to "【不设】点击无动作"
         FeatureShortcutCatalog.getEntries(this).forEach {
-            options += "feature:${it.key}" to "【十字习惯】${it.title}"
+            options += "feature:${it.key}" to "【功能】${it.title}"
         }
         val pm = packageManager
         val launchIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
@@ -212,7 +212,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             .sortedBy { it.loadLabel(pm).toString().lowercase() }
         apps.forEach { info ->
             val component = ComponentName(info.activityInfo.packageName, info.activityInfo.name)
-            options += "app:${component.flattenToString()}" to "【手机应用】${info.loadLabel(pm)}"
+            options += "app:${component.flattenToString()}" to "【应用】${info.loadLabel(pm)}"
         }
 
         // Every clickable slot shares this searchable target picker.
@@ -251,8 +251,8 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 if (label.startsWith("【") && close > 0) {
                     val styled = android.text.SpannableString(label)
                     val tagColor = when (label.substring(1, close)) {
-                        "手机应用" -> android.graphics.Color.rgb(55, 125, 220)
-                        "十字习惯" -> android.graphics.Color.rgb(35, 155, 105)
+                        "应用" -> android.graphics.Color.rgb(55, 125, 220)
+                        "功能" -> android.graphics.Color.rgb(35, 155, 105)
                         else -> android.graphics.Color.rgb(145, 145, 145)
                     }
                     styled.setSpan(
