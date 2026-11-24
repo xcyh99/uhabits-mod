@@ -82,21 +82,50 @@ class DesktopShortcutActivity : AppCompatActivity() {
 
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
+        val pageBackground = Color.rgb(18, 18, 18)
+        val primaryText = Color.rgb(245, 245, 245)
+        val secondaryText = Color.rgb(205, 205, 205)
         fun label(value: String) = TextView(this).apply {
             text = value
             textSize = 14f
+            setTextColor(primaryText)
             setTypeface(typeface, Typeface.BOLD)
             setPadding(0, dp(12), 0, dp(5))
         }
         fun spinner(items: List<String>) = Spinner(this).apply {
-            adapter = ArrayAdapter(this@DesktopShortcutActivity, android.R.layout.simple_spinner_dropdown_item, items)
+            val itemAdapter = object : ArrayAdapter<String>(
+                this@DesktopShortcutActivity, android.R.layout.simple_spinner_item, items
+            ) {
+                private fun style(view: TextView, dropdown: Boolean): TextView {
+                    view.setTextColor(primaryText)
+                    view.textSize = 15f
+                    view.setPadding(dp(12), dp(10), dp(12), dp(10))
+                    view.setBackgroundColor(if (dropdown) pageBackground else Color.TRANSPARENT)
+                    return view
+                }
+                override fun getView(position: Int, convertView: android.view.View?, parent: android.view.ViewGroup): android.view.View {
+                    val view = (convertView as? TextView) ?: TextView(this@DesktopShortcutActivity)
+                    view.text = getItem(position)
+                    return style(view, false)
+                }
+                override fun getDropDownView(position: Int, convertView: android.view.View?, parent: android.view.ViewGroup): android.view.View {
+                    val view = (convertView as? TextView) ?: TextView(this@DesktopShortcutActivity)
+                    view.text = getItem(position)
+                    return style(view, true)
+                }
+            }
+            adapter = itemAdapter
+            setPopupBackgroundDrawable(android.graphics.drawable.ColorDrawable(pageBackground))
         }
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            setBackgroundColor(pageBackground)
             setPadding(dp(20), dp(12), dp(20), dp(24))
         }
         nameInput = EditText(this).apply {
             hint = "例如：白色数字权重"
+            setTextColor(primaryText)
+            setHintTextColor(secondaryText)
             setSingleLine(true)
             textSize = 16f
         }
@@ -106,6 +135,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
         photoStatus = TextView(this).apply {
             text = "未选择相册图片（可选）"
             textSize = 12f
+            setTextColor(secondaryText)
             setPadding(0, dp(6), 0, dp(6))
         }
         content.addView(Button(this).apply {
@@ -137,7 +167,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
         content.addView(TextView(this).apply {
             text = "创建后，Android 桌面会弹出确认界面。确认后图标才会添加到桌面。你可以重复创建多个快捷方式。"
             textSize = 12f
-            setTextColor(Color.GRAY)
+            setTextColor(secondaryText)
             setPadding(0, dp(10), 0, dp(14))
         })
         saveButton = Button(this).apply {
