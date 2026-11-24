@@ -432,6 +432,14 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             .show()
     }
 
+    fun openWidgetParameterSettings(target: String) {
+        when (target) {
+            "history" -> showHistoryWhiteWeightSetting()
+            "checkmark" -> showCheckmarkWhiteWeightSetting()
+            "outline" -> showWhiteOutlineTargets()
+            else -> showParameterCenter()
+        }
+    }
     fun openPreferenceByKey(key: String) {
         findPreference<Preference>(key)?.performClick()
     }
