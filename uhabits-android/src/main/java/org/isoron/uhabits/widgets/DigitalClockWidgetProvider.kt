@@ -44,8 +44,12 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             slots.forEachIndexed { index, (slot, viewId) ->
                 val value = androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
                     .getString("digital_clock_target_$slot", null)
-                val pending = createTargetPendingIntent(context, widgetId, index, value)
-                views.setOnClickPendingIntent(viewId, pending)
+                // An explicit "none" means the area is intentionally inert.
+                // A fresh RemoteViews instance has no click action unless one is attached.
+                if (value != "none") {
+                    val pending = createTargetPendingIntent(context, widgetId, index, value)
+                    views.setOnClickPendingIntent(viewId, pending)
+                }
             }
             manager.updateAppWidget(widgetId, views)
         }
