@@ -87,7 +87,8 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
 
         val launchPreferences = (application as HabitsApplication).component.preferences
         if (launchPreferences.isHistoryChartWhiteWeightPreviewPending ||
-            launchPreferences.isCheckmarkWhiteWeightPreviewPending) {
+            launchPreferences.isCheckmarkWhiteWeightPreviewPending ||
+            launchPreferences.pendingWhiteOutlinePreview() != null) {
             startActivity(Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
                 .putExtra("manage_parameter_preview", true))
             finish()
@@ -255,7 +256,8 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
         }
 
         // A launcher tap can bring this task forward while a preview is awaiting a decision.
-        if (intent?.action == Intent.ACTION_MAIN && prefs.isHistoryChartWhiteWeightPreviewPending) {
+        if (intent?.action == Intent.ACTION_MAIN && (prefs.isHistoryChartWhiteWeightPreviewPending ||
+                prefs.pendingWhiteOutlinePreview() != null)) {
             startActivity(Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
                 .putExtra("manage_parameter_preview", true))
             return
