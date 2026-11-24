@@ -205,8 +205,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     else -> targetPreference ?: "featureCenterCategory"
                 }
                 val directActionKeys = setOf(
-                    "createFullBackup",
-                    "restoreFullBackup",
+                    "fullBackupRestore",
                     "exportDB",
                     "exportLegacyDB",
                     "exportCSV",
@@ -248,6 +247,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         val key = preference.key ?: return false
         when (key) {
+            "fullBackupRestore" -> {
+                showFullBackupRestoreActions()
+                return true
+            }
             "createFullBackup" -> {
                 val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
@@ -1200,6 +1203,32 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         // instead of leaving the user on the Settings screen.
         requireActivity().finish()
         requireActivity().overridePendingTransition(0, 0)
+    }
+
+    private fun showFullBackupRestoreActions() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("完整备份与恢复")
+            .setItems(arrayOf("创建完整备份", "恢复完整备份")) { _, which ->
+                when (which) {
+                    0 -> {
+                        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                            addCategory(Intent.CATEGORY_OPENABLE)
+                            type = "application/octet-stream"
+                            putExtra(Intent.EXTRA_TITLE, FullBackupManager(requireContext()).suggestedFileName())
+                        }
+                        startActivityForResult(intent, FULL_BACKUP_CREATE_REQUEST_CODE)
+                    }
+                    1 -> {
+                        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                            addCategory(Intent.CATEGORY_OPENABLE)
+                            type = "application/octet-stream"
+                        }
+                        startActivityForResult(intent, FULL_BACKUP_RESTORE_REQUEST_CODE)
+                    }
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     private fun createFullBackup(uri: Uri) {
