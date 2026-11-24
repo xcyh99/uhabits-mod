@@ -147,20 +147,22 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             rowIds.forEachIndexed { index, viewId ->
                 val rowHeight = heights[index]
                 val offsetPx = (offsets[index].coerceIn(-40, 40) * density).roundToInt()
-                // RemoteViews on older Android/HarmonyOS builds cannot reliably apply
-                // View.setTranslationY. Asymmetric padding moves the row content while
-                // keeping the widget update within the supported RemoteViews API.
+                // Asymmetric padding moves the text inside its already-sized TextClock.
+                // Positive offsets add top padding; negative offsets add bottom padding.
+                // The outer FrameLayout is the fixed clipping viewport and must not wrap
+                // its child's natural text height.
                 val offsetTopPadding = (offsetPx * 2).coerceAtLeast(0)
                 val offsetBottomPadding = (-offsetPx * 2).coerceAtLeast(0)
                 views.setViewVisibility(viewId, if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE else android.view.View.VISIBLE)
                 if (index < 3) {
-                    // The TextClock is top-anchored inside a fixed clipping viewport.
-                    // A top margin therefore moves the native clock by the exact offset,
-                    // without changing its measured height, font size, or the viewport.
+                    // API 31+ can apply the user's exact row height at runtime. Older
+                    // RemoteViews hosts use the fixed XML fallback heights (48/48/27dp).
                     if (android.os.Build.VERSION.SDK_INT >= 31) {
                         views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
-                        views.setViewLayoutMargin(textIds[index], RemoteViews.MARGIN_TOP, offsetPx.toFloat(), android.util.TypedValue.COMPLEX_UNIT_PX)
                     }
+                    // TextClock is match_parent inside the fixed viewport, so padding
+                    // changes only the text's available content area, not row measurement.
+                    views.setViewPadding(textIds[index], 0, offsetTopPadding, 0, offsetBottomPadding)
                 } else if (android.os.Build.VERSION.SDK_INT >= 31) {
                     views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                     val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
