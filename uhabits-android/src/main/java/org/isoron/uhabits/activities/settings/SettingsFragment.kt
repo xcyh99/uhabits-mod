@@ -98,6 +98,9 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     private var ringtoneManager: RingtoneManager? = null
     private lateinit var prefs: Preferences
     private var widgetUpdater: WidgetUpdater? = null
+    private var pendingShortcutPhotoKey: String? = null
+    private var pendingShortcutPhotoSelection: MutableList<String>? = null
+    private var pendingShortcutPhotoIndex: Int = 0
 
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -127,6 +130,25 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 if (resultCode != android.app.Activity.RESULT_OK) return
                 val uri = data?.data ?: return
                 inspectAndConfirmRestore(uri)
+                return
+            }
+            SHORTCUT_PHOTO_REQUEST_CODE -> {
+                if (resultCode != android.app.Activity.RESULT_OK) return
+                val uri = data?.data ?: return
+                try {
+                    val flags = data.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    requireContext().contentResolver.takePersistableUriPermission(uri, flags)
+                    val key = pendingShortcutPhotoKey ?: return
+                    val store = PreferenceManager.getDefaultSharedPreferences(requireContext())
+                    store.edit().putString("feature_shortcut_photo_$key", uri.toString()).apply()
+                    val selected = pendingShortcutPhotoSelection
+                    val index = pendingShortcutPhotoIndex
+                    pendingShortcutPhotoKey = null
+                    pendingShortcutPhotoSelection = null
+                    showShortcutCustomizationDialog(selected ?: mutableListOf(), store, index)
+                } catch (error: Exception) {
+                    Toast.makeText(requireContext(), error.message ?: "图片读取权限保存失败", Toast.LENGTH_LONG).show()
+                }
                 return
             }
         }
@@ -1059,10 +1081,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             hint = defaultTitle
             setText(store.getString("feature_shortcut_title_$key", ""))
         }
-        val iconNames = arrayOf("不显示图标（仅文字）", "十字", "设置", "日历", "图表", "计时", "打卡", "历史")
+        val iconNames = arrayOf("不显示图标（仅文字）", "十字", "设置", "日历", "图表", "计时", "打卡", "历史", "相册图片")
+        val savedPhoto = store.getString("feature_shortcut_photo_$key", null)
         val iconSpinner = Spinner(requireContext()).apply {
             adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, iconNames)
-            setSelection(store.getInt("feature_shortcut_icon_$key", 0).coerceIn(iconNames.indices))
+            val defaultIcon = if (!savedPhoto.isNullOrBlank()) 8 else store.getInt("feature_shortcut_icon_$key", 0)
+            setSelection(defaultIcon.coerceIn(iconNames.indices))
         }
         val content = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
@@ -1079,6 +1103,33 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 setPadding(0, padding / 2, 0, 0)
             })
             addView(iconSpinner)
+            addView(Button(requireContext()).apply {
+                text = if (savedPhoto.isNullOrBlank()) "从相册选择图片" else "更换相册图片"
+                setOnClickListener {
+                    store.edit()
+                        .putString("feature_shortcut_title_$key", nameInput.text.toString().trim())
+                        .putInt("feature_shortcut_icon_$key", iconSpinner.selectedItemPosition)
+                        .apply()
+                    pendingShortcutPhotoKey = key
+                    pendingShortcutPhotoSelection = selected
+                    pendingShortcutPhotoIndex = index
+                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = "image/*"
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+                    }
+                    startActivityForResult(intent, SHORTCUT_PHOTO_REQUEST_CODE)
+                }
+            })
+            if (!savedPhoto.isNullOrBlank()) {
+                addView(Button(requireContext()).apply {
+                    text = "清除相册图片"
+                    setOnClickListener {
+                        store.edit().remove("feature_shortcut_photo_$key").apply()
+                        showShortcutCustomizationDialog(selected, store, index)
+                    }
+                })
+            }
         }
         AlertDialog.Builder(requireContext())
             .setTitle("自定义快捷入口 " + (index + 1) + "/" + selected.size)
@@ -2352,5 +2403,6 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         private const val FULL_BACKUP_CREATE_REQUEST_CODE = 3
         private const val FULL_BACKUP_RESTORE_REQUEST_CODE = 4
         private const val FULL_BACKUP_RESTART_REQUEST_CODE = 5
+        private const val SHORTCUT_PHOTO_REQUEST_CODE = 7125
     }
 }
