@@ -77,8 +77,6 @@ class DesktopShortcutActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         title = "桌面快捷"
-        targets.add(Target("__feature_center", "整个功能中心"))
-        targets.add(Target("__settings", "设置首页"))
         targets.addAll(FeatureShortcutCatalog.getEntries(this).map { Target(it.key, it.title) })
         targets.add(Target("historyWhiteWeight", "历史组件白色数字权重"))
 
