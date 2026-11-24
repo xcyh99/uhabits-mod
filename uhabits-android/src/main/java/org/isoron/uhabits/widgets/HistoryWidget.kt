@@ -28,7 +28,7 @@ import org.isoron.platform.time.getToday
 import org.isoron.uhabits.core.models.Habit
 import org.isoron.uhabits.core.ui.screens.habits.show.views.HistoryCardPresenter
 import org.isoron.uhabits.core.ui.views.HistoryChart
-import org.isoron.uhabits.core.ui.views.WidgetTheme
+import org.isoron.uhabits.core.ui.views.WidgetTheme\nimport org.isoron.uhabits.core.preferences.WhiteOutlineTarget
 import org.isoron.uhabits.widgets.views.GraphWidgetView
 import java.util.Locale
 
