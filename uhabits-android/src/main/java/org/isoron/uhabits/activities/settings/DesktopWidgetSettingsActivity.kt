@@ -254,7 +254,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                         "板块" -> android.graphics.Color.rgb(135, 95, 190)
                         "功能" -> android.graphics.Color.rgb(35, 155, 105)
                         "设置" -> android.graphics.Color.rgb(210, 135, 45)
-                        "项目" -> android.graphics.Color.rgb(25, 145, 155)
+                        "项目" -> android.graphics.Color.rgb(195, 65, 125)
                         "应用" -> android.graphics.Color.rgb(55, 125, 220)
                         "静默" -> android.graphics.Color.rgb(145, 145, 145)
                         else -> android.graphics.Color.rgb(145, 145, 145)
