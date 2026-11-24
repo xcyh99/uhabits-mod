@@ -24,8 +24,10 @@ import org.isoron.uhabits.core.models.PaletteColor
 import kotlin.math.pow
 
 abstract class Theme {
-    open val lightOutlineWidth = 0.3
-    open val calendarOutlineWidth = 0.3
+    open var lightOutlineWidth = 0.3
+    open var calendarOutlineWidth = 0.3
+    open var lightOutlineThreshold = 0.008
+    open var calendarOutlineThreshold = 0.004
     open val appBackgroundColor = Color(0xf4f4f4)
     open val cardBackgroundColor = Color(0xFAFAFA)
     open val headerBackgroundColor = Color(0xeeeeee)
@@ -54,7 +56,8 @@ abstract class Theme {
         }
         return ColorOutline.shouldUseLightOutline(
             luminance(cardBackgroundColor),
-            luminance(color)
+            luminance(color),
+            lightOutlineThreshold
         )
     }
 
@@ -70,7 +73,8 @@ abstract class Theme {
         }
         return ColorOutline.shouldUseCalendarLightOutline(
             luminance(cardBackgroundColor),
-            luminance(color)
+            luminance(color),
+            calendarOutlineThreshold
         )
     }
 
@@ -158,9 +162,19 @@ class PureBlackTheme : DarkTheme() {
     override val lowContrastTextColor = Color(0x212121)
 }
 
-class WidgetTheme(private val isDark: Boolean? = null) : LightTheme() {
-    override val lightOutlineWidth = 0.2
-    override val calendarOutlineWidth = 0.2
+class WidgetTheme(
+    private val isDark: Boolean? = null,
+    chartThreshold: Double = 0.008,
+    chartWidth: Double = 0.2,
+    calendarThreshold: Double = 0.004,
+    calendarWidth: Double = 0.2
+) : LightTheme() {
+    init {
+        lightOutlineThreshold = chartThreshold
+        lightOutlineWidth = chartWidth
+        calendarOutlineThreshold = calendarThreshold
+        calendarOutlineWidth = calendarWidth
+    }
     override val cardBackgroundColor = Color.TRANSPARENT
     override val highContrastTextColor = if (isDark != false) Color.WHITE else Color(0x202020)
     override val mediumContrastTextColor = (if (isDark != false) Color.WHITE else Color(0x202020)).withAlpha(0.50)
