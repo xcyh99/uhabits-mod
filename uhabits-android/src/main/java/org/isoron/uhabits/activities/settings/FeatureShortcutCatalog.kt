@@ -29,6 +29,11 @@ object FeatureShortcutCatalog {
         fun visit(preference: Preference) {
             if (preference is PreferenceCategory) {
                 if (preference.key == "devCategory") return
+                val categoryKey = preference.key
+                val categoryTitle = preference.title?.toString()?.trim().orEmpty()
+                if (!categoryKey.isNullOrBlank() && categoryTitle.isNotBlank()) {
+                    result.add(Entry(categoryKey, categoryTitle))
+                }
                 for (index in 0 until preference.preferenceCount) {
                     visit(preference.getPreference(index))
                 }
