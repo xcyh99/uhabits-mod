@@ -22,6 +22,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import java.util.concurrent.atomic.AtomicBoolean
 import me.tatarka.inject.annotations.Component
 import org.isoron.platform.time.computeToday
 import org.isoron.platform.time.setFirstWeekday
@@ -55,6 +56,19 @@ class WidgetReceiver : BroadcastReceiver() {
         val widgetUpdater = app.component.widgetUpdater
         Log.i(TAG, String.format("Received intent: %s", intent.toString()))
         lastReceivedIntent = intent
+        // Keep the broadcast alive until the asynchronous database command has
+        // completed. Without this, Android may reclaim an idle app process after
+        // onReceive returns, before the check-in write finishes.
+        val pendingResult = when (intent.action) {
+            ACTION_ADD_REPETITION, ACTION_TOGGLE_REPETITION, ACTION_REMOVE_REPETITION -> goAsync()
+            else -> null
+        }
+        val pendingFinished = AtomicBoolean(false)
+        val finishPendingResult: () -> Unit = {
+            if (pendingResult != null && pendingFinished.compareAndSet(false, true)) {
+                pendingResult.finish()
+            }
+        }
         try {
             var data: CheckmarkIntentData? = null
             if (intent.action !== ACTION_UPDATE_WIDGETS_VALUE) {
@@ -72,7 +86,8 @@ class WidgetReceiver : BroadcastReceiver() {
                     )
                     controller.onAddRepetition(
                         data.habit,
-                        data.date
+                        data.date,
+                        finishPendingResult
                     )
                 }
                 ACTION_TOGGLE_REPETITION -> {
@@ -86,7 +101,8 @@ class WidgetReceiver : BroadcastReceiver() {
                     )
                     controller.onToggleRepetition(
                         data.habit,
-                        data.date
+                        data.date,
+                        finishPendingResult
                     )
                 }
                 ACTION_REMOVE_REPETITION -> {
@@ -100,7 +116,8 @@ class WidgetReceiver : BroadcastReceiver() {
                     )
                     controller.onRemoveRepetition(
                         data.habit,
-                        data.date
+                        data.date,
+                        finishPendingResult
                     )
                 }
                 ACTION_UPDATE_WIDGETS_VALUE -> {
@@ -112,6 +129,7 @@ class WidgetReceiver : BroadcastReceiver() {
                 }
             }
         } catch (e: RuntimeException) {
+            finishPendingResult()
             Log.e("WidgetReceiver", "could not process intent", e)
         }
     }
