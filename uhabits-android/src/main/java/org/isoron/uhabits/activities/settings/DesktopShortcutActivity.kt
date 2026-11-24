@@ -334,7 +334,9 @@ class DesktopShortcutActivity : AppCompatActivity() {
             return
         }
         val labels = entries.mapIndexed { index, entry ->
-            "${index + 1}. ${entry.name}  ·  ${targets.firstOrNull { it.key == entry.targetKey }?.title ?: entry.targetKey}"
+            val rawTitle = targets.firstOrNull { it.key == entry.targetKey }?.title ?: entry.targetKey
+            val targetTitle = if (rawTitle.startsWith("【")) rawTitle.substringAfter("】").trim() else rawTitle
+            "${index + 1}. ${entry.name}  ·  $targetTitle"
         }.toTypedArray()
         AlertDialog.Builder(this)
             .setTitle("桌面快捷方式（选择一项管理）")
