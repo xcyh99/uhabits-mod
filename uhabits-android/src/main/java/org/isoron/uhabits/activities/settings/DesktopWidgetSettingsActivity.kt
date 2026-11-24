@@ -109,7 +109,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         section("显示与排版", "每一行可分别调整，互不影响")
         actionCard("数字显示样式", "字号、颜色、日期格式和时间制式") { showAppearanceSettings() }
         actionCard("字符间距与数字变形", "小时、分钟、日期星期分别独立设置") { showSpacingAndTransformSettings() }
-        actionCard("四行高度与间距", "分别设置每一行的高度") { showRowSettings() }
+        actionCard("四行高度与自动布局", "手动调整或让数字自动适配每一行") { showRowSettings() }
         actionCard("背景颜色与透明度", "调整组件底色和透明程度") { showBackgroundSettings() }
 
         section("快捷入口", "设置桌面组件底部显示几个快捷入口")
@@ -183,7 +183,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 val resetKeys = listOf(KEY_HOUR_SIZE, KEY_MINUTE_SIZE, KEY_DATE_SIZE, KEY_TIME_COLOR, KEY_HOUR_COLOR, KEY_MINUTE_COLOR, KEY_DATE_COLOR, KEY_DATE_FORMAT,
                     KEY_TIME_MODE, KEY_BG_COLOR, KEY_BG_ALPHA, KEY_SHORTCUT_COUNT,
                     KEY_HOUR_HEIGHT, KEY_MINUTE_HEIGHT, KEY_DATE_HEIGHT, KEY_SHORTCUT_HEIGHT, KEY_HOUR_WEIGHT, KEY_MINUTE_WEIGHT, KEY_DATE_WEIGHT, KEY_SHORTCUT_WEIGHT,
-                    "digital_clock_letter_spacing", "digital_clock_transform_enabled", "digital_clock_horizontal_scale") +
+                    "digital_clock_letter_spacing", "digital_clock_transform_enabled", "digital_clock_horizontal_scale", KEY_LAYOUT_MODE, KEY_KEEP_DIGIT_RATIO) +
                     listOf("hour", "minute", "date").flatMap { row ->
                         listOf("digital_clock_${row}_letter_spacing", "digital_clock_${row}_transform_enabled", "digital_clock_${row}_horizontal_scale")
                     }
@@ -381,11 +381,69 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             setPadding(dp(20), dp(8), dp(20), dp(4))
         }
         panel.addView(TextView(this).apply {
-            text = "分别填写四行的高度，单位 dp，只接受整数。输入值会原样保存；桌面实际显示还受组件容器和系统控件内容限制。"
+            text = "先选择布局方式，再设置四行高度。行高是布局边界；自动模式会按行高计算字号，手动模式沿用你原来设置的字号。"
             textSize = 13f
             setTextColor(resolveSecondaryText())
-            setPadding(0, 0, 0, dp(12))
+            setPadding(0, 0, 0, dp(10))
         })
+
+        val modeTitle = TextView(this).apply {
+            text = "布局方式"
+            textSize = 15f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(resolvePrimaryText())
+            setPadding(0, dp(4), 0, dp(4))
+        }
+        panel.addView(modeTitle)
+        val modeCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(if (isDark()) Color.rgb(45, 48, 55) else Color.rgb(245, 247, 250))
+                cornerRadius = dp(12).toFloat()
+                setStroke(dp(1), if (isDark()) Color.rgb(70, 74, 82) else Color.rgb(230, 233, 238))
+            }
+        }
+        val modeGroup = android.widget.RadioGroup(this).apply {
+            orientation = android.widget.RadioGroup.VERTICAL
+        }
+        val manualOption = android.widget.RadioButton(this).apply {
+            id = android.view.View.generateViewId()
+            text = "手动布局"
+            textSize = 14f
+            setTextColor(resolvePrimaryText())
+        }
+        val autoOption = android.widget.RadioButton(this).apply {
+            id = android.view.View.generateViewId()
+            text = "自动适配"
+            textSize = 14f
+            setTextColor(resolvePrimaryText())
+        }
+        modeGroup.addView(manualOption)
+        modeGroup.addView(autoOption)
+        val savedMode = store.getInt(KEY_LAYOUT_MODE, 0).coerceIn(0, 1)
+        modeGroup.check(if (savedMode == 1) autoOption.id else manualOption.id)
+        modeCard.addView(modeGroup)
+
+        val ratioCheck = android.widget.CheckBox(this).apply {
+            text = "保持数字原始比例"
+            textSize = 14f
+            setTextColor(resolvePrimaryText())
+            isChecked = store.getBoolean(KEY_KEEP_DIGIT_RATIO, true)
+            isEnabled = savedMode == 1
+        }
+        modeCard.addView(ratioCheck)
+        modeCard.addView(TextView(this).apply {
+            text = "选中：数字等比例缩放，不横向拉伸；不选中：允许数字在安全范围内加宽或变窄。自动模式会尽量贴近行高，并限制字符间距，避免数字粘连。"
+            textSize = 12f
+            setTextColor(resolveSecondaryText())
+            setPadding(dp(4), dp(2), dp(4), dp(4))
+        })
+        modeGroup.setOnCheckedChangeListener { _, checkedId ->
+            ratioCheck.isEnabled = checkedId == autoOption.id
+        }
+        panel.addView(modeCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
+
         val rowSpecs = listOf(
             Triple("第一行 · 小时", KEY_HOUR_HEIGHT, 48),
             Triple("第二行 · 分钟", KEY_MINUTE_HEIGHT, 48),
@@ -434,6 +492,10 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 rowSpecs.forEachIndexed { index, spec ->
                     store.edit().putInt(spec.second, values[index]!!).apply()
                 }
+                store.edit()
+                    .putInt(KEY_LAYOUT_MODE, if (modeGroup.checkedRadioButtonId == autoOption.id) 1 else 0)
+                    .putBoolean(KEY_KEEP_DIGIT_RATIO, ratioCheck.isChecked)
+                    .apply()
                 updateWidget()
                 dialog.dismiss()
                 Toast.makeText(this, "四行高度已保存", Toast.LENGTH_SHORT).show()
@@ -635,6 +697,8 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         private const val KEY_MINUTE_WEIGHT = "digital_clock_minute_weight"
         private const val KEY_DATE_WEIGHT = "digital_clock_date_weight"
         private const val KEY_SHORTCUT_WEIGHT = "digital_clock_shortcut_weight"
+        private const val KEY_LAYOUT_MODE = "digital_clock_layout_mode"
+        private const val KEY_KEEP_DIGIT_RATIO = "digital_clock_keep_digit_ratio"
     }
     private fun resolvePageBackground() = org.isoron.uhabits.utils.StyledResources(this).getColor(R.attr.contrast0)
     private fun resolvePrimaryText(): Int = if (isDark()) Color.WHITE else Color.BLACK
