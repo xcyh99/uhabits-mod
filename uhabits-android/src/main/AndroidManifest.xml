@@ -96,6 +96,11 @@
         </activity>
 
         <activity
+            android:name="org.isoron.uhabits.activities.settings.DesktopShortcutActivity"
+            android:exported="false"
+            android:label="桌面快捷" />
+
+        <activity
             android:name="org.isoron.uhabits.activities.settings.SettingsActivity"
             android:label="@string/settings"
             android:launchMode="singleTop">
