@@ -12,8 +12,9 @@ import org.isoron.uhabits.activities.habits.list.ListHabitsActivity
 import org.isoron.uhabits.activities.settings.DesktopShortcutActivity
 
 /**
- * Lightweight 2x3 home-screen clock. TextClock is left as a RemoteViews child
- * so Android updates the displayed time without periodic app wake-ups.
+ * Lightweight home-screen clock. Both time rows use system TextClock widgets,
+ * so Android/Harmony's widget host manages clock refreshes without app timers,
+ * periodic alarms, or a foreground service.
  */
 class DigitalClockWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, appWidgetIds: IntArray) {
@@ -33,6 +34,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             val views = RemoteViews(context.packageName, R.layout.widget_digital_clock)
             val slots = listOf(
                 "time" to R.id.digital_clock_time,
+                "time" to R.id.digital_clock_minute,
                 "date" to R.id.digital_clock_date,
                 "shortcut1" to R.id.digital_clock_shortcut1,
                 "shortcut2" to R.id.digital_clock_shortcut2,

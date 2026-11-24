@@ -11,33 +11,44 @@
     android:paddingBottom="7dp"
     android:background="@drawable/time_record_widget_background">
 
-    <!-- Top row: large digital clock -->
-    <FrameLayout
+    <!-- Row 1: hour. TextClock remains system-managed for low-power updates. -->
+    <TextClock
+        android:id="@+id/digital_clock_time"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1.45"
-        android:gravity="center">
+        android:layout_weight="1.15"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:format12Hour="h"
+        android:format24Hour="HH"
+        android:textColor="#FFFFFFFF"
+        android:textSize="48sp"
+        android:fontFamily="sans-serif"
+        android:textStyle="normal"
+        android:maxLines="1" />
 
-        <TextClock
-            android:id="@+id/digital_clock_time"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:includeFontPadding="false"
-            android:format12Hour="h:mm"
-            android:format24Hour="HH:mm"
-            android:textColor="#FFFFFFFF"
-            android:textSize="54sp"
-            android:fontFamily="sans-serif"
-            android:textStyle="normal"
-            android:maxLines="1" />
-    </FrameLayout>
+    <!-- Row 2: minute, independently styled but automatically refreshed by Android. -->
+    <TextClock
+        android:id="@+id/digital_clock_minute"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1.15"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:format12Hour="mm"
+        android:format24Hour="mm"
+        android:textColor="#FFFFFFFF"
+        android:textSize="48sp"
+        android:fontFamily="sans-serif"
+        android:textStyle="normal"
+        android:maxLines="1" />
 
-    <!-- Middle row: calendar date and weekday -->
+    <!-- Row 3: calendar date and weekday. -->
     <TextClock
         android:id="@+id/digital_clock_date"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="0.65"
         android:gravity="center"
         android:includeFontPadding="false"
         android:format12Hour="M月d日  EEEE"
@@ -47,12 +58,13 @@
         android:fontFamily="sans-serif-medium"
         android:maxLines="1"
         android:paddingTop="2dp"
-        android:paddingBottom="8dp" />
+        android:paddingBottom="2dp" />
 
-    <!-- Bottom row: four shortcut positions, kept separate for later customization -->
+    <!-- Row 4: four reusable shortcut positions. -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="0.9"
         android:orientation="horizontal"
         android:gravity="center"
         android:weightSum="4">
@@ -60,7 +72,7 @@
         <LinearLayout
             android:layout_width="0dp"
             android:id="@+id/digital_clock_shortcut1"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical"
@@ -84,7 +96,7 @@
         <LinearLayout
             android:layout_width="0dp"
             android:id="@+id/digital_clock_shortcut2"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical"
@@ -108,7 +120,7 @@
         <LinearLayout
             android:layout_width="0dp"
             android:id="@+id/digital_clock_shortcut3"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical"
@@ -132,7 +144,7 @@
         <LinearLayout
             android:layout_width="0dp"
             android:id="@+id/digital_clock_shortcut4"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical"
