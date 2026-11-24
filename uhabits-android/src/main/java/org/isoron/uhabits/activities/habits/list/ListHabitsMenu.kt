@@ -201,11 +201,17 @@ class ListHabitsMenu(
                     when {
                         entry.first.startsWith("habit:") -> {
                             val habitId = entry.first.removePrefix("habit:").toLongOrNull()
-                            if (habitId != null) {
+                            val habitExists = habitId?.let {
+                                (activity.application as org.isoron.uhabits.HabitsApplication)
+                                    .component.habitList.getById(it) != null
+                            } ?: false
+                            if (habitId != null && habitExists) {
                                 activity.startActivity(
                                     Intent(activity, org.isoron.uhabits.activities.habits.show.ShowHabitActivity::class.java)
                                         .setData(android.net.Uri.parse("content://org.isoron.uhabits/habit/$habitId"))
                                 )
+                            } else {
+                                android.widget.Toast.makeText(activity, "这个习惯可能已删除，请重新设置快捷方式", android.widget.Toast.LENGTH_LONG).show()
                             }
                         }
                         entry.first == "timeRecords" ->
