@@ -377,6 +377,13 @@ open class Preferences(private val storage: Storage) {
         storage.remove(CHECKMARK_WHITE_PREVIEW_KEY)
     }
 
+    /** Discard a preview interrupted by process death before widgets read it. */
+    open fun recoverInterruptedCheckmarkWhiteWeightPreview(): Boolean {
+        if (!storage.getBoolean(CHECKMARK_WHITE_PREVIEW_ACTIVE_KEY, false)) return false
+        clearCheckmarkWhiteWeightPreview()
+        return true
+    }
+
     private fun readValidParameter(key: String): Double? {
         val parsed = runCatching { storage.getString(key, "") }.getOrNull()
             ?.toDoubleOrNull() ?: return null
