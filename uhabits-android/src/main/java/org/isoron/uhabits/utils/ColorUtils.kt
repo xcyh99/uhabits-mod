@@ -80,22 +80,15 @@ object ColorUtils {
      */
     @JvmStatic
     fun getWeightedCheckInTextColor(backgroundColor: Int, whitePreferenceWeight: Double): Int {
-        fun linearize(channel: Int): Double {
-            val value = channel / 255.0
-            return if (value <= 0.04045) value / 12.92
-            else Math.pow((value + 0.055) / 1.055, 2.4)
-        }
-
-        val luminance =
-            0.2126 * linearize(Color.red(backgroundColor)) +
-            0.7152 * linearize(Color.green(backgroundColor)) +
-            0.0722 * linearize(Color.blue(backgroundColor))
-        val whiteContrast = 1.05 / (luminance + 0.05)
-        val blackContrast = (luminance + 0.05) / 0.05
-        val safeWeight = whitePreferenceWeight.takeIf {
-            !it.isNaN() && !it.isInfinite() && it >= 0.1 && it <= 100.0
-        } ?: 6.6
-        return if (blackContrast / whiteContrast <= safeWeight) Color.WHITE else Color.BLACK
+        // The marker widget delegates to the same pure algorithm used by
+        // completed history squares. Only completed check-ins call this method.
+        return if (org.isoron.uhabits.core.ui.views.WeightedTextColor.shouldUseWhiteText(
+                Color.red(backgroundColor) / 255.0,
+                Color.green(backgroundColor) / 255.0,
+                Color.blue(backgroundColor) / 255.0,
+                whitePreferenceWeight
+            )
+        ) Color.WHITE else Color.BLACK
     }
 
     private const val ALPHA_CHANNEL = 24
