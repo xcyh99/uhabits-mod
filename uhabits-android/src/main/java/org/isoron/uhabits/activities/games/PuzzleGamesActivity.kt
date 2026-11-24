@@ -137,10 +137,12 @@ class PuzzleGamesActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        board.removeCallbacks(board.frameTick)
+        board.stopAnimation()
         tone.release()
         super.onDestroy()
     }
+
+    private data class Pipe(var x: Float, val gapY: Float, var scored: Boolean = false)
 
     inner class GameBoard(context: Context) : View(context) {
         var game = Game.MINES
@@ -197,7 +199,6 @@ class PuzzleGamesActivity : AppCompatActivity() {
         private var moves = 0
 
         // Bird game
-        private data class Pipe(var x: Float, val gapY: Float, var scored: Boolean = false)
         private var birdY = 0.42f
         private var birdVelocity = 0f
         private var pipes = mutableListOf<Pipe>()
@@ -218,6 +219,8 @@ class PuzzleGamesActivity : AppCompatActivity() {
         }
 
         init { isFocusable = true; setLayerType(View.LAYER_TYPE_SOFTWARE, null) }
+
+        fun stopAnimation() { removeCallbacks(frameTick); removeCallbacks(longPressAction) }
 
         fun reset() {
             mineOver = false
@@ -381,7 +384,7 @@ class PuzzleGamesActivity : AppCompatActivity() {
                 if(playerX==x && playerY==y) c.drawCircle(px+cell/2,py+cell/2,cell*.29f,paint(Color.rgb(55,130,210)))
             }
             val y=top+cell*7+30
-            text(c,"步数：$moves    箱子到位：${boxes.count { it in targets }}/${targets.size}",width/2f,min(height-12,y),16f)
+            text(c,"步数：$moves    箱子到位：${boxes.count { it in targets }}/${targets.size}",width/2f,min(height.toFloat()-12f,y),16f)
             val cy=height-90f
             drawArrow(c,width/2f,cy-34,"↑"); drawArrow(c,width/2f,cy+34,"↓"); drawArrow(c,width/2f-55,cy,"←"); drawArrow(c,width/2f+55,cy,"→")
         }
