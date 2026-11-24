@@ -309,10 +309,6 @@ class DesktopShortcutActivity : AppCompatActivity() {
         colorSpinner.setSelection(entry.colorIndex.coerceIn(colorNames.indices))
         photoFile = entry.photoPath?.let(::File)?.takeIf { it.exists() }
         photoStatus.text = if (photoFile != null) "已选择相册图片：${photoFile!!.name}" else "未选择相册图片（可选）"
-        contentDescription = "正在编辑：${entry.name}"
-        (window.decorView as? android.view.ViewGroup)?.let { root ->
-            // Keep the editor in place; the action button updates the same pinned shortcut ID.
-        }
         Toast.makeText(this, "已载入快捷方式，请修改后点击“创建并添加到桌面”保存", Toast.LENGTH_LONG).show()
     }
 
