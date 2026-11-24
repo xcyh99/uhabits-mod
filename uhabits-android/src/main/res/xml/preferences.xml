@@ -85,6 +85,12 @@
                 app:iconSpaceReserved="false" />
 
         <Preference
+                android:key="exportProgramApk"
+                android:title="程序存档（导出当前安装包）"
+                android:summary="导出当前版本 APK，可保存到网盘或文件夹；以后可重新安装这个版本。此操作不包含习惯和打卡数据。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
                 android:key="autoBackup"
                 android:title="自动备份"
                 android:summary="管理自动备份开关、备份间隔、保留数量、保存位置和立即备份。"
