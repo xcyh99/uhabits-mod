@@ -40,7 +40,7 @@ import org.isoron.uhabits.inject.ActivityScope
 class AndroidThemeSwitcher
 constructor(
     @ActivityContext val context: Context,
-    preferences: Preferences
+    private val preferences: Preferences
 ) : ThemeSwitcher(preferences) {
 
     override var currentTheme: Theme = configuredTheme(LightTheme())\n\n    private fun configuredTheme(theme: Theme): Theme {\n        val chart = preferences.getWhiteOutlineSettings(WhiteOutlineTarget.APP_CHART)\n        val calendar = preferences.getWhiteOutlineSettings(WhiteOutlineTarget.APP_CALENDAR)\n        theme.lightOutlineThreshold = chart.threshold\n        theme.lightOutlineWidth = chart.width\n        theme.calendarOutlineThreshold = calendar.threshold\n        theme.calendarOutlineWidth = calendar.width\n        return theme\n    }
