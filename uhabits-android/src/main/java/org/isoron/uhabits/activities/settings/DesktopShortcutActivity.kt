@@ -28,6 +28,9 @@ import android.content.SharedPreferences
 import org.json.JSONArray
 import org.json.JSONObject
 import org.isoron.uhabits.R
+import org.isoron.uhabits.HabitsApplication
+import org.isoron.uhabits.activities.AndroidThemeSwitcher
+import org.isoron.uhabits.utils.StyledResources
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
@@ -76,15 +79,20 @@ class DesktopShortcutActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val component = (application as HabitsApplication).component
+        val themeSwitcher = AndroidThemeSwitcher(this, component.preferences)
+        themeSwitcher.apply()
         title = "桌面快捷"
         targets.addAll(FeatureShortcutCatalog.getEntries(this).map { Target(it.key, it.title) })
         targets.add(Target("historyWhiteWeight", "历史组件白色数字权重"))
 
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
-        val pageBackground = Color.rgb(18, 18, 18)
-        val primaryText = Color.rgb(245, 245, 245)
-        val secondaryText = Color.rgb(205, 205, 205)
+        // Resolve colors from the app theme because this screen is built programmatically.
+        val styled = StyledResources(this)
+        val pageBackground = styled.getColor(R.attr.contrast0)
+        val primaryText = styled.getColor(R.attr.contrast100)
+        val secondaryText = styled.getColor(R.attr.contrast80)
         fun label(value: String) = TextView(this).apply {
             text = value
             textSize = 14f
