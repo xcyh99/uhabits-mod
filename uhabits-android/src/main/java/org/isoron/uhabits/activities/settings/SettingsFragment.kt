@@ -441,7 +441,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         }
     }
     fun openPreferenceByKey(key: String) {
-        findPreference<Preference>(key)?.performClick()
+        findPreference(key)?.performClick()
     }
 
     fun openBatchWidgetPicker(intent: Intent) {
