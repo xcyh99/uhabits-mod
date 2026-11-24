@@ -77,6 +77,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         })
         button("添加数字时钟到桌面") { pinWidget() }
         button("预览数字时钟") { showWidgetPreview() }
+        button("数字显示样式") { showAppearanceSettings() }
         button("恢复数字时钟默认设置") { confirmReset() }
         heading("点击区域设置")
         slots.forEach { slot ->
@@ -94,6 +95,21 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
 
     private fun showWidgetPreview() {
         val preview = LayoutInflater.from(this).inflate(R.layout.widget_digital_clock, null, false)
+        preview.findViewById<TextView>(R.id.digital_clock_time).apply {
+            textSize = store.getFloat(KEY_HOUR_SIZE, 48f)
+            setTextColor(store.getInt(KEY_TIME_COLOR, Color.WHITE))
+        }
+        preview.findViewById<TextView>(R.id.digital_clock_minute).apply {
+            textSize = store.getFloat(KEY_MINUTE_SIZE, 48f)
+            setTextColor(store.getInt(KEY_TIME_COLOR, Color.WHITE))
+        }
+        preview.findViewById<android.widget.TextClock>(R.id.digital_clock_date).apply {
+            textSize = store.getFloat(KEY_DATE_SIZE, 15f)
+            setTextColor(store.getInt(KEY_DATE_COLOR, Color.LTGRAY))
+            val format = store.getString(KEY_DATE_FORMAT, "M月d日  EEEE")
+            format12Hour = format
+            format24Hour = format
+        }
         AlertDialog.Builder(this)
             .setTitle("数字时钟组件预览")
             .setView(preview)
@@ -174,7 +190,92 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
     }
 
 
+
+    private fun showAppearanceSettings() {
+        val items = arrayOf("小时字号", "分钟字号", "日期字号", "时间数字颜色", "日期文字颜色", "日期显示格式")
+        AlertDialog.Builder(this)
+            .setTitle("数字显示样式")
+            .setItems(items) { _, which ->
+                when (which) {
+                    0 -> chooseSize("小时字号", KEY_HOUR_SIZE, 48f, listOf(28f, 32f, 36f, 40f, 44f, 48f, 52f, 56f, 60f))
+                    1 -> chooseSize("分钟字号", KEY_MINUTE_SIZE, 48f, listOf(28f, 32f, 36f, 40f, 44f, 48f, 52f, 56f, 60f))
+                    2 -> chooseSize("日期字号", KEY_DATE_SIZE, 15f, listOf(10f, 11f, 12f, 13f, 14f, 15f, 16f, 18f, 20f))
+                    3 -> chooseColor("时间数字颜色", KEY_TIME_COLOR, Color.WHITE)
+                    4 -> chooseColor("日期文字颜色", KEY_DATE_COLOR, Color.LTGRAY)
+                    5 -> chooseDateFormat()
+                }
+            }
+            .setNegativeButton("关闭", null)
+            .show()
+    }
+
+    private fun chooseSize(title: String, key: String, defaultValue: Float, values: List<Float>) {
+        val current = store.getFloat(key, defaultValue)
+        val labels = values.map { "${it.toInt()} sp" }.toTypedArray()
+        val selected = values.indexOf(current).coerceAtLeast(values.indexOf(defaultValue).coerceAtLeast(0))
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setSingleChoiceItems(labels, selected) { dialog, which ->
+                store.edit().putFloat(key, values[which]).apply()
+                updateWidget()
+                dialog.dismiss()
+                showAppearanceSettings()
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun chooseColor(title: String, key: String, defaultValue: Int) {
+        val names = arrayOf("白色", "浅灰", "黑色", "黄色", "青色", "浅蓝", "粉色")
+        val colors = intArrayOf(
+            Color.WHITE, Color.LTGRAY, Color.BLACK, Color.YELLOW,
+            Color.CYAN, Color.rgb(120, 190, 255), Color.rgb(255, 170, 190)
+        )
+        val current = store.getInt(key, defaultValue)
+        val selected = colors.indexOf(current)
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setSingleChoiceItems(names, selected) { dialog, which ->
+                store.edit().putInt(key, colors[which]).apply()
+                updateWidget()
+                dialog.dismiss()
+                showAppearanceSettings()
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun chooseDateFormat() {
+        val formats = listOf(
+            "M月d日  EEEE" to "11月24日 星期二",
+            "yyyy年M月d日  EEEE" to "2026年11月24日 星期二",
+            "EEEE" to "星期二",
+            "yyyy-MM-dd  EEE" to "2026-11-24 周二"
+        )
+        val current = store.getString(KEY_DATE_FORMAT, formats[0].first)
+        val selected = formats.indexOfFirst { it.first == current }.coerceAtLeast(0)
+        AlertDialog.Builder(this)
+            .setTitle("日期显示格式")
+            .setSingleChoiceItems(formats.map { it.second }.toTypedArray(), selected) { dialog, which ->
+                store.edit().putString(KEY_DATE_FORMAT, formats[which].first).apply()
+                updateWidget()
+                dialog.dismiss()
+                showAppearanceSettings()
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
     private fun key(slot: String) = "digital_clock_target_$slot"
+
+    companion object {
+        private const val KEY_HOUR_SIZE = "digital_clock_hour_size"
+        private const val KEY_MINUTE_SIZE = "digital_clock_minute_size"
+        private const val KEY_DATE_SIZE = "digital_clock_date_size"
+        private const val KEY_TIME_COLOR = "digital_clock_time_color"
+        private const val KEY_DATE_COLOR = "digital_clock_date_color"
+        private const val KEY_DATE_FORMAT = "digital_clock_date_format"
+    }
     private fun resolvePageBackground() = org.isoron.uhabits.utils.StyledResources(this).getColor(R.attr.contrast0)
     private fun resolvePrimaryText(): Int = if (isDark()) Color.WHITE else Color.BLACK
     private fun resolveSecondaryText(): Int = if (isDark()) Color.LTGRAY else Color.DKGRAY

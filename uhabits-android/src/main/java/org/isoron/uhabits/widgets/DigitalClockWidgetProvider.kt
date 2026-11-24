@@ -32,6 +32,16 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
 
         private fun updateWidget(context: Context, manager: AppWidgetManager, widgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_digital_clock)
+            val preferences = androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
+            views.setTextViewTextSize(R.id.digital_clock_time, android.util.TypedValue.COMPLEX_UNIT_SP, preferences.getFloat("digital_clock_hour_size", 48f))
+            views.setTextViewTextSize(R.id.digital_clock_minute, android.util.TypedValue.COMPLEX_UNIT_SP, preferences.getFloat("digital_clock_minute_size", 48f))
+            views.setTextViewTextSize(R.id.digital_clock_date, android.util.TypedValue.COMPLEX_UNIT_SP, preferences.getFloat("digital_clock_date_size", 15f))
+            views.setTextColor(R.id.digital_clock_time, preferences.getInt("digital_clock_time_color", android.graphics.Color.WHITE))
+            views.setTextColor(R.id.digital_clock_minute, preferences.getInt("digital_clock_time_color", android.graphics.Color.WHITE))
+            views.setTextColor(R.id.digital_clock_date, preferences.getInt("digital_clock_date_color", android.graphics.Color.LTGRAY))
+            val dateFormat = preferences.getString("digital_clock_date_format", "M月d日  EEEE")
+            views.setCharSequence(R.id.digital_clock_date, "setFormat12Hour", dateFormat)
+            views.setCharSequence(R.id.digital_clock_date, "setFormat24Hour", dateFormat)
             val slots = listOf(
                 "time" to R.id.digital_clock_time,
                 "time" to R.id.digital_clock_minute,
