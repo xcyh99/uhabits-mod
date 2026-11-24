@@ -29,28 +29,19 @@ concurrency:
   group: android-apk-${{ github.ref }}
   cancel-in-progress: true
 
-# Required only for publishing version-matched archives to GitHub Releases.
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
-
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-
       - name: Run core JVM tests
         run: ./gradlew :uhabits-core:jvmTest --no-daemon
 
@@ -89,103 +80,19 @@ jobs:
         if: github.event_name == 'pull_request'
         run: ./gradlew :uhabits-android:assembleDebug --no-daemon
 
-      - name: Prepare version-matched program archive
+      - name: Give test APK a readable filename
         if: github.event_name != 'pull_request'
-        id: archive
-        env:
-          SOURCE_SHA: ${{ github.sha }}
         run: |
-          set -euo pipefail
           APK_PATH="$(find uhabits-android/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' | head -n 1)"
           test -n "$APK_PATH"
+          cp "$APK_PATH" "uhabits-android/build/outputs/apk/release/十字习惯APP_测试版.apk"
 
-          VERSION_NAME="$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' uhabits-android/build.gradle.kts | head -n 1)"
-          VERSION_CODE="$(sed -n 's/.*versionCode = \([0-9][0-9]*\).*/\1/p' uhabits-android/build.gradle.kts | head -n 1)"
-          test -n "$VERSION_NAME"
-          test -n "$VERSION_CODE"
-
-          SHORT_SHA="${SOURCE_SHA:0:12}"
-          ARCHIVE_DIR="$RUNNER_TEMP/program-archive"
-          mkdir -p "$ARCHIVE_DIR"
-
-          APK_NAME="十字习惯APP_v${VERSION_NAME}_code${VERSION_CODE}_${SHORT_SHA}.apk"
-          SOURCE_NAME="十字习惯APP_v${VERSION_NAME}_code${VERSION_CODE}_${SHORT_SHA}_源代码.zip"
-          MANIFEST_NAME="十字习惯APP_v${VERSION_NAME}_code${VERSION_CODE}_${SHORT_SHA}_版本信息.json"
-
-          cp "$APK_PATH" "$ARCHIVE_DIR/$APK_NAME"
-          git archive --format=zip --prefix="uhabits-mod-${SHORT_SHA}/" "$SOURCE_SHA" > "$ARCHIVE_DIR/$SOURCE_NAME"
-
-          APK_HASH="$(sha256sum "$ARCHIVE_DIR/$APK_NAME" | cut -d ' ' -f 1)"
-          SOURCE_HASH="$(sha256sum "$ARCHIVE_DIR/$SOURCE_NAME" | cut -d ' ' -f 1)"
-          BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-
-          python3 - "$ARCHIVE_DIR/$MANIFEST_NAME" "$VERSION_NAME" "$VERSION_CODE" "$SOURCE_SHA" "$BUILD_DATE" "$APK_NAME" "$SOURCE_NAME" "$APK_HASH" "$SOURCE_HASH" <<'PY'
-          import json, sys
-          path, version_name, version_code, commit, build_date, apk, source, apk_sha, source_sha = sys.argv[1:]
-          data = {
-              "repository": "xcyh99/uhabits-mod",
-              "versionName": version_name,
-              "versionCode": int(version_code),
-              "commit": commit,
-              "buildDateUtc": build_date,
-              "apk": {"file": apk, "sha256": apk_sha},
-              "source": {"file": source, "sha256": source_sha},
-          }
-          with open(path, "w", encoding="utf-8") as f:
-              json.dump(data, f, ensure_ascii=False, indent=2)
-              f.write("\n")
-          PY
-
-          echo "archive_dir=$ARCHIVE_DIR" >> "$GITHUB_OUTPUT"
-          echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
-          echo "source_name=$SOURCE_NAME" >> "$GITHUB_OUTPUT"
-          echo "manifest_name=$MANIFEST_NAME" >> "$GITHUB_OUTPUT"
-          echo "release_tag=archive-$SOURCE_SHA" >> "$GITHUB_OUTPUT"
-          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
-          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
-
-      # The permanent archive is a GitHub Release, not a short-lived Actions artifact.
-      # One release is created per exact source commit; all three assets share its identity.
-      - name: Publish permanent version archive
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/feature/desktop-shortcuts'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ARCHIVE_DIR: ${{ steps.archive.outputs.archive_dir }}
-          RELEASE_TAG: ${{ steps.archive.outputs.release_tag }}
-          VERSION_NAME: ${{ steps.archive.outputs.version_name }}
-          VERSION_CODE: ${{ steps.archive.outputs.version_code }}
-          APK_NAME: ${{ steps.archive.outputs.apk_name }}
-          SOURCE_NAME: ${{ steps.archive.outputs.source_name }}
-          MANIFEST_NAME: ${{ steps.archive.outputs.manifest_name }}
-          SOURCE_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          NOTES="自动构建的程序存档。APK、源代码 ZIP 和版本清单均来自同一提交。\n\n版本：$VERSION_NAME（$VERSION_CODE）\nCommit：$SOURCE_SHA"
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" \
-              "$ARCHIVE_DIR/$APK_NAME" \
-              "$ARCHIVE_DIR/$SOURCE_NAME" \
-              "$ARCHIVE_DIR/$MANIFEST_NAME" \
-              --clobber
-          else
-            gh release create "$RELEASE_TAG" \
-              "$ARCHIVE_DIR/$APK_NAME" \
-              "$ARCHIVE_DIR/$SOURCE_NAME" \
-              "$ARCHIVE_DIR/$MANIFEST_NAME" \
-              --target "$SOURCE_SHA" \
-              --title "程序存档 v$VERSION_NAME（$VERSION_CODE）" \
-              --notes "$NOTES" \
-              --prerelease
-          fi
-
-      # Short-lived convenience artifact for immediate testing/download.
-      # Long-term copies are kept in the GitHub Release above.
-      - name: Upload version-matched build bundle
+      - name: Upload signed release APK
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: shizi-program-archive
-          path: ${{ steps.archive.outputs.archive_dir }}/*
+          name: shizi-habits-release
+          path: uhabits-android/build/outputs/apk/release/十字习惯APP_测试版.apk
           if-no-files-found: error
           retention-days: 14
 
