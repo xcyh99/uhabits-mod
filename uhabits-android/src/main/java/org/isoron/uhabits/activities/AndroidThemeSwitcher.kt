@@ -27,7 +27,7 @@ import android.os.Build.VERSION.SDK_INT
 import androidx.core.content.ContextCompat
 import org.isoron.uhabits.R
 import org.isoron.uhabits.core.preferences.Preferences
-import org.isoron.uhabits.core.preferences.WhiteOutlineTarget\nimport org.isoron.uhabits.core.preferences.WhiteOutlineTarget
+import org.isoron.uhabits.core.preferences.WhiteOutlineTarget
 import org.isoron.uhabits.core.ui.ThemeSwitcher
 import org.isoron.uhabits.core.ui.views.DarkTheme
 import org.isoron.uhabits.core.ui.views.LightTheme
@@ -43,7 +43,17 @@ constructor(
     private val preferences: Preferences
 ) : ThemeSwitcher(preferences) {
 
-    override var currentTheme: Theme = configuredTheme(LightTheme())\n\n    private fun configuredTheme(theme: Theme): Theme {\n        val chart = preferences.getWhiteOutlineSettings(WhiteOutlineTarget.APP_CHART)\n        val calendar = preferences.getWhiteOutlineSettings(WhiteOutlineTarget.APP_CALENDAR)\n        theme.lightOutlineThreshold = chart.threshold\n        theme.lightOutlineWidth = chart.width\n        theme.calendarOutlineThreshold = calendar.threshold\n        theme.calendarOutlineWidth = calendar.width\n        return theme\n    }
+    override var currentTheme: Theme = configuredTheme(LightTheme())
+
+    private fun configuredTheme(theme: Theme): Theme {
+        val chart = preferences.getWhiteOutlineSettings(WhiteOutlineTarget.APP_CHART)
+        val calendar = preferences.getWhiteOutlineSettings(WhiteOutlineTarget.APP_CALENDAR)
+        theme.lightOutlineThreshold = chart.threshold
+        theme.lightOutlineWidth = chart.width
+        theme.calendarOutlineThreshold = calendar.threshold
+        theme.calendarOutlineWidth = calendar.width
+        return theme
+    }
 
     override fun getSystemTheme(): Int {
         if (SDK_INT < 29) return THEME_LIGHT
