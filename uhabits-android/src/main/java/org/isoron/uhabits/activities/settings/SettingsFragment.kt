@@ -596,7 +596,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         prefs.markCheckmarkWhiteWeightPreviewHandled()
         AlertDialog.Builder(context)
             .setTitle("临时预览管理")
-            .setMessage("当前正式值：$committed\\n临时预览值：$preview\\n\\n请选择如何处理这次预览。")
+            .setMessage("当前正式值：$committed\n临时预览值：$preview\n\n请选择如何处理这次预览。")
             .setCancelable(false)
             .setPositiveButton("保存为永久配置") { _, _ ->
                 val saved = prefs.saveCheckmarkWhiteWeightPreview()
