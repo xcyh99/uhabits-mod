@@ -252,12 +252,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             "parameterEmergencyReset" -> {
                 AlertDialog.Builder(requireContext())
                     .setTitle("参数紧急恢复")
-                    .setMessage("将参数中心全部恢复为安全默认值（历史组件和标记组件白色数字权重均恢复为 6.6）。此操作不会删除或修改习惯、打卡记录和时间记录。")
+                    .setMessage("将参数中心全部恢复为安全默认值：两个白色数字权重恢复为 6.6，五类组件的白边阈值和宽度恢复为默认值。此操作不会删除或修改习惯、打卡记录和时间记录。")
                     .setNegativeButton("取消", null)
                     .setPositiveButton("确认恢复") { _, _ ->
                         prefs.restoreParameterDefaults()
                         widgetUpdater?.updateWidgets()
-                        Toast.makeText(requireContext(), "参数已恢复为安全默认值（两个权重均为 6.6）", Toast.LENGTH_LONG).show()
+                        Toast.makeText(requireContext(), "参数已恢复为安全默认值（权重和五类白边均已恢复）", Toast.LENGTH_LONG).show()
                     }
                     .show()
                 return true
