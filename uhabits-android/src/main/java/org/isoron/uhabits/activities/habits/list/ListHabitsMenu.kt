@@ -20,6 +20,8 @@
 package org.isoron.uhabits.activities.habits.list
 
 import android.content.Context
+import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
@@ -187,9 +189,20 @@ class ListHabitsMenu(
                     val photoUri = prefs.getString("feature_shortcut_photo_${entry.first}", null)
                     val photoDrawable = photoUri?.let { value ->
                         runCatching {
-                            activity.contentResolver.openInputStream(android.net.Uri.parse(value))?.use {
-                                android.graphics.drawable.Drawable.createFromStream(it, null)
+                            val uri = android.net.Uri.parse(value)
+                            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                            activity.contentResolver.openInputStream(uri)?.use {
+                                BitmapFactory.decodeStream(it, null, bounds)
                             }
+                            var sample = 1
+                            while (bounds.outWidth / sample > 128 || bounds.outHeight / sample > 128) {
+                                sample *= 2
+                            }
+                            val options = BitmapFactory.Options().apply { inSampleSize = sample }
+                            val bitmap = activity.contentResolver.openInputStream(uri)?.use {
+                                BitmapFactory.decodeStream(it, null, options)
+                            }
+                            bitmap?.let { BitmapDrawable(activity.resources, it) }
                         }.getOrNull()
                     }
                     if (photoDrawable != null) item.icon = photoDrawable
