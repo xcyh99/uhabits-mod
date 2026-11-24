@@ -136,8 +136,6 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 R.id.digital_clock_shortcut_row
             )
             val heights = rowHeights
-            val density = context.resources.displayMetrics.density
-            val scaledDensity = context.resources.displayMetrics.scaledDensity
             val naturalHeightsDp = floatArrayOf(
                 hourSize * scaledDensity / density * 1.05f,
                 minuteSize * scaledDensity / density * 1.05f,
