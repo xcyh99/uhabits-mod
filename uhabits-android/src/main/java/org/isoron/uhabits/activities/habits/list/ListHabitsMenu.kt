@@ -151,13 +151,14 @@ class ListHabitsMenu(
             android.R.drawable.ic_menu_sort_by_size,
             android.R.drawable.ic_media_play,
             android.R.drawable.ic_menu_edit,
-            android.R.drawable.ic_menu_recent_history
+            android.R.drawable.ic_menu_recent_history,
+            0
         )
         val available = selected.mapNotNull { key ->
             titles[key]?.let { defaultTitle ->
                 val customTitle = prefs.getString("feature_shortcut_title_$key", "")?.trim().orEmpty()
                 val iconIndex = prefs.getInt("feature_shortcut_icon_$key", 0)
-                Triple(key, customTitle.ifBlank { defaultTitle }, iconResources.getOrElse(iconIndex) { 0 })
+                Triple(key, customTitle.ifBlank { defaultTitle }, iconIndex)
             }
         }
         // PopupMenu hides icons by default on some Android versions; request icon display
@@ -182,7 +183,20 @@ class ListHabitsMenu(
         } else {
             available.forEachIndexed { index, entry ->
                 val item = popup.menu.add(0, index + 1, index, entry.second)
-                if (entry.third != 0) item.setIcon(entry.third)
+                if (entry.third == 8) {
+                    val photoUri = prefs.getString("feature_shortcut_photo_${entry.first}", null)
+                    val photoDrawable = photoUri?.let { value ->
+                        runCatching {
+                            activity.contentResolver.openInputStream(android.net.Uri.parse(value))?.use {
+                                android.graphics.drawable.Drawable.createFromStream(it, null)
+                            }
+                        }.getOrNull()
+                    }
+                    if (photoDrawable != null) item.icon = photoDrawable
+                } else {
+                    val resource = iconResources.getOrElse(entry.third) { 0 }
+                    if (resource != 0) item.setIcon(resource)
+                }
                 item.setOnMenuItemClickListener {
                     if (entry.first == "timeRecords") {
                         activity.startActivity(Intent(activity, TimeRecordsActivity::class.java))
