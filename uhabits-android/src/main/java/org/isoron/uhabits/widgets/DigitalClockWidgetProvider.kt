@@ -59,7 +59,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 val horizontalScale = if (transformEnabled) prefs.getFloat("digital_clock_${rowKey}_horizontal_scale", 0.90f).coerceIn(0.60f, 1.20f) else 1f
                 views.setFloat(textId, "setLetterSpacing", letterSpacing)
                 // Scale the rendered text horizontally only; the row's measured height is unchanged.
-                views.setFloat(textId, "setScaleX", horizontalScale)
+                views.setFloat(textId, "setTextScaleX", horizontalScale)
             }
             views.setTextColor(R.id.digital_clock_time, prefs.getInt("digital_clock_hour_color", prefs.getInt("digital_clock_time_color", Color.WHITE)))
             views.setTextColor(R.id.digital_clock_minute, prefs.getInt("digital_clock_minute_color", prefs.getInt("digital_clock_time_color", Color.WHITE)))
