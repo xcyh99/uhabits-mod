@@ -104,12 +104,17 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             textSize = store.getFloat(KEY_MINUTE_SIZE, 48f)
             setTextColor(store.getInt(KEY_MINUTE_COLOR, store.getInt(KEY_TIME_COLOR, Color.WHITE)))
         }
-        val previewSpacing = store.getFloat(KEY_LETTER_SPACING, -0.04f)
-        val previewScale = if (store.getBoolean(KEY_TRANSFORM_ENABLED, false)) store.getFloat(KEY_HORIZONTAL_SCALE, 0.90f) else 1f
-        listOf(R.id.digital_clock_time, R.id.digital_clock_minute, R.id.digital_clock_date).forEach { id ->
+        listOf(
+            Triple(R.id.digital_clock_time, "hour", -0.04f),
+            Triple(R.id.digital_clock_minute, "minute", -0.04f),
+            Triple(R.id.digital_clock_date, "date", -0.04f)
+        ).forEach { (id, rowKey, defaultSpacing) ->
+            val spacing = store.getFloat("digital_clock_${rowKey}_letter_spacing", defaultSpacing)
+            val enabled = store.getBoolean("digital_clock_${rowKey}_transform_enabled", false)
+            val scale = if (enabled) store.getFloat("digital_clock_${rowKey}_horizontal_scale", 0.90f) else 1f
             preview.findViewById<TextView>(id).apply {
-                letterSpacing = previewSpacing
-                scaleX = previewScale
+                letterSpacing = spacing
+                scaleX = scale
             }
         }
         preview.findViewById<android.widget.TextClock>(R.id.digital_clock_date).apply {
@@ -133,12 +138,14 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             .setNegativeButton("取消", null)
             .setPositiveButton("恢复默认") { _, _ ->
                 slots.forEach { store.edit().remove(key(it.key)).apply() }
-                listOf(KEY_HOUR_SIZE, KEY_MINUTE_SIZE, KEY_DATE_SIZE, KEY_TIME_COLOR, KEY_HOUR_COLOR, KEY_MINUTE_COLOR, KEY_DATE_COLOR, KEY_DATE_FORMAT,
+                val resetKeys = listOf(KEY_HOUR_SIZE, KEY_MINUTE_SIZE, KEY_DATE_SIZE, KEY_TIME_COLOR, KEY_HOUR_COLOR, KEY_MINUTE_COLOR, KEY_DATE_COLOR, KEY_DATE_FORMAT,
                     KEY_TIME_MODE, KEY_BG_COLOR, KEY_BG_ALPHA, KEY_SHORTCUT_COUNT,
                     KEY_HOUR_HEIGHT, KEY_MINUTE_HEIGHT, KEY_DATE_HEIGHT, KEY_SHORTCUT_HEIGHT, KEY_HOUR_WEIGHT, KEY_MINUTE_WEIGHT, KEY_DATE_WEIGHT, KEY_SHORTCUT_WEIGHT,
-                    KEY_LETTER_SPACING, KEY_TRANSFORM_ENABLED, KEY_HORIZONTAL_SCALE).forEach {
-                    store.edit().remove(it).apply()
-                }
+                    "digital_clock_letter_spacing", "digital_clock_transform_enabled", "digital_clock_horizontal_scale") +
+                    listOf("hour", "minute", "date").flatMap { row ->
+                        listOf("digital_clock_${row}_letter_spacing", "digital_clock_${row}_transform_enabled", "digital_clock_${row}_horizontal_scale")
+                    }
+                resetKeys.forEach { store.edit().remove(it).apply() }
                 updateWidget()
                 render()
                 Toast.makeText(this, "数字时钟设置已恢复默认", Toast.LENGTH_SHORT).show()
@@ -415,69 +422,107 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         val scaleKey = "digital_clock_${rowKey}_horizontal_scale"
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(8), dp(20), dp(4))
+            setPadding(dp(18), dp(8), dp(18), dp(8))
         }
-        panel.addView(TextView(this).apply {
-            text = "这里只调整$rowTitle，不影响另外两行。先缩小字符间距；变形开关独立控制横向压缩或拉宽。"
-            textSize = 13f
-            setTextColor(resolveSecondaryText())
-            setPadding(0, 0, 0, dp(10))
-        })
-        panel.addView(TextView(this).apply {
-            text = "字符间距（em，默认 -0.04）"
-            textSize = 14f
+        fun card(): LinearLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(14), dp(16), dp(14))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(if (isDark()) Color.rgb(48, 51, 58) else Color.rgb(245, 247, 250))
+                cornerRadius = dp(14).toFloat()
+                setStroke(dp(1), if (isDark()) Color.rgb(75, 79, 88) else Color.rgb(225, 229, 235))
+            }
+            val lp = LinearLayout.LayoutParams(-1, -2)
+            lp.bottomMargin = dp(12)
+            panel.addView(this, lp)
+        }
+        fun label(parent: LinearLayout, value: String, size: Float = 14f, color: Int = resolvePrimaryText()) {
+            parent.addView(TextView(this).apply {
+                text = value
+                textSize = size
+                setTextColor(color)
+            })
+        }
+        label(panel, "仅调整$rowTitle，另外两行不会受到影响。", 13f, resolveSecondaryText())
+        val spacingCard = card()
+        label(spacingCard, "字符间距", 16f)
+        val spacingValue = TextView(this).apply {
+            textSize = 22f
             setTextColor(resolvePrimaryText())
-        })
-        val spacingInput = android.widget.EditText(this).apply {
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_SIGNED or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
-            setSingleLine(true)
-            setText(store.getFloat(spacingKey, -0.04f).toString())
-            hint = "-0.20 ～ 0.20"
+            setPadding(0, dp(6), 0, dp(2))
         }
-        panel.addView(spacingInput)
+        spacingCard.addView(spacingValue)
+        label(spacingCard, "范围 -0.20 ～ 0.20；越小字符越紧", 12f, resolveSecondaryText())
+        val spacingSeek = android.widget.SeekBar(this).apply {
+            max = 40
+            progress = ((store.getFloat(spacingKey, -0.04f).coerceIn(-0.20f, 0.20f) + 0.20f) * 100f).toInt()
+        }
+        spacingCard.addView(spacingSeek)
+        val transformCard = card()
+        label(transformCard, "横向变形", 16f)
         val transformSwitch = android.widget.Switch(this).apply {
-            text = "仅此行启用横向变形"
+            text = "只对$rowTitle启用"
             setTextColor(resolvePrimaryText())
             isChecked = store.getBoolean(enabledKey, false)
-            setPadding(0, dp(8), 0, dp(8))
         }
-        panel.addView(transformSwitch)
-        panel.addView(TextView(this).apply {
-            text = "横向宽度比例（0.60～1.20，默认 0.90）"
-            textSize = 14f
+        transformCard.addView(transformSwitch)
+        val scaleValue = TextView(this).apply {
+            textSize = 22f
             setTextColor(resolvePrimaryText())
+            setPadding(0, dp(6), 0, dp(2))
+        }
+        label(transformCard, "宽度比例", 14f)
+        transformCard.addView(scaleValue)
+        label(transformCard, "0.60 为压窄，1.00 为原宽，1.20 为拉宽", 12f, resolveSecondaryText())
+        val scaleSeek = android.widget.SeekBar(this).apply {
+            max = 60
+            progress = ((store.getFloat(scaleKey, 0.90f).coerceIn(0.60f, 1.20f) - 0.60f) * 100f).toInt()
+        }
+        transformCard.addView(scaleSeek)
+        fun updateSpacingLabel(progress: Int) {
+            spacingValue.text = String.format(java.util.Locale.US, "%.2f", progress / 100f - 0.20f)
+        }
+        fun updateScaleLabel(progress: Int) {
+            scaleValue.text = String.format(java.util.Locale.US, "%.2f", progress / 100f + 0.60f)
+        }
+        spacingSeek.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) = updateSpacingLabel(progress)
+            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
         })
-        val scaleInput = android.widget.EditText(this).apply {
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
-            setSingleLine(true)
-            setText(store.getFloat(scaleKey, 0.90f).toString())
-            hint = "0.60 ～ 1.20"
+        scaleSeek.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) = updateScaleLabel(progress)
+            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
+        })
+        updateSpacingLabel(spacingSeek.progress)
+        updateScaleLabel(scaleSeek.progress)
+        fun refreshScale() {
+            scaleSeek.isEnabled = transformSwitch.isChecked
+            scaleValue.alpha = if (transformSwitch.isChecked) 1f else 0.4f
+            scaleSeek.alpha = if (transformSwitch.isChecked) 1f else 0.4f
         }
-        panel.addView(scaleInput)
-        fun refreshScaleEnabled() {
-            scaleInput.isEnabled = transformSwitch.isChecked
-            scaleInput.alpha = if (transformSwitch.isChecked) 1f else 0.45f
+        transformSwitch.setOnCheckedChangeListener { _, _ -> refreshScale() }
+        refreshScale()
+        val scroll = android.widget.ScrollView(this).apply {
+            addView(panel)
         }
-        transformSwitch.setOnCheckedChangeListener { _, _ -> refreshScaleEnabled() }
-        refreshScaleEnabled()
         val dialog = AlertDialog.Builder(this)
             .setTitle(rowTitle)
-            .setView(panel)
+            .setView(scroll)
             .setNegativeButton("取消", null)
-            .setPositiveButton("应用", null)
+            .setNeutralButton("恢复本行默认", null)
+            .setPositiveButton("保存设置", null)
             .create()
         dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                spacingSeek.progress = 16
+                transformSwitch.isChecked = false
+                scaleSeek.progress = 30
+            }
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val spacing = spacingInput.text.toString().trim().toFloatOrNull()
-                val scale = scaleInput.text.toString().trim().toFloatOrNull()
-                if (spacing == null || spacing !in -0.20f..0.20f) {
-                    spacingInput.error = "请输入 -0.20～0.20"
-                    return@setOnClickListener
-                }
-                if (scale == null || scale !in 0.60f..1.20f) {
-                    scaleInput.error = "请输入 0.60～1.20"
-                    return@setOnClickListener
-                }
+                val spacing = spacingSeek.progress / 100f - 0.20f
+                val scale = scaleSeek.progress / 100f + 0.60f
                 store.edit()
                     .putFloat(spacingKey, spacing)
                     .putBoolean(enabledKey, transformSwitch.isChecked)
