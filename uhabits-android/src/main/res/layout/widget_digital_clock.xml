@@ -13,8 +13,7 @@
     <TextClock
         android:id="@+id/digital_clock_time"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1.15"
+        android:layout_height="48dp"
         android:gravity="center"
         android:includeFontPadding="false"
         android:format12Hour="h"
@@ -26,8 +25,7 @@
     <TextClock
         android:id="@+id/digital_clock_minute"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1.15"
+        android:layout_height="48dp"
         android:gravity="center"
         android:includeFontPadding="false"
         android:format12Hour="mm"
@@ -39,8 +37,7 @@
     <TextClock
         android:id="@+id/digital_clock_date"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="0.65"
+        android:layout_height="27dp"
         android:gravity="center"
         android:includeFontPadding="false"
         android:format12Hour="M月d日  EEEE"
@@ -52,11 +49,9 @@
     <LinearLayout
         android:id="@+id/digital_clock_shortcut_row"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="0.9"
+        android:layout_height="37dp"
         android:orientation="horizontal"
-        android:gravity="center"
-        android:weightSum="8">
+        android:gravity="center">
         <LinearLayout
             android:id="@+id/digital_clock_shortcut1"
             android:layout_width="0dp"
