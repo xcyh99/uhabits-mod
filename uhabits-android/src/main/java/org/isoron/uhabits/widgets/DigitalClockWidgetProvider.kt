@@ -72,7 +72,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             views.setInt(R.id.digital_clock_widget_root, "setBackgroundColor", Color.argb(alpha, Color.red(bg), Color.green(bg), Color.blue(bg)))
             if (android.os.Build.VERSION.SDK_INT >= 31) {
                 val options = manager.getAppWidgetOptions(widgetId)
-                val totalDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 180).coerceAtLeast(100)
+                val totalDp = (options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 180) - 15).coerceAtLeast(60)
                 val totalPx = (totalDp * context.resources.displayMetrics.density).toInt()
                 val shortcutCount = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
                 val weights = mutableListOf(
