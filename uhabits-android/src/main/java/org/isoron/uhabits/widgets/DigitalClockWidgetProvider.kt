@@ -90,6 +90,16 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             }
             val count = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
             views.setViewVisibility(R.id.digital_clock_shortcut_row, if (count == 0) android.view.View.GONE else android.view.View.VISIBLE)
+            if (android.os.Build.VERSION.SDK_INT >= 31 && count > 0) {
+                val options = manager.getAppWidgetOptions(widgetId)
+                val widthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 110).coerceAtLeast(80)
+                val iconDp = ((widthDp / count) - 6).coerceIn(12, 32)
+                val iconPx = (iconDp * context.resources.displayMetrics.density).toInt()
+                icons.forEach { iconId ->
+                    views.setViewLayoutWidth(iconId, iconPx)
+                    views.setViewLayoutHeight(iconId, iconPx)
+                }
+            }
             for (i in containers.indices) {
                 val container = containers[i]
                 if (i >= count) {

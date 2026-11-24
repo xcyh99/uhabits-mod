@@ -62,8 +62,8 @@
             android:padding="2dp">
             <ImageView
                 android:id="@+id/digital_clock_shortcut1_icon"
-                android:layout_width="23dp"
-                android:layout_height="23dp"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
                 android:src="@android:drawable/ic_menu_view"
                 android:contentDescription="快捷方式1"
                 android:tint="#FFFFFFFF" />
