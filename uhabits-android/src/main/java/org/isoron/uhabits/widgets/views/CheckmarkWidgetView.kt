@@ -37,7 +37,10 @@ import org.isoron.uhabits.core.models.Entry.Companion.SKIP
 import org.isoron.uhabits.core.models.Entry.Companion.UNKNOWN
 import org.isoron.uhabits.core.models.Entry.Companion.YES_AUTO
 import org.isoron.uhabits.core.models.Entry.Companion.YES_MANUAL
-import org.isoron.uhabits.core.preferences.Preferences\nimport org.isoron.uhabits.core.preferences.WhiteOutlineTarget
+import org.isoron.uhabits.core.preferences.Preferences
+import org.isoron.uhabits.core.preferences.WhiteOutlineTarget
+import org.isoron.uhabits.core.preferences.WhiteOutlineSettings
+import org.isoron.uhabits.core.preferences.WhiteOutlineSettings
 import org.isoron.uhabits.core.ui.ThemeSwitcher
 import org.isoron.uhabits.core.ui.views.ColorOutline
 import org.isoron.uhabits.inject.HabitsApplicationComponent
@@ -131,9 +134,12 @@ class CheckmarkWidgetView : HabitWidgetView {
         }
         notesIndicatorColor = fgColor
         val isCompleted = entryState == YES_MANUAL || entryState == YES_AUTO
+        val outline = preferences?.getWhiteOutlineSettings(WhiteOutlineTarget.WIDGET_CHECKMARK)
+            ?: WhiteOutlineSettings(0.008, 0.2)
         cardOutlineEnabled = isCompleted && ColorOutline.shouldUseLightOutline(
             Color.luminance(res.getColor(R.attr.cardBgColor)).toDouble(),
-            Color.luminance(activeColor).toDouble()
+            Color.luminance(activeColor).toDouble(),
+            outline.threshold
         )
         ring.setPercentage(percentage)
         ring.setColor(fgColor)
@@ -152,7 +158,8 @@ class CheckmarkWidgetView : HabitWidgetView {
     override fun dispatchDraw(canvas: Canvas) {
         super.dispatchDraw(canvas)
         if (cardOutlineEnabled && frame != null) {
-            val halfStroke = dpToPixels(context, 0.1f)
+            val outlineWidth = preferences?.getWhiteOutlineSettings(WhiteOutlineTarget.WIDGET_CHECKMARK)?.width ?: 0.2
+            val halfStroke = dpToPixels(context, outlineWidth.toFloat() / 2f)
             cardOutlineRect.set(
                 frame!!.left + halfStroke,
                 frame!!.top + halfStroke,
