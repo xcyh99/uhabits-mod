@@ -25,7 +25,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
     private val slots = listOf(
         Slot("time", "时间区域", "点击桌面时间后打开"),
         Slot("date", "日期星期区域", "点击日期或星期后打开")
-    ) + (1..8).map { Slot("shortcut$it", "快捷入口$it", "底部第$it个位置") }
+    ) + (1..8).map { Slot("shortcut$it", "快捷入口$it", "底部第${it}个位置") }
     private data class Slot(val key: String, val title: String, val hint: String)
 
     override fun onCreate(savedInstanceState: Bundle?) {
