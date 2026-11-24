@@ -357,27 +357,9 @@ class DesktopShortcutActivity : AppCompatActivity() {
         val moved = updated.removeAt(from)
         updated.add(to, moved)
         saveShortcuts(updated)
-        updatePinnedRanks(updated)
+        // This order is the management-list order. The launcher's physical icon
+        // placement remains user-controlled by Android.
         showShortcutManager()
-    }
-
-    private fun updatePinnedRanks(entries: List<ShortcutEntry>) {
-        val manager = getSystemService(ShortcutManager::class.java) ?: return
-        val pinnedIds = manager.pinnedShortcuts.map { it.id }.toSet()
-        val updates = entries.filter { it.id in pinnedIds }.mapIndexed { rank, entry ->
-            val launchIntent = Intent(this, org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java).apply {
-                action = ACTION_OPEN_DESKTOP_SHORTCUT
-                putExtra(EXTRA_TARGET, entry.targetKey)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            }
-            ShortcutInfo.Builder(this, entry.id)
-                .setShortLabel(entry.name.take(25))
-                .setLongLabel(entry.name.take(40))
-                .setRank(rank)
-                .setIntent(launchIntent)
-                .build()
-        }
-        if (updates.isNotEmpty()) manager.updateShortcuts(updates)
     }
 
     private fun buildIcon(): Bitmap {
