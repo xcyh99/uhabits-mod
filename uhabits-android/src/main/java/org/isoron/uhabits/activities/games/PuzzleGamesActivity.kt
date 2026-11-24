@@ -288,6 +288,13 @@ class PuzzleGamesActivity : AppCompatActivity() {
 
         private fun reveal(r: Int, col: Int) {
             if (r !in 0..8 || col !in 0..8 || opened[r][col] || flags[r][col] || mineOver) return
+            // Guarantee a safe first move, as in the classic rules.
+            if (mines[r][col] && opened.all { row -> row.none { it } }) {
+                mines[r][col] = false
+                var replacement: Int
+                do { replacement = Random.nextInt(81) } while (mines[replacement / 9][replacement % 9] || (replacement / 9 == r && replacement % 9 == col))
+                mines[replacement / 9][replacement % 9] = true
+            }
             opened[r][col] = true
             if (mines[r][col]) { mineOver = true; playTone(ToneGenerator.TONE_PROP_NACK); return }
             playTone(ToneGenerator.TONE_PROP_BEEP)
@@ -405,7 +412,22 @@ class PuzzleGamesActivity : AppCompatActivity() {
                 c.drawCircle(x, height*.22f+(i%2)*28f, 20f, paint(Color.WHITE))
                 c.drawCircle(x+18,height*.22f+(i%2)*28f,15f,paint(Color.WHITE))
             }
+            // Distant city and rounded green tree line, all procedurally drawn.
+            val skyline = intArrayOf(52, 76, 60, 92, 66, 82, 55)
+            skyline.forEachIndexed { i, h ->
+                val x = i * width / skyline.size.toFloat()
+                val top = height * .78f - h
+                c.drawRect(x, top, x + width / skyline.size.toFloat() + 2, height * .88f, paint(Color.rgb(100, 177, 211)))
+                for (row in 0..2) for (col in 0..1) {
+                    c.drawRect(x + 8 + col * 15, top + 12 + row * 17, x + 15 + col * 15, top + 21 + row * 17, paint(Color.rgb(191, 226, 226)))
+                }
+            }
+            for(i in 0..9) {
+                val x=i*width/9f
+                c.drawCircle(x,height*.86f,26f,paint(if(i%2==0) Color.rgb(75,190,104) else Color.rgb(63,174,96)))
+            }
             c.drawRect(0f,height*.88f,width.toFloat(),height.toFloat(),paint(Color.rgb(91,190,100)))
+            c.drawRect(0f,height*.94f,width.toFloat(),height.toFloat(),paint(Color.rgb(183,133,79)))
             val pipeW=width*.15f; val gap=height*.25f
             pipes.forEach { pipe ->
                 val x=pipe.x
