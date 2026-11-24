@@ -70,34 +70,41 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             val bg = prefs.getInt("digital_clock_bg_color", Color.rgb(35, 45, 60))
             val alpha = prefs.getInt("digital_clock_bg_alpha", 90).coerceIn(0, 100) * 255 / 100
             views.setInt(R.id.digital_clock_widget_root, "setBackgroundColor", Color.argb(alpha, Color.red(bg), Color.green(bg), Color.blue(bg)))
+            val shortcutCount = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
+            val rowIds = intArrayOf(
+                R.id.digital_clock_time,
+                R.id.digital_clock_minute,
+                R.id.digital_clock_date,
+                R.id.digital_clock_shortcut_row
+            )
+            val heights = intArrayOf(
+                prefs.getInt("digital_clock_hour_height", 48),
+                prefs.getInt("digital_clock_minute_height", 48),
+                prefs.getInt("digital_clock_date_height", 27),
+                prefs.getInt("digital_clock_shortcut_height", 37)
+            ).map { it.coerceAtLeast(0) }
+            rowIds.forEachIndexed { index, viewId ->
+                val rowHeight = heights[index]
+                views.setViewVisibility(viewId, if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE else android.view.View.VISIBLE)
+                if (android.os.Build.VERSION.SDK_INT >= 31) {
+                    views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
+                } else {
+                    val heightPx = (rowHeight * context.resources.displayMetrics.density).toInt()
+                    if (index < 3) {
+                        // TextClock extends TextView; setHeight applies an exact pixel height.
+                        views.setInt(viewId, "setHeight", heightPx)
+                    } else {
+                        // On legacy RemoteViews, LinearLayout exposes minimum height but not
+                        // the API-31 layout-height action. The row may remain content-limited.
+                        views.setInt(viewId, "setMinimumHeight", heightPx)
+                    }
+                }
+            }
             if (android.os.Build.VERSION.SDK_INT >= 31) {
                 val totalDp = readAvailableContentHeight(manager, widgetId)
                 if (totalDp != null && totalDp > 0) {
-                    val shortcutCount = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
-                    val rowIds = intArrayOf(
-                        R.id.digital_clock_time,
-                        R.id.digital_clock_minute,
-                        R.id.digital_clock_date,
-                        R.id.digital_clock_shortcut_row
-                    )
-                    val gapIds = intArrayOf(
-                        R.id.digital_clock_gap1,
-                        R.id.digital_clock_gap2,
-                        R.id.digital_clock_gap3
-                    )
-                    val heights = intArrayOf(
-                        prefs.getInt("digital_clock_hour_height", 48),
-                        prefs.getInt("digital_clock_minute_height", 48),
-                        prefs.getInt("digital_clock_date_height", 27),
-                        if (shortcutCount > 0) prefs.getInt("digital_clock_shortcut_height", 37) else 0
-                    ).map { it.coerceAtLeast(0) }
-                    val sum = heights.sum()
-                    val gap = if (sum <= totalDp) (totalDp - sum) / 3f else 0f
-                    rowIds.forEachIndexed { index, viewId ->
-                        val rowHeight = heights[index]
-                        views.setViewVisibility(viewId, if (rowHeight == 0) android.view.View.GONE else android.view.View.VISIBLE)
-                        views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
-                    }
+                    val gapIds = intArrayOf(R.id.digital_clock_gap1, R.id.digital_clock_gap2, R.id.digital_clock_gap3)
+                    val gap = ((totalDp - heights.sum()).coerceAtLeast(0) / 3f)
                     gapIds.forEach { gapId ->
                         views.setViewVisibility(gapId, if (gap > 0f) android.view.View.VISIBLE else android.view.View.GONE)
                         views.setViewLayoutHeight(gapId, gap, android.util.TypedValue.COMPLEX_UNIT_DIP)

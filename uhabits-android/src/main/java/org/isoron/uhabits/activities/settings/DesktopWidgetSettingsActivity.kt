@@ -314,186 +314,70 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             }.setNegativeButton("取消", null).show()
     }
 
-    /**
-     * Read legacy AppWidgetOptions dimension bounds for diagnosis on API < 31.
-     * These are bounds supplied by the launcher, not guaranteed current dimensions.
-     */
-    private fun readLegacyWidgetDimensionReport(): List<String> {
-        val manager = AppWidgetManager.getInstance(this)
-        val ids = manager.getAppWidgetIds(ComponentName(this, DigitalClockWidgetProvider::class.java))
-        if (ids.isEmpty()) return listOf("尚未找到桌面上的数字时钟组件。")
-        return ids.mapIndexed { index, id ->
-            val options = manager.getAppWidgetOptions(id)
-            val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
-            val maxHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
-            val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
-            val maxWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 0)
-            val values = mutableListOf<String>()
-            if (minHeight > 0) values += "最小高度 ${minHeight}dp"
-            if (maxHeight > 0) values += "最大高度 ${maxHeight}dp"
-            if (minWidth > 0) values += "最小宽度 ${minWidth}dp"
-            if (maxWidth > 0) values += "最大宽度 ${maxWidth}dp"
-            "组件${index + 1}：" + if (values.isEmpty()) "桌面未提供尺寸范围" else values.joinToString("；")
-        }
-    }
-
-    /**
-     * The launcher owns the widget container size. Use only dimensions explicitly
-     * advertised by AppWidgetOptions; never invent a fallback maximum.
-     */
-    private fun readAvailableWidgetContentHeight(): Int? {
-        val manager = AppWidgetManager.getInstance(this)
-        val ids = manager.getAppWidgetIds(ComponentName(this, DigitalClockWidgetProvider::class.java))
-        if (ids.isEmpty()) return null
-        val heights = ids.asIterable().mapNotNull { id ->
-            val options = manager.getAppWidgetOptions(id)
-            val maxHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
-            @Suppress("DEPRECATION")
-            val sizes = if (android.os.Build.VERSION.SDK_INT >= 31) {
-                options.getParcelableArrayList<android.util.SizeF>(AppWidgetManager.OPTION_APPWIDGET_SIZES)
-            } else null
-            val advertisedHeight = maxHeight.takeIf { it > 0 }
-                ?: sizes?.maxOfOrNull { it.height.toInt() }?.takeIf { it > 0 }
-            advertisedHeight?.minus(15)?.coerceAtLeast(0)
-        }
-        // Settings are shared by all clock widgets; use the smallest advertised
-        // content height so one setting does not overflow a smaller instance.
-        return heights.minOrNull()
-    }
-
     private fun showRowSettings() {
-        if (android.os.Build.VERSION.SDK_INT < 31) {
-            val report = readLegacyWidgetDimensionReport()
-            val hasDimensions = report.any { it.contains("最小高度") || it.contains("最大高度") }
-            val message = if (hasDimensions) {
-                "已读取到桌面提供的组件尺寸范围：\\n\\n$report\\n" +
-                    "注意：这些是桌面提供的尺寸边界，不一定等于组件当前实际高度。当前系统低于 Android 12，尚不能通过 RemoteViews 安全地逐行修改布局高度，因此这一步先只检测、不开放滑块。"
-            } else {
-                "当前桌面没有向 APP 提供可识别的组件高度范围。\\n\\n" +
-                    "当前系统低于 Android 12，无法使用逐行动态高度接口。我们先记录桌面尺寸信息，再研究兼容方案，不用猜测数值代替真实高度。"
-            }
-            AlertDialog.Builder(this)
-                .setTitle(if (hasDimensions) "已读取桌面尺寸信息" else "暂未读取到桌面尺寸")
-                .setMessage(message)
-                .setPositiveButton("知道了", null)
-                .show()
-            return
-        }
-        val availableHeight = readAvailableWidgetContentHeight()
-        if (availableHeight == null || availableHeight <= 0) {
-            AlertDialog.Builder(this)
-                .setTitle("暂时无法获取桌面高度")
-                .setMessage("请先把数字时钟组件添加到桌面，再重新打开此设置。如果鸿蒙桌面没有向组件提供尺寸信息，APP不会用猜测数值代替。")
-                .setPositiveButton("重新检测") { _, _ -> showRowSettings() }
-                .setNegativeButton("关闭", null)
-                .show()
-            return
-        }
-
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(8), dp(20), dp(4))
         }
-        val info = TextView(this).apply {
-            text = "桌面提供的组件高度上限已自动读取。扣除组件上下内边距后，四行可分配高度为 $availableHeight dp。四个滑块均从 0 到 $availableHeight dp。"
+        panel.addView(TextView(this).apply {
+            text = "分别填写四行的高度，单位 dp，只接受整数。输入值会原样保存；桌面实际显示还受组件容器和系统控件内容限制。"
             textSize = 13f
             setTextColor(resolveSecondaryText())
             setPadding(0, 0, 0, dp(12))
-        }
-        panel.addView(info)
+        })
         val rowSpecs = listOf(
-            Triple("第一行 · 小时", "digital_clock_hour_height", 48),
-            Triple("第二行 · 分钟", "digital_clock_minute_height", 48),
-            Triple("第三行 · 日期星期", "digital_clock_date_height", 27),
-            Triple("第四行 · 快捷入口", "digital_clock_shortcut_height", 37)
+            Triple("第一行 · 小时", KEY_HOUR_HEIGHT, 48),
+            Triple("第二行 · 分钟", KEY_MINUTE_HEIGHT, 48),
+            Triple("第三行 · 日期星期", KEY_DATE_HEIGHT, 27),
+            Triple("第四行 · 快捷入口", KEY_SHORTCUT_HEIGHT, 37)
         )
-        val bars = mutableListOf<android.widget.SeekBar>()
-        val valueLabels = mutableListOf<TextView>()
-        rowSpecs.forEach { (label, prefKey, defaultValue) ->
+        val inputs = rowSpecs.map { (label, prefKey, defaultValue) ->
             val line = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(0, dp(5), 0, dp(5))
             }
-            val name = TextView(this).apply {
+            line.addView(TextView(this).apply {
                 text = label
                 textSize = 14f
                 setTextColor(resolvePrimaryText())
+            }, LinearLayout.LayoutParams(0, -2, 1f))
+            val input = android.widget.EditText(this).apply {
+                inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                setSingleLine(true)
+                setEms(5)
+                gravity = android.view.Gravity.CENTER
+                hint = "整数 dp"
+                setText(store.getInt(prefKey, defaultValue).toString())
             }
-            val value = TextView(this).apply {
-                textSize = 14f
-                setTextColor(resolvePrimaryText())
-                gravity = android.view.Gravity.END
-                minWidth = dp(58)
-            }
-            line.addView(name, LinearLayout.LayoutParams(0, -2, 1f))
-            line.addView(value, LinearLayout.LayoutParams(-2, -2))
+            line.addView(input, LinearLayout.LayoutParams(dp(100), -2))
             panel.addView(line)
-            val seek = android.widget.SeekBar(this).apply {
-                max = availableHeight
-                progress = store.getInt(prefKey, defaultValue).coerceIn(0, availableHeight)
-            }
-            panel.addView(seek, LinearLayout.LayoutParams(-1, -2).apply {
-                bottomMargin = dp(7)
-            })
-            bars += seek
-            valueLabels += value
+            input
         }
-        val summary = TextView(this).apply {
-            textSize = 14f
-            setPadding(0, dp(8), 0, dp(4))
-        }
-        val warning = TextView(this).apply {
-            textSize = 13f
-            setPadding(0, dp(2), 0, dp(4))
-        }
-        panel.addView(summary)
-        panel.addView(warning)
-
-        fun updateSummary() {
-            val sum = bars.sumOf { it.progress }
-            val remaining = availableHeight - sum
-            bars.forEachIndexed { index, bar -> valueLabels[index].text = "${bar.progress} dp" }
-            if (remaining >= 0) {
-                summary.text = "四行合计：$sum dp    剩余：$remaining dp    每个间隔：${"%.2f".format(remaining / 3.0)} dp"
-                summary.setTextColor(0xFF25834D.toInt())
-                warning.text = "空间充足：剩余空间平均分配到三个间隔。"
-                warning.setTextColor(0xFF25834D.toInt())
-            } else {
-                summary.text = "四行合计：$sum dp    超出：${-remaining} dp"
-                summary.setTextColor(Color.RED)
-                warning.text = "高度不足！请增加桌面组件高度，或调低某一行高度。"
-                warning.setTextColor(Color.RED)
-            }
-        }
-        bars.forEach { bar ->
-            bar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) = updateSummary()
-                override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) = Unit
-                override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) = Unit
-            })
-        }
-        updateSummary()
-
         val dialog = AlertDialog.Builder(this)
-            .setTitle("四行高度与自动间距")
+            .setTitle("四行高度（整数输入）")
             .setView(panel)
-            .setNegativeButton("关闭", null)
+            .setNegativeButton("取消", null)
             .setPositiveButton("应用", null)
             .create()
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val sum = bars.sumOf { it.progress }
-                if (sum > availableHeight) {
-                    Toast.makeText(this, "四行高度超过桌面可用高度，请先调整。", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
+                val values = inputs.mapIndexed { index, input ->
+                    input.text.toString().trim().toIntOrNull().also { value ->
+                        if (value == null || value !in 0..2000) {
+                            input.error = "请输入 0～2000 的整数 dp"
+                        }
+                    }
                 }
+                if (values.any { it == null }) return@setOnClickListener
                 rowSpecs.forEachIndexed { index, spec ->
-                    store.edit().putInt(spec.second, bars[index].progress).apply()
+                    store.edit().putInt(spec.second, values[index]!!).apply()
                 }
                 updateWidget()
                 dialog.dismiss()
+                Toast.makeText(this, "四行高度已保存", Toast.LENGTH_SHORT).show()
             }
         }
         dialog.show()
