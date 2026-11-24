@@ -13,13 +13,13 @@
     <FrameLayout
         android:id="@+id/digital_clock_time_clip"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="48dp"
         android:clipChildren="true"
         android:clipToPadding="true">
         <TextClock
             android:id="@+id/digital_clock_time"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_gravity="top|center_horizontal"
             android:gravity="center"
             android:includeFontPadding="false"
@@ -37,13 +37,13 @@
     <FrameLayout
         android:id="@+id/digital_clock_minute_clip"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="48dp"
         android:clipChildren="true"
         android:clipToPadding="true">
         <TextClock
             android:id="@+id/digital_clock_minute"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_gravity="top|center_horizontal"
             android:gravity="center"
             android:includeFontPadding="false"
@@ -61,13 +61,13 @@
     <FrameLayout
         android:id="@+id/digital_clock_date_clip"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="27dp"
         android:clipChildren="true"
         android:clipToPadding="true">
         <TextClock
             android:id="@+id/digital_clock_date"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_gravity="top|center_horizontal"
             android:gravity="center"
             android:includeFontPadding="false"
