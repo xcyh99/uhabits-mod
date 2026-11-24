@@ -229,6 +229,13 @@ class ListHabitsMenu(
                         }
                         entry.first == "timeRecords" ->
                             activity.startActivity(Intent(activity, TimeRecordsActivity::class.java))
+                        entry.first == "__feature_center" ->
+                            activity.startActivity(
+                                Intent(activity, SettingsActivity::class.java)
+                                    .putExtra("open_feature_center", true)
+                            )
+                        entry.first == "__settings" ->
+                            activity.startActivity(Intent(activity, SettingsActivity::class.java))
                         else -> activity.startActivity(
                             Intent(activity, SettingsActivity::class.java)
                                 .putExtra("open_preference_key", entry.first)
