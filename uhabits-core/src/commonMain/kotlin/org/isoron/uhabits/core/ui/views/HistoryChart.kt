@@ -31,7 +31,6 @@ import org.isoron.uhabits.core.ui.views.DarkTheme
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.pow
 import kotlin.math.round
 
 interface OnDateClickedListener {
@@ -302,25 +301,15 @@ class HistoryChart(
         // A larger white preference weight makes white text appear more often.
         // Keep the existing handling for transparent cards and other square states.
         val textColor = if (value == Square.ON) {
-            val luminance = fun(channel: Double): Double {
-                return if (channel <= 0.04045) channel / 12.92
-                else ((channel + 0.055) / 1.055).pow(2.4)
-            }
-            // Measure the completed check-in square color, not the card background.
-            val checkInColorLuminance =
-                0.2126 * luminance(squareColor.red) +
-                0.7152 * luminance(squareColor.green) +
-                0.0722 * luminance(squareColor.blue)
-            val whiteContrast = 1.05 / (checkInColorLuminance + 0.05)
-            val blackContrast = (checkInColorLuminance + 0.05) / 0.05
-            val safeWhitePreferenceWeight = whitePreferenceWeight.takeIf {
-                !it.isNaN() && !it.isInfinite() && it >= 0.1 && it <= 100.0
-            } ?: 6.6
-            if (blackContrast / whiteContrast <= safeWhitePreferenceWeight) {
-                Color.WHITE
-            } else {
-                Color.BLACK
-            }
+            // Completed squares use the shared weighted contrast rule against
+            // the actual habit check-in color. Other states keep their old logic.
+            if (WeightedTextColor.shouldUseWhiteText(
+                    squareColor.red,
+                    squareColor.green,
+                    squareColor.blue,
+                    whitePreferenceWeight
+                )
+            ) Color.WHITE else Color.BLACK
         } else if (theme.cardBackgroundColor == Color.TRANSPARENT) {
             theme.highContrastTextColor
         } else {
