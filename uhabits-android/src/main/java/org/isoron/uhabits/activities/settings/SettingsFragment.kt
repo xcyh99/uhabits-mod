@@ -252,12 +252,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             "parameterEmergencyReset" -> {
                 AlertDialog.Builder(requireContext())
                     .setTitle("参数紧急恢复")
-                    .setMessage("将参数中心全部恢复为安全默认值：两个白色数字权重恢复为 6.6，五类组件的白边阈值和宽度恢复为默认值。此操作不会删除或修改习惯、打卡记录和时间记录。")
+                    .setMessage("将参数中心全部恢复为安全默认值：两个白色数字权重恢复为 6.6，六类组件的白边阈值和宽度恢复为默认值。此操作不会删除或修改习惯、打卡记录和时间记录。")
                     .setNegativeButton("取消", null)
                     .setPositiveButton("确认恢复") { _, _ ->
                         prefs.restoreParameterDefaults()
                         widgetUpdater?.updateWidgets()
-                        Toast.makeText(requireContext(), "参数已恢复为安全默认值（权重和五类白边均已恢复）", Toast.LENGTH_LONG).show()
+                        Toast.makeText(requireContext(), "参数已恢复为安全默认值（权重和六类白边均已恢复）", Toast.LENGTH_LONG).show()
                     }
                     .show()
                 return true
@@ -380,37 +380,77 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     private fun showParameterCenter() {
         AlertDialog.Builder(requireContext())
             .setTitle("参数中心")
-            .setItems(arrayOf("历史组件白色数字权重", "标记组件白色数字权重", "白边参数")) { _, which ->
+            .setItems(arrayOf("白色数字权重", "白边参数")) { _, which ->
                 when (which) {
-                    0 -> showHistoryWhiteWeightSetting()
-                    1 -> showCheckmarkWhiteWeightSetting()
-                    2 -> showWhiteOutlineTargets()
+                    0 -> showWhiteTextWeightTargets()
+                    1 -> showWhiteOutlineTargets()
                 }
             }
             .setNegativeButton("关闭", null)
             .show()
     }
 
+    private fun showWhiteTextWeightTargets() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("白色数字权重")
+            .setItems(arrayOf("历史组件白色数字权重", "标记组件白色数字权重")) { _, which ->
+                when (which) {
+                    0 -> showHistoryWhiteWeightSetting()
+                    1 -> showCheckmarkWhiteWeightSetting()
+                }
+            }
+            .setNegativeButton("返回", null)
+            .show()
+    }
+
+    /** White-outline settings are grouped by where they appear in the app. */
     private fun showWhiteOutlineTargets() {
-        val targets = WhiteOutlineTarget.values()
         AlertDialog.Builder(requireContext())
             .setTitle("白边参数")
-            .setItems(targets.map { it.displayName }.toTypedArray()) { _, which ->
-                showWhiteOutlineSetting(targets[which])
+            .setItems(arrayOf("APP", "桌面组件")) { _, which ->
+                if (which == 0) {
+                    showWhiteOutlineGroup(
+                        "APP 白边参数",
+                        listOf(
+                            WhiteOutlineTarget.APP_CALENDAR,
+                            WhiteOutlineTarget.APP_CHART,
+                            WhiteOutlineTarget.APP_CHECKMARK
+                        )
+                    )
+                } else {
+                    showWhiteOutlineGroup(
+                        "桌面组件白边参数",
+                        listOf(
+                            WhiteOutlineTarget.WIDGET_CALENDAR,
+                            WhiteOutlineTarget.WIDGET_CHECKMARK,
+                            WhiteOutlineTarget.WIDGET_OTHER
+                        )
+                    )
+                }
             }
             .setNeutralButton("全部恢复默认") { _, _ ->
                 AlertDialog.Builder(requireContext())
                     .setTitle("恢复全部白边参数")
-                    .setMessage("五类组件的白边阈值和宽度都将恢复到原始默认值。")
+                    .setMessage("六类白边参数的触发阈值和宽度都将恢复为默认值。")
                     .setNegativeButton("取消", null)
                     .setPositiveButton("确认恢复") { _, _ ->
                         prefs.restoreAllWhiteOutlineDefaults()
                         widgetUpdater?.updateWidgets()
-                        Toast.makeText(requireContext(), "五类白边参数已恢复默认", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), "六类白边参数已恢复默认", Toast.LENGTH_SHORT).show()
                     }
                     .show()
             }
             .setNegativeButton("关闭", null)
+            .show()
+    }
+
+    private fun showWhiteOutlineGroup(title: String, targets: List<WhiteOutlineTarget>) {
+        AlertDialog.Builder(requireContext())
+            .setTitle(title)
+            .setItems(targets.map { it.displayName }.toTypedArray()) { _, which ->
+                showWhiteOutlineSetting(targets[which])
+            }
+            .setNegativeButton("返回", null)
             .show()
     }
 
