@@ -214,17 +214,77 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             val component = ComponentName(info.activityInfo.packageName, info.activityInfo.name)
             options += "app:${component.flattenToString()}" to "手机应用 · ${info.loadLabel(pm)}"
         }
-        val labels = options.map { it.second }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle("设置${slot.title}的点击目标")
-            .setItems(labels) { _, which ->
-                store.edit().putString(key(slot.key), options[which].first).apply()
-                updateWidget()
-                render()
+
+        // Every clickable slot shares this searchable target picker.
+        val filtered = options.toMutableList()
+        val search = android.widget.EditText(this).apply {
+            hint = "搜索程序或功能"
+            singleLine = true
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            setPadding(dp(14), dp(10), dp(14), dp(10))
+        }
+        val list = android.widget.ListView(this).apply {
+            dividerHeight = dp(1)
+            isTextFilterEnabled = false
+        }
+        val empty = TextView(this).apply {
+            text = "没有找到匹配的程序或功能"
+            textSize = 14f
+            gravity = android.view.Gravity.CENTER
+            setTextColor(resolveSecondaryText())
+            visibility = android.view.View.GONE
+        }
+        val adapter = object : android.widget.BaseAdapter() {
+            override fun getCount() = filtered.size
+            override fun getItem(position: Int) = filtered[position]
+            override fun getItemId(position: Int) = position.toLong()
+            override fun getView(position: Int, convertView: android.view.View?, parent: android.view.ViewGroup): android.view.View {
+                val row = (convertView as? TextView) ?: TextView(this@DesktopWidgetSettingsActivity).apply {
+                    textSize = 15f
+                    setTextColor(resolvePrimaryText())
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    setPadding(dp(16), dp(13), dp(16), dp(13))
+                    minHeight = dp(48)
+                }
+                row.text = getItem(position).second
+                return row
             }
+        }
+        list.adapter = adapter
+        list.emptyView = empty
+        search.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s?.toString()?.trim()?.lowercase().orEmpty()
+                filtered.clear()
+                filtered.addAll(if (query.isEmpty()) options else options.filter { it.second.lowercase().contains(query) })
+                adapter.notifyDataSetChanged()
+            }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(4), dp(12), dp(4))
+            addView(search, LinearLayout.LayoutParams(-1, -2))
+            addView(list, LinearLayout.LayoutParams(-1, dp(360)))
+            addView(empty, LinearLayout.LayoutParams(-1, dp(360)))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("设置${slot.title}的点击目标")
+            .setView(content)
             .setNegativeButton("取消", null)
-            .show()
+            .create()
+        list.setOnItemClickListener { _, _, position, _ ->
+            val selected = filtered[position]
+            store.edit().putString(key(slot.key), selected.first).apply()
+            updateWidget()
+            dialog.dismiss()
+            render()
+        }
+        dialog.show()
     }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun targetLabel(value: String): String {
         if (value == "none") return "不设置"
