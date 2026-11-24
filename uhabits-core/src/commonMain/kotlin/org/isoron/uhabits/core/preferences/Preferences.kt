@@ -232,6 +232,93 @@ open class Preferences(private val storage: Storage) {
         set(version) {
             storage.putInt("last_version", version)
         }
+    /** White-outline settings are stored independently for each rendering surface. */
+    open fun getWhiteOutlineSettings(target: WhiteOutlineTarget): WhiteOutlineSettings {
+        val thresholdKey = "parameter_white_outline_${target.key}_threshold"
+        val widthKey = "parameter_white_outline_${target.key}_width"
+        val previewActive = storage.getBoolean("parameter_white_outline_${target.key}_preview_active", false)
+        val threshold = if (previewActive) {
+            readOutlineValue("parameter_white_outline_${target.key}_preview_threshold", target.defaultThreshold, 0.0001, 0.1)
+        } else readOutlineValue(thresholdKey, target.defaultThreshold, 0.0001, 0.1)
+        val width = if (previewActive) {
+            readOutlineValue("parameter_white_outline_${target.key}_preview_width", target.defaultWidth, 0.05, 2.0)
+        } else readOutlineValue(widthKey, target.defaultWidth, 0.05, 2.0)
+        return WhiteOutlineSettings(threshold, width)
+    }
+
+    open fun setWhiteOutlineSettings(target: WhiteOutlineTarget, settings: WhiteOutlineSettings) {
+        require(settings.threshold.isFinite() && settings.threshold in 0.0001..0.1) { "Threshold must be 0.0001–0.1" }
+        require(settings.width.isFinite() && settings.width in 0.05..2.0) { "Width must be 0.05–2.0 dp" }
+        val old = getWhiteOutlineSettings(target)
+        storage.putString("parameter_white_outline_${target.key}_backup_threshold", old.threshold.toString())
+        storage.putString("parameter_white_outline_${target.key}_backup_width", old.width.toString())
+        storage.putString("parameter_white_outline_${target.key}_threshold", settings.threshold.toString())
+        storage.putString("parameter_white_outline_${target.key}_width", settings.width.toString())
+        clearWhiteOutlinePreview(target)
+    }
+
+    open fun beginWhiteOutlinePreview(target: WhiteOutlineTarget, settings: WhiteOutlineSettings) {
+        require(settings.threshold.isFinite() && settings.threshold in 0.0001..0.1) { "Threshold must be 0.0001–0.1" }
+        require(settings.width.isFinite() && settings.width in 0.05..2.0) { "Width must be 0.05–2.0 dp" }
+        storage.putString("parameter_white_outline_${target.key}_preview_threshold", settings.threshold.toString())
+        storage.putString("parameter_white_outline_${target.key}_preview_width", settings.width.toString())
+        storage.putBoolean("parameter_white_outline_${target.key}_preview_active", true)
+        storage.putBoolean("parameter_white_outline_${target.key}_preview_pending", true)
+    }
+
+    open fun pendingWhiteOutlinePreview(): WhiteOutlineTarget? =
+        WhiteOutlineTarget.values().firstOrNull { storage.getBoolean("parameter_white_outline_${it.key}_preview_pending", false) }
+
+    open fun markWhiteOutlinePreviewHandled(target: WhiteOutlineTarget) {
+        storage.putBoolean("parameter_white_outline_${target.key}_preview_pending", false)
+    }
+
+    open fun saveWhiteOutlinePreview(target: WhiteOutlineTarget): WhiteOutlineSettings {
+        val value = getWhiteOutlineSettings(target)
+        setWhiteOutlineSettings(target, value)
+        return value
+    }
+
+    open fun cancelWhiteOutlinePreview(target: WhiteOutlineTarget): WhiteOutlineSettings {
+        clearWhiteOutlinePreview(target)
+        return getWhiteOutlineSettings(target)
+    }
+
+    open fun restoreWhiteOutlineDefault(target: WhiteOutlineTarget) {
+        storage.putString("parameter_white_outline_${target.key}_threshold", target.defaultThreshold.toString())
+        storage.putString("parameter_white_outline_${target.key}_width", target.defaultWidth.toString())
+        storage.putString("parameter_white_outline_${target.key}_backup_threshold", target.defaultThreshold.toString())
+        storage.putString("parameter_white_outline_${target.key}_backup_width", target.defaultWidth.toString())
+        clearWhiteOutlinePreview(target)
+    }
+
+    open fun restoreAllWhiteOutlineDefaults() {
+        WhiteOutlineTarget.values().forEach { restoreWhiteOutlineDefault(it) }
+    }
+
+    open fun recoverInterruptedWhiteOutlinePreviews(): Boolean {
+        var recovered = false
+        WhiteOutlineTarget.values().forEach {
+            if (storage.getBoolean("parameter_white_outline_${it.key}_preview_active", false)) {
+                clearWhiteOutlinePreview(it)
+                recovered = true
+            }
+        }
+        return recovered
+    }
+
+    private fun clearWhiteOutlinePreview(target: WhiteOutlineTarget) {
+        storage.putBoolean("parameter_white_outline_${target.key}_preview_active", false)
+        storage.putBoolean("parameter_white_outline_${target.key}_preview_pending", false)
+        storage.remove("parameter_white_outline_${target.key}_preview_threshold")
+        storage.remove("parameter_white_outline_${target.key}_preview_width")
+    }
+
+    private fun readOutlineValue(key: String, default: Double, min: Double, max: Double): Double {
+        val value = runCatching { storage.getString(key, "") }.getOrNull()?.toDoubleOrNull()
+        return value?.takeIf { it.isFinite() && it in min..max } ?: default
+    }
+
     open var widgetOpacity: Int
         get() = storage.getString("pref_widget_opacity", "255").toInt()
         set(value) {
@@ -336,6 +423,7 @@ open class Preferences(private val storage: Storage) {
         storage.putString(CHECKMARK_WHITE_WEIGHT_KEY, DEFAULT_CHECKMARK_WHITE_WEIGHT.toString())
         storage.putString(CHECKMARK_WHITE_WEIGHT_BACKUP_KEY, DEFAULT_CHECKMARK_WHITE_WEIGHT.toString())
         clearCheckmarkWhiteWeightPreview()
+        restoreAllWhiteOutlineDefaults()
     }
 
     /** Independent white-text preference for completed checkmark widgets. */
