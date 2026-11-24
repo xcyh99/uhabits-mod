@@ -192,6 +192,7 @@ open class Preferences(private val storage: Storage) {
     companion object {
         const val MIDNIGHT_DELAY_HOURS = 3
         const val DEFAULT_HISTORY_WHITE_WEIGHT = 6.6
+        const val DEFAULT_CHECKMARK_WHITE_WEIGHT = 6.6
         const val MIN_HISTORY_WHITE_WEIGHT = 0.1
         const val MAX_HISTORY_WHITE_WEIGHT = 100.0
         private const val HISTORY_WHITE_WEIGHT_KEY = "parameter_history_white_weight"
@@ -199,6 +200,11 @@ open class Preferences(private val storage: Storage) {
         private const val HISTORY_WHITE_PREVIEW_KEY = "parameter_history_white_weight_preview"
         private const val HISTORY_WHITE_PREVIEW_ACTIVE_KEY = "parameter_history_white_weight_preview_active"
         private const val HISTORY_WHITE_PREVIEW_PENDING_KEY = "parameter_history_white_weight_preview_pending"
+        private const val CHECKMARK_WHITE_WEIGHT_KEY = "parameter_checkmark_white_weight"
+        private const val CHECKMARK_WHITE_WEIGHT_BACKUP_KEY = "parameter_checkmark_white_weight_backup"
+        private const val CHECKMARK_WHITE_PREVIEW_KEY = "parameter_checkmark_white_weight_preview"
+        private const val CHECKMARK_WHITE_PREVIEW_ACTIVE_KEY = "parameter_checkmark_white_weight_preview_active"
+        private const val CHECKMARK_WHITE_PREVIEW_PENDING_KEY = "parameter_checkmark_white_weight_preview_pending"
     }
 
     open fun updateLastHint(number: Int, date: LocalDate) {
@@ -300,6 +306,75 @@ open class Preferences(private val storage: Storage) {
         storage.putString(HISTORY_WHITE_WEIGHT_KEY, DEFAULT_HISTORY_WHITE_WEIGHT.toString())
         storage.putString(HISTORY_WHITE_WEIGHT_BACKUP_KEY, DEFAULT_HISTORY_WHITE_WEIGHT.toString())
         clearHistoryChartWhiteWeightPreview()
+        storage.putString(CHECKMARK_WHITE_WEIGHT_KEY, DEFAULT_CHECKMARK_WHITE_WEIGHT.toString())
+        storage.putString(CHECKMARK_WHITE_WEIGHT_BACKUP_KEY, DEFAULT_CHECKMARK_WHITE_WEIGHT.toString())
+        clearCheckmarkWhiteWeightPreview()
+    }
+
+    /** Independent white-text preference for completed checkmark widgets. */
+    open var committedCheckmarkWhiteWeight: Double
+        get() {
+            val current = readValidParameter(CHECKMARK_WHITE_WEIGHT_KEY)
+            if (current != null) return current
+            val recovered = readValidParameter(CHECKMARK_WHITE_WEIGHT_BACKUP_KEY)
+                ?: DEFAULT_CHECKMARK_WHITE_WEIGHT
+            runCatching { storage.putString(CHECKMARK_WHITE_WEIGHT_KEY, recovered.toString()) }
+            return recovered
+        }
+        set(value) {
+            require(isValidHistoryWhiteWeight(value)) { "Weight must be between 0.1 and 100.0" }
+            val previous = committedCheckmarkWhiteWeight
+            storage.putString(CHECKMARK_WHITE_WEIGHT_BACKUP_KEY, previous.toString())
+            storage.putString(CHECKMARK_WHITE_WEIGHT_KEY, value.toString())
+            clearCheckmarkWhiteWeightPreview()
+        }
+
+    open var checkmarkWhiteWeight: Double
+        get() = checkmarkWhiteWeightPreview ?: committedCheckmarkWhiteWeight
+        set(value) { committedCheckmarkWhiteWeight = value }
+
+    open val checkmarkWhiteWeightPreview: Double?
+        get() = if (storage.getBoolean(CHECKMARK_WHITE_PREVIEW_ACTIVE_KEY, false)) {
+            readValidParameter(CHECKMARK_WHITE_PREVIEW_KEY)
+        } else null
+
+    open val isCheckmarkWhiteWeightPreviewPending: Boolean
+        get() = storage.getBoolean(CHECKMARK_WHITE_PREVIEW_PENDING_KEY, false)
+
+    open fun beginCheckmarkWhiteWeightPreview(value: Double) {
+        require(isValidHistoryWhiteWeight(value)) { "Weight must be between 0.1 and 100.0" }
+        storage.putString(CHECKMARK_WHITE_PREVIEW_KEY, value.toString())
+        storage.putBoolean(CHECKMARK_WHITE_PREVIEW_ACTIVE_KEY, true)
+        storage.putBoolean(CHECKMARK_WHITE_PREVIEW_PENDING_KEY, true)
+    }
+
+    open fun markCheckmarkWhiteWeightPreviewHandled() {
+        storage.putBoolean(CHECKMARK_WHITE_PREVIEW_PENDING_KEY, false)
+    }
+
+    open fun saveCheckmarkWhiteWeightPreview(): Double {
+        val preview = checkmarkWhiteWeightPreview ?: committedCheckmarkWhiteWeight
+        committedCheckmarkWhiteWeight = preview
+        return preview
+    }
+
+    open fun cancelCheckmarkWhiteWeightPreview(): Double {
+        val committed = committedCheckmarkWhiteWeight
+        clearCheckmarkWhiteWeightPreview()
+        return committed
+    }
+
+    open fun restorePreviousCheckmarkWhiteWeight(): Double {
+        val previous = readValidParameter(CHECKMARK_WHITE_WEIGHT_BACKUP_KEY)
+            ?: DEFAULT_CHECKMARK_WHITE_WEIGHT
+        committedCheckmarkWhiteWeight = previous
+        return previous
+    }
+
+    private fun clearCheckmarkWhiteWeightPreview() {
+        storage.putBoolean(CHECKMARK_WHITE_PREVIEW_ACTIVE_KEY, false)
+        storage.putBoolean(CHECKMARK_WHITE_PREVIEW_PENDING_KEY, false)
+        storage.remove(CHECKMARK_WHITE_PREVIEW_KEY)
     }
 
     private fun readValidParameter(key: String): Double? {
