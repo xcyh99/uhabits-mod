@@ -129,9 +129,6 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 prefs.getInt("digital_clock_date_offset_y", 0),
                 prefs.getInt("digital_clock_shortcut_offset_y", 0)
             )
-            rowIds.forEachIndexed { index, viewId ->
-                views.setFloat(viewId, "setTranslationY", offsets[index].coerceIn(-40, 40) * density)
-            }
             val heights = rowHeights
             val naturalHeightsDp = floatArrayOf(
                 hourSize * scaledDensity / density * 1.05f,
@@ -141,6 +138,12 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             )
             rowIds.forEachIndexed { index, viewId ->
                 val rowHeight = heights[index]
+                val offsetPx = (offsets[index].coerceIn(-40, 40) * density).toInt()
+                // RemoteViews on older Android/HarmonyOS builds cannot reliably apply
+                // View.setTranslationY. Asymmetric padding moves the row content while
+                // keeping the widget update within the supported RemoteViews API.
+                val offsetTopPadding = (offsetPx * 2).coerceAtLeast(0)
+                val offsetBottomPadding = (-offsetPx * 2).coerceAtLeast(0)
                 views.setViewVisibility(viewId, if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE else android.view.View.VISIBLE)
                 if (index < 3) {
                     // Keep the configured font size and clamp the TextClock viewport.
@@ -150,12 +153,14 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     } else {
                         views.setInt(viewId, "setHeight", rowHeightPx)
                     }
-                    views.setViewPadding(viewId, 0, 0, 0, 0)
+                    views.setViewPadding(viewId, 0, offsetTopPadding, 0, offsetBottomPadding)
                 } else if (android.os.Build.VERSION.SDK_INT >= 31) {
                     views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
+                    val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
+                    views.setViewPadding(viewId, 0, extraPaddingPx + offsetTopPadding, 0, extraPaddingPx + offsetBottomPadding)
                 } else {
                     val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
-                    views.setViewPadding(viewId, 0, extraPaddingPx, 0, extraPaddingPx)
+                    views.setViewPadding(viewId, 0, extraPaddingPx + offsetTopPadding, 0, extraPaddingPx + offsetBottomPadding)
                 }
             }
             val count = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
