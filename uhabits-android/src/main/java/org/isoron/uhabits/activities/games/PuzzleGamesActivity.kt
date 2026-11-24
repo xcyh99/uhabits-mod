@@ -157,6 +157,22 @@ class PuzzleGamesActivity : AppCompatActivity() {
         private var opened = Array(9) { BooleanArray(9) }
         private var flags = Array(9) { BooleanArray(9) }
         private var mineOver = false
+        private var longPressTriggered = false
+        private val longPressAction = Runnable {
+            if (game == Game.MINES && !mineOver) {
+                val cell = min(width / 9f, height / 9f)
+                val left = (width - cell * 9) / 2f
+                val top = (height - cell * 9) / 2f
+                val col = ((downX - left) / cell).toInt()
+                val row = ((downY - top) / cell).toInt()
+                if (row in 0..8 && col in 0..8 && !opened[row][col]) {
+                    flags[row][col] = !flags[row][col]
+                    longPressTriggered = true
+                    playTone(ToneGenerator.TONE_PROP_ACK)
+                    invalidate()
+                }
+            }
+        }
 
         // 2048
         private var tiles = Array(4) { IntArray(4) }
@@ -177,7 +193,7 @@ class PuzzleGamesActivity : AppCompatActivity() {
         private var playerX = 4
         private var playerY = 4
         private var boxes = mutableSetOf("3,2", "3,3")
-        private val targets = setOf("3,1", "5,3", "2,5")
+        private val targets = setOf("3,1", "5,3")
         private var moves = 0
 
         // Bird game
@@ -433,11 +449,13 @@ class PuzzleGamesActivity : AppCompatActivity() {
 
         override fun onTouchEvent(event: MotionEvent): Boolean {
             when(event.action) {
-                MotionEvent.ACTION_DOWN -> { downX=event.x; downY=event.y; return true }
+                MotionEvent.ACTION_DOWN -> { downX=event.x; downY=event.y; longPressTriggered=false; if(game==Game.MINES) postDelayed(longPressAction, 500); return true }
                 MotionEvent.ACTION_UP -> {
+                    removeCallbacks(longPressAction)
                     val dx=event.x-downX; val dy=event.y-downY
                     when(game) {
                         Game.MINES -> {
+                            if(longPressTriggered) return true
                             val cell=min(width/9f,height/9f); val left=(width-cell*9)/2f; val top=(height-cell*9)/2f
                             val col=((event.x-left)/cell).toInt(); val row=((event.y-top)/cell).toInt()
                             if(row in 0..8 && col in 0..8) reveal(row,col)
@@ -465,8 +483,11 @@ class PuzzleGamesActivity : AppCompatActivity() {
                     }
                     invalidate(); return true
                 }
+                MotionEvent.ACTION_CANCEL -> removeCallbacks(longPressAction)
             }
             return true
         }
+
+        override fun performClick(): Boolean { super.performClick(); return true }
     }
 }
