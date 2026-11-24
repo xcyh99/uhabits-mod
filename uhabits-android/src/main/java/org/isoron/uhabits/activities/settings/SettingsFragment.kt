@@ -366,6 +366,18 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
 
 
     private fun showParameterCenter() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("参数中心")
+            .setItems(arrayOf("历史组件白色数字权重")) { _, which ->
+                when (which) {
+                    0 -> showHistoryWhiteWeightSetting()
+                }
+            }
+            .setNegativeButton("关闭", null)
+            .show()
+    }
+
+    private fun showHistoryWhiteWeightSetting() {
         val context = requireContext()
         val current = prefs.committedHistoryChartWhiteWeight
         val input = EditText(context).apply {
