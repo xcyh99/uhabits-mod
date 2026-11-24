@@ -71,6 +71,14 @@ class SettingsActivity : AppCompatActivity() {
         supportFragmentManager.executePendingTransactions()
         val fragment = supportFragmentManager.findFragmentById(R.id.fragment) as? SettingsFragment
 
+        val widgetParameter = launchIntent.getStringExtra("open_widget_parameter")
+        if (widgetParameter != null) {
+            launchIntent.removeExtra("open_widget_parameter")
+            if (fragment?.isAdded == true && fragment.view != null) {
+                fragment.openWidgetParameterSettings(widgetParameter)
+            }
+            return
+        }
         if (launchIntent.getBooleanExtra("manage_parameter_preview", false)) {
             // Consume the request before showing the dialog to prevent duplicate prompts.
             launchIntent.removeExtra("manage_parameter_preview")
