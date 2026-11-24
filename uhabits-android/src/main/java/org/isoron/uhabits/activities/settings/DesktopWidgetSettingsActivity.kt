@@ -23,7 +23,8 @@ import org.isoron.uhabits.widgets.DigitalClockWidgetProvider
 class DesktopWidgetSettingsActivity : AppCompatActivity() {
     private val store by lazy { PreferenceManager.getDefaultSharedPreferences(this) }
     private val slots = listOf(
-        Slot("time", "时间区域", "点击桌面时间后打开"),
+        Slot("hour", "小时区域", "单独设置点击小时数字后打开的目标"),
+        Slot("minute", "分钟区域", "单独设置点击分钟数字后打开的目标"),
         Slot("date", "日期星期区域", "点击日期或星期后打开")
     ) + (1..8).map { Slot("shortcut$it", "快捷入口$it", "底部第${it}个位置") }
     private data class Slot(val key: String, val title: String, val hint: String)
@@ -180,6 +181,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             .setNegativeButton("取消", null)
             .setPositiveButton("恢复默认") { _, _ ->
                 slots.forEach { store.edit().remove(key(it.key)).apply() }
+                store.edit().remove("digital_clock_target_time").apply()
                 val resetKeys = listOf(KEY_HOUR_SIZE, KEY_MINUTE_SIZE, KEY_DATE_SIZE, KEY_TIME_COLOR, KEY_HOUR_COLOR, KEY_MINUTE_COLOR, KEY_DATE_COLOR, KEY_DATE_FORMAT,
                     KEY_TIME_MODE, KEY_BG_COLOR, KEY_BG_ALPHA, KEY_SHORTCUT_COUNT,
                     KEY_HOUR_HEIGHT, KEY_MINUTE_HEIGHT, KEY_DATE_HEIGHT, KEY_SHORTCUT_HEIGHT, KEY_HOUR_WEIGHT, KEY_MINUTE_WEIGHT, KEY_DATE_WEIGHT, KEY_SHORTCUT_WEIGHT,
@@ -381,7 +383,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             setPadding(dp(20), dp(8), dp(20), dp(4))
         }
         panel.addView(TextView(this).apply {
-            text = "先选择布局方式，再设置四行高度。行高是布局边界；自动模式会按行高计算字号，手动模式沿用你原来设置的字号。"
+            text = "行高只决定每一行可显示的窗口高度，不再限制字号。字号按你设置的数值绘制，超出行高的部分由窗口裁切。自动适配只调整数字横向宽度，不改变字号和行高。"
             textSize = 13f
             setTextColor(resolveSecondaryText())
             setPadding(0, 0, 0, dp(10))
@@ -434,7 +436,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         }
         modeCard.addView(ratioCheck)
         modeCard.addView(TextView(this).apply {
-            text = "选中：数字等比例缩放，不横向拉伸；不选中：允许数字在安全范围内加宽或变窄。自动模式会尽量贴近行高，并限制字符间距，避免数字粘连。"
+            text = "选中：数字保持原始宽高比例；不选中：自动模式允许数字横向加宽或变窄。此选项只影响宽度，不影响字号与行高。"
             textSize = 12f
             setTextColor(resolveSecondaryText())
             setPadding(dp(4), dp(2), dp(4), dp(4))
