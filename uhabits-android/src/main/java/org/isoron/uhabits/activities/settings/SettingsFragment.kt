@@ -21,6 +21,8 @@ package org.isoron.uhabits.activities.settings
 import androidx.appcompat.app.AlertDialog
 import android.app.backup.BackupManager
 import android.content.Intent
+import android.content.ClipData
+import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
 import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
@@ -120,12 +122,6 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 updateAutoBackupStatusSummary()
                 return
             }
-            FULL_BACKUP_CREATE_REQUEST_CODE -> {
-                if (resultCode != android.app.Activity.RESULT_OK) return
-                val uri = data?.data ?: return
-                createFullBackup(uri)
-                return
-            }
             FULL_BACKUP_RESTORE_REQUEST_CODE -> {
                 if (resultCode != android.app.Activity.RESULT_OK) return
                 val uri = data?.data ?: return
@@ -205,7 +201,8 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     else -> targetPreference ?: "featureCenterCategory"
                 }
                 val directActionKeys = setOf(
-                    "fullBackupRestore",
+                    "createFullBackup",
+                    "restoreFullBackup",
                     "exportDB",
                     "exportLegacyDB",
                     "exportCSV",
@@ -247,17 +244,8 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         val key = preference.key ?: return false
         when (key) {
-            "fullBackupRestore" -> {
-                showFullBackupRestoreActions()
-                return true
-            }
             "createFullBackup" -> {
-                val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-                    addCategory(Intent.CATEGORY_OPENABLE)
-                    type = "application/octet-stream"
-                    putExtra(Intent.EXTRA_TITLE, FullBackupManager(requireContext()).suggestedFileName())
-                }
-                startActivityForResult(intent, FULL_BACKUP_CREATE_REQUEST_CODE)
+                createFullBackup()
                 return true
             }
             "restoreFullBackup" -> {
@@ -1211,42 +1199,50 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         requireActivity().overridePendingTransition(0, 0)
     }
 
-    private fun showFullBackupRestoreActions() {
-        AlertDialog.Builder(requireContext())
-            .setTitle("完整备份与恢复")
-            .setItems(arrayOf("创建完整备份", "恢复完整备份")) { _, which ->
-                when (which) {
-                    0 -> {
-                        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-                            addCategory(Intent.CATEGORY_OPENABLE)
-                            type = "application/octet-stream"
-                            putExtra(Intent.EXTRA_TITLE, FullBackupManager(requireContext()).suggestedFileName())
-                        }
-                        startActivityForResult(intent, FULL_BACKUP_CREATE_REQUEST_CODE)
-                    }
-                    1 -> {
-                        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                            addCategory(Intent.CATEGORY_OPENABLE)
-                            type = "application/octet-stream"
-                        }
-                        startActivityForResult(intent, FULL_BACKUP_RESTORE_REQUEST_CODE)
-                    }
-                }
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
-
-    private fun createFullBackup(uri: Uri) {
+    private fun createFullBackup() {
         val appContext = requireContext().applicationContext
+        val backupManager = FullBackupManager(appContext)
+        val backupDirectory = java.io.File(appContext.cacheDir, "full-backup-share").apply {
+            if (!exists() && !mkdirs()) throw IllegalStateException("无法创建备份暂存目录")
+        }
+        val backupFile = java.io.File(backupDirectory, backupManager.suggestedFileName())
+
         Toast.makeText(requireContext(), "正在创建完整备份…", Toast.LENGTH_SHORT).show()
         Thread {
-            val result = runCatching { FullBackupManager(appContext).createBackup(uri) }
+            val result = runCatching {
+                backupManager.createBackup(backupFile)
+                backupFile
+            }
             activity?.runOnUiThread {
                 if (!isAdded) return@runOnUiThread
                 result.fold(
-                    {
-                        Toast.makeText(requireContext(), "完整备份已创建", Toast.LENGTH_LONG).show()
+                    { file ->
+                        runCatching {
+                            val uri = FileProvider.getUriForFile(
+                                requireContext(),
+                                "${requireContext().packageName}",
+                                file
+                            )
+                            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "application/octet-stream"
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                clipData = ClipData.newUri(
+                                    requireContext().contentResolver,
+                                    file.name,
+                                    uri
+                                )
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            startActivity(
+                                Intent.createChooser(sendIntent, "发送完整备份")
+                            )
+                        }.onFailure { error ->
+                            Toast.makeText(
+                                requireContext(),
+                                error.message ?: "无法打开分享应用列表",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
                     },
                     { error ->
                         Toast.makeText(
@@ -2435,7 +2431,6 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     companion object {
         private const val RINGTONE_REQUEST_CODE = 1
         private const val PUBLIC_BACKUP_REQUEST_CODE = 2
-        private const val FULL_BACKUP_CREATE_REQUEST_CODE = 3
         private const val FULL_BACKUP_RESTORE_REQUEST_CODE = 4
         private const val FULL_BACKUP_RESTART_REQUEST_CODE = 5
         private const val SHORTCUT_PHOTO_REQUEST_CODE = 7125
