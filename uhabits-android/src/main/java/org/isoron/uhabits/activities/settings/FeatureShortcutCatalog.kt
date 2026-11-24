@@ -24,7 +24,10 @@ object FeatureShortcutCatalog {
         val manager = PreferenceManager(context)
         val screen: PreferenceScreen =
             manager.inflateFromResource(context, R.xml.preferences, null)
-        val result = mutableListOf<Entry>()
+        val result = mutableListOf(
+            Entry("__feature_center", "整个功能中心"),
+            Entry("__settings", "设置首页")
+        )
 
         fun visit(preference: Preference) {
             if (preference is PreferenceCategory) {
