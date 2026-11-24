@@ -82,11 +82,14 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             button("${slot.title}    ·    $current") { chooseTarget(slot) }
         }
         heading("其他桌面组件")
-        button("历史组件设置") {
-            openExistingSettings("widgetManager")
+        button("历史组件参数") {
+            openExistingSettings("historyWhiteWeight")
         }
-        button("标记组件设置") {
-            openExistingSettings("widgetManager")
+        button("标记组件参数") {
+            openExistingSettings("checkmarkWhiteWeight")
+        }
+        button("组件白边参数") {
+            openExistingSettings("whiteOutline")
         }
         root.addView(TextView(this).apply {
             text = "说明：白字权重、白边、颜色阈值等显示参数仍由「参数中心」统一管理，这里不重复设置。"
