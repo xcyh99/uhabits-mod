@@ -102,7 +102,6 @@ const val RESULT_BUG_REPORT = 104
 const val RESULT_REPAIR_DB = 105
 const val REQUEST_OPEN_DOCUMENT = 106
 const val REQUEST_SETTINGS = 107
-const val REQUEST_SAVE_CSV = 110
 
 @Inject
 @ActivityScope
@@ -128,7 +127,6 @@ class ListHabitsScreen(
     ListHabitsSelectionMenuBehavior.Screen {
 
     val activity = (context as AppCompatActivity)
-    private var pendingCsvFilename: String? = null
 
     fun onAttached() {
         commandRunner.addListener(this)
@@ -167,7 +165,6 @@ class ListHabitsScreen(
         when (requestCode) {
             REQUEST_OPEN_DOCUMENT -> onOpenDocumentResult(resultCode, data)
             REQUEST_SETTINGS -> onSettingsResult(resultCode)
-            REQUEST_SAVE_CSV -> onSaveCsvResult(resultCode, data)
         }
     }
 
@@ -274,13 +271,7 @@ class ListHabitsScreen(
     }
 
     override fun showSendFileScreen(filename: String) {
-        pendingCsvFilename = filename
-        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "application/zip"
-            putExtra(Intent.EXTRA_TITLE, File(filename).name)
-        }
-        activity.startActivityForResult(intent, REQUEST_SAVE_CSV)
+        shareExportedBackup(filename)
     }
 
     override fun showConfetti(color: PaletteColor, x: Float, y: Float) {
@@ -474,29 +465,6 @@ class ListHabitsScreen(
                 }
             }, legacyCompatible)
         )
-    }
-
-    private fun onSaveCsvResult(resultCode: Int, data: Intent?) {
-        val sourcePath = pendingCsvFilename
-        pendingCsvFilename = null
-        if (sourcePath == null) return
-        val source = File(sourcePath)
-        if (resultCode != Activity.RESULT_OK || data?.data == null) {
-            source.delete()
-            return
-        }
-        try {
-            source.inputStream().use { input ->
-                activity.contentResolver.openOutputStream(data.data!!, "w")!!.use { output ->
-                    input.copyTo(output)
-                }
-            }
-            source.delete()
-            activity.showMessage(activity.getString(R.string.backup_saved))
-        } catch (e: Exception) {
-            activity.showMessage(activity.getString(R.string.could_not_export))
-            e.printStackTrace()
-        }
     }
 
     private fun shareExportedBackup(filename: String) {
