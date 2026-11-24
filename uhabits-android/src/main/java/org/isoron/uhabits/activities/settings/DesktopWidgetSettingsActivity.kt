@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
+import android.view.LayoutInflater
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -76,6 +77,8 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             setTextColor(resolveSecondaryText())
         })
         button("添加数字时钟到桌面") { pinWidget() }
+        button("预览数字时钟") { showWidgetPreview() }
+        button("恢复数字时钟默认设置") { confirmReset() }
         heading("点击区域设置")
         slots.forEach { slot ->
             val current = store.getString(key(slot.key), null)?.let(::targetLabel) ?: "未设置"
@@ -88,6 +91,29 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             setPadding(0, dp(14), 0, 0)
         })
         setContentView(android.widget.ScrollView(this).apply { addView(root) })
+    }
+
+    private fun showWidgetPreview() {
+        val preview = LayoutInflater.from(this).inflate(R.layout.widget_digital_clock, null, false)
+        AlertDialog.Builder(this)
+            .setTitle("数字时钟组件预览")
+            .setView(preview)
+            .setPositiveButton("关闭", null)
+            .show()
+    }
+
+    private fun confirmReset() {
+        AlertDialog.Builder(this)
+            .setTitle("恢复数字时钟默认设置")
+            .setMessage("将清除时间、日期星期和四个快捷入口的自定义点击目标，恢复默认行为。不会影响其他组件或参数中心。")
+            .setNegativeButton("取消", null)
+            .setPositiveButton("恢复默认") { _, _ ->
+                slots.forEach { store.edit().remove(key(it.key)).apply() }
+                updateWidget()
+                render()
+                Toast.makeText(this, "数字时钟设置已恢复默认", Toast.LENGTH_SHORT).show()
+            }
+            .show()
     }
 
     private fun chooseTarget(slot: Slot) {
