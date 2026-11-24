@@ -129,7 +129,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
         content.addView(Button(this).apply {
             text = "清除已选图片，改用内置图标"
             setOnClickListener {
-                photoFile?.let { file -> runCatching { file.delete() } }
+                // Defer deleting the previous image until the edited shortcut is saved.
                 photoFile = null
                 photoStatus.text = "未选择相册图片（可选）"
                 iconSpinner.setSelection(0)
