@@ -30,14 +30,18 @@ open class CommandRunner(
 ) {
     private val listeners: MutableList<Listener> = mutableListOf()
 
-    open fun run(command: Command) {
+    open fun run(command: Command, onFinished: (() -> Unit)? = null) {
         taskRunner.execute(
             object : Task {
                 override suspend fun doInBackground() {
                     command.run()
                 }
                 override fun onPostExecute() {
-                    notifyListeners(command)
+                    try {
+                        notifyListeners(command)
+                    } finally {
+                        onFinished?.invoke()
+                    }
                 }
             }
         )
