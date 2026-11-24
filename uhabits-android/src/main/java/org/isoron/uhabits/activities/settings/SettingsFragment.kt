@@ -433,9 +433,9 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     }
             }
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
-                prefs.restoreParameterDefaults()
+                prefs.restoreHistoryChartWhiteWeightDefault()
                 widgetUpdater?.updateWidgets()
-                Toast.makeText(context, "参数已恢复默认值 6.6", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "历史组件权重已恢复默认值 6.6", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
             }
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
@@ -519,7 +519,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     }
             }
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
-                prefs.committedCheckmarkWhiteWeight = Preferences.DEFAULT_CHECKMARK_WHITE_WEIGHT
+                prefs.restoreCheckmarkWhiteWeightDefault()
                 widgetUpdater?.updateWidgets()
                 Toast.makeText(context, "标记组件权重已恢复默认值 6.6", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
