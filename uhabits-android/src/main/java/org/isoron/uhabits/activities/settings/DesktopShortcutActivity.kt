@@ -23,6 +23,10 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AlertDialog
+import android.content.SharedPreferences
+import org.json.JSONArray
+import org.json.JSONObject
 import org.isoron.uhabits.R
 import java.io.File
 import java.io.FileOutputStream
@@ -30,6 +34,19 @@ import java.util.UUID
 
 class DesktopShortcutActivity : AppCompatActivity() {
     private data class Target(val key: String, val title: String)
+    private data class ShortcutEntry(
+        val id: String,
+        val name: String,
+        val targetKey: String,
+        val iconIndex: Int,
+        val colorIndex: Int,
+        val photoPath: String?
+    )
+
+    private val settings by lazy {
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+    }
+    private var editingShortcutId: String? = null
 
     private val targets = mutableListOf<Target>()
     private val iconNames = listOf("十字", "设置", "日历", "图表", "计时", "打卡", "历史", "相册")
@@ -92,6 +109,10 @@ class DesktopShortcutActivity : AppCompatActivity() {
             textSize = 12f
             setPadding(0, dp(6), 0, dp(6))
         }
+        content.addView(Button(this).apply {
+            text = "管理已有桌面快捷方式"
+            setOnClickListener { showShortcutManager() }
+        })
         content.addView(label("快捷方式名称"))
         content.addView(nameInput)
         content.addView(label("打开目标"))
@@ -172,7 +193,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
             return
         }
         try {
-            val id = "user_${UUID.randomUUID()}"
+            val id = editingShortcutId ?: "user_${UUID.randomUUID()}"
             val launchIntent = Intent(this, org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java).apply {
                 action = ACTION_OPEN_DESKTOP_SHORTCUT
                 putExtra(EXTRA_TARGET, target.key)
@@ -185,8 +206,19 @@ class DesktopShortcutActivity : AppCompatActivity() {
                 .setIcon(Icon.createWithBitmap(icon))
                 .setIntent(launchIntent)
                 .build()
-            if (manager.requestPinShortcut(info, null)) {
-                Toast.makeText(this, "已提交桌面添加请求，请在桌面确认。", Toast.LENGTH_LONG).show()
+            val existing = manager.pinnedShortcuts.any { it.id == id }
+            val accepted = if (existing) manager.updateShortcuts(listOf(info)) else manager.requestPinShortcut(info, null)
+            if (accepted) {
+                val entries = readShortcuts().toMutableList()
+                val entry = ShortcutEntry(
+                    id, name, target.key, iconSpinner.selectedItemPosition,
+                    colorSpinner.selectedItemPosition, photoFile?.absolutePath
+                )
+                val oldIndex = entries.indexOfFirst { it.id == id }
+                if (oldIndex >= 0) entries[oldIndex] = entry else entries.add(entry)
+                saveShortcuts(entries)
+                Toast.makeText(this, if (existing) "桌面快捷方式已更新" else "已提交桌面添加请求，请在桌面确认", Toast.LENGTH_LONG).show()
+                editingShortcutId = null
                 finish()
             } else {
                 Toast.makeText(this, "桌面没有接受添加请求。", Toast.LENGTH_LONG).show()
@@ -194,6 +226,142 @@ class DesktopShortcutActivity : AppCompatActivity() {
         } catch (error: Exception) {
             Toast.makeText(this, error.message ?: "创建快捷方式失败", Toast.LENGTH_LONG).show()
         }
+    }
+
+
+    private fun readShortcuts(): List<ShortcutEntry> {
+        val raw = settings.getString(KEY_SHORTCUTS, null) ?: return emptyList()
+        return runCatching {
+            val array = JSONArray(raw)
+            (0 until array.length()).mapNotNull { index ->
+                val item = array.optJSONObject(index) ?: return@mapNotNull null
+                ShortcutEntry(
+                    item.optString("id"),
+                    item.optString("name"),
+                    item.optString("target"),
+                    item.optInt("icon", 0),
+                    item.optInt("color", 0),
+                    item.optString("photo").takeIf { it.isNotBlank() }
+                ).takeIf { it.id.isNotBlank() }
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    private fun saveShortcuts(entries: List<ShortcutEntry>) {
+        val array = JSONArray()
+        entries.forEach { entry ->
+            array.put(JSONObject().apply {
+                put("id", entry.id)
+                put("name", entry.name)
+                put("target", entry.targetKey)
+                put("icon", entry.iconIndex)
+                put("color", entry.colorIndex)
+                put("photo", entry.photoPath ?: "")
+            })
+        }
+        settings.edit().putString(KEY_SHORTCUTS, array.toString()).apply()
+    }
+
+    private fun showShortcutManager() {
+        val entries = readShortcuts()
+        if (entries.isEmpty()) {
+            AlertDialog.Builder(this)
+                .setTitle("桌面快捷方式管理")
+                .setMessage("目前还没有由本功能创建的快捷方式。")
+                .setPositiveButton("知道了", null)
+                .show()
+            return
+        }
+        val labels = entries.mapIndexed { index, entry ->
+            "${index + 1}. ${entry.name}  ·  ${targets.firstOrNull { it.key == entry.targetKey }?.title ?: entry.targetKey}"
+        }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("桌面快捷方式（选择一项管理）")
+            .setItems(labels) { _, which -> showShortcutActions(entries, which) }
+            .setNegativeButton("关闭", null)
+            .show()
+    }
+
+    private fun showShortcutActions(entries: List<ShortcutEntry>, index: Int) {
+        val entry = entries.getOrNull(index) ?: return
+        val actions = mutableListOf("编辑名称、目标和图标", "删除此快捷方式")
+        if (index > 0) actions.add("上移")
+        if (index < entries.lastIndex) actions.add("下移")
+        AlertDialog.Builder(this)
+            .setTitle(entry.name)
+            .setItems(actions.toTypedArray()) { _, which ->
+                when (actions[which]) {
+                    "编辑名称、目标和图标" -> editShortcut(entry)
+                    "删除此快捷方式" -> confirmDeleteShortcut(entry)
+                    "上移" -> moveShortcut(entries, index, index - 1)
+                    "下移" -> moveShortcut(entries, index, index + 1)
+                }
+            }
+            .setNegativeButton("返回") { _, _ -> showShortcutManager() }
+            .show()
+    }
+
+    private fun editShortcut(entry: ShortcutEntry) {
+        editingShortcutId = entry.id
+        nameInput.setText(entry.name)
+        targetSpinner.setSelection(targets.indexOfFirst { it.key == entry.targetKey }.coerceAtLeast(0))
+        iconSpinner.setSelection(entry.iconIndex.coerceIn(iconNames.indices))
+        colorSpinner.setSelection(entry.colorIndex.coerceIn(colorNames.indices))
+        photoFile = entry.photoPath?.let(::File)?.takeIf { it.exists() }
+        photoStatus.text = if (photoFile != null) "已选择相册图片：${photoFile!!.name}" else "未选择相册图片（可选）"
+        contentDescription = "正在编辑：${entry.name}"
+        (window.decorView as? android.view.ViewGroup)?.let { root ->
+            // Keep the editor in place; the action button updates the same pinned shortcut ID.
+        }
+        Toast.makeText(this, "已载入快捷方式，请修改后点击“创建并添加到桌面”保存", Toast.LENGTH_LONG).show()
+    }
+
+    private fun confirmDeleteShortcut(entry: ShortcutEntry) {
+        AlertDialog.Builder(this)
+            .setTitle("删除桌面快捷方式")
+            .setMessage("将从本应用的快捷方式管理列表中删除“${entry.name}”。如果它已固定在桌面，系统会尝试停用该图标；部分桌面可能仍需你手动移除。不会删除实际功能或任何数据。")
+            .setNegativeButton("取消", null)
+            .setPositiveButton("删除") { _, _ ->
+                runCatching {
+                    getSystemService(ShortcutManager::class.java)?.disableShortcuts(
+                        listOf(entry.id), "此快捷方式已由应用删除"
+                    )
+                }
+                saveShortcuts(readShortcuts().filterNot { it.id == entry.id })
+                entry.photoPath?.let { runCatching { File(it).delete() } }
+                Toast.makeText(this, "已从管理列表删除", Toast.LENGTH_SHORT).show()
+                showShortcutManager()
+            }
+            .show()
+    }
+
+    private fun moveShortcut(entries: List<ShortcutEntry>, from: Int, to: Int) {
+        if (to !in entries.indices) return
+        val updated = entries.toMutableList()
+        val moved = updated.removeAt(from)
+        updated.add(to, moved)
+        saveShortcuts(updated)
+        updatePinnedRanks(updated)
+        showShortcutManager()
+    }
+
+    private fun updatePinnedRanks(entries: List<ShortcutEntry>) {
+        val manager = getSystemService(ShortcutManager::class.java) ?: return
+        val pinnedIds = manager.pinnedShortcuts.map { it.id }.toSet()
+        val updates = entries.filter { it.id in pinnedIds }.mapIndexed { rank, entry ->
+            val launchIntent = Intent(this, org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java).apply {
+                action = ACTION_OPEN_DESKTOP_SHORTCUT
+                putExtra(EXTRA_TARGET, entry.targetKey)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
+            ShortcutInfo.Builder(this, entry.id)
+                .setShortLabel(entry.name.take(25))
+                .setLongLabel(entry.name.take(40))
+                .setRank(rank)
+                .setIntent(launchIntent)
+                .build()
+        }
+        if (updates.isNotEmpty()) manager.updateShortcuts(updates)
     }
 
     private fun buildIcon(): Bitmap {
@@ -219,5 +387,6 @@ class DesktopShortcutActivity : AppCompatActivity() {
         const val ACTION_OPEN_DESKTOP_SHORTCUT = "org.isoron.uhabits.action.OPEN_DESKTOP_SHORTCUT"
         const val EXTRA_TARGET = "desktop_shortcut_target"
         private const val REQUEST_PHOTO = 7124
+        private const val KEY_SHORTCUTS = "desktop_shortcut_entries_v1"
     }
 }
