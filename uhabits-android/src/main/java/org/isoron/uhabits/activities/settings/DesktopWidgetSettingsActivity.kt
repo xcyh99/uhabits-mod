@@ -315,6 +315,29 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
     }
 
     /**
+     * Read legacy AppWidgetOptions dimension bounds for diagnosis on API < 31.
+     * These are bounds supplied by the launcher, not guaranteed current dimensions.
+     */
+    private fun readLegacyWidgetDimensionReport(): List<String> {
+        val manager = AppWidgetManager.getInstance(this)
+        val ids = manager.getAppWidgetIds(ComponentName(this, DigitalClockWidgetProvider::class.java))
+        if (ids.isEmpty()) return listOf("尚未找到桌面上的数字时钟组件。")
+        return ids.mapIndexed { index, id ->
+            val options = manager.getAppWidgetOptions(id)
+            val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+            val maxHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
+            val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
+            val maxWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 0)
+            val values = mutableListOf<String>()
+            if (minHeight > 0) values += "最小高度 ${minHeight}dp"
+            if (maxHeight > 0) values += "最大高度 ${maxHeight}dp"
+            if (minWidth > 0) values += "最小宽度 ${minWidth}dp"
+            if (maxWidth > 0) values += "最大宽度 ${maxWidth}dp"
+            "组件${index + 1}：" + if (values.isEmpty()) "桌面未提供尺寸范围" else values.joinToString("；")
+        }
+    }
+
+    /**
      * The launcher owns the widget container size. Use only dimensions explicitly
      * advertised by AppWidgetOptions; never invent a fallback maximum.
      */
@@ -340,9 +363,18 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
 
     private fun showRowSettings() {
         if (android.os.Build.VERSION.SDK_INT < 31) {
+            val report = readLegacyWidgetDimensionReport()
+            val hasDimensions = report.any { it.contains("最小高度") || it.contains("最大高度") }
+            val message = if (hasDimensions) {
+                "已读取到桌面提供的组件尺寸范围：\\n\\n$report\\n" +
+                    "注意：这些是桌面提供的尺寸边界，不一定等于组件当前实际高度。当前系统低于 Android 12，尚不能通过 RemoteViews 安全地逐行修改布局高度，因此这一步先只检测、不开放滑块。"
+            } else {
+                "当前桌面没有向 APP 提供可识别的组件高度范围。\\n\\n" +
+                    "当前系统低于 Android 12，无法使用逐行动态高度接口。我们先记录桌面尺寸信息，再研究兼容方案，不用猜测数值代替真实高度。"
+            }
             AlertDialog.Builder(this)
-                .setTitle("当前系统暂不支持")
-                .setMessage("四行独立高度需要桌面组件动态尺寸接口（Android 12 / API 31 或更高）。当前系统无法可靠应用这些高度，因此暂不显示可调滑块。")
+                .setTitle(if (hasDimensions) "已读取桌面尺寸信息" else "暂未读取到桌面尺寸")
+                .setMessage(message)
                 .setPositiveButton("知道了", null)
                 .show()
             return
