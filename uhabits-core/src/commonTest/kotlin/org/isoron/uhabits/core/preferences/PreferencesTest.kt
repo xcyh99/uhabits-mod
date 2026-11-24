@@ -211,6 +211,34 @@ class PreferencesTest : BaseUnitTest() {
     }
 
     @Test
+    fun testCheckmarkWhiteWeightIsIndependentAndRestoresDefaults() {
+        assertEquals(6.6, prefs.committedCheckmarkWhiteWeight)
+        prefs.committedCheckmarkWhiteWeight = 8.8
+        assertEquals(8.8, prefs.committedCheckmarkWhiteWeight)
+        assertEquals(6.6, prefs.committedHistoryChartWhiteWeight)
+
+        prefs.restoreParameterDefaults()
+        assertEquals(6.6, prefs.committedCheckmarkWhiteWeight)
+        assertEquals(6.6, prefs.committedHistoryChartWhiteWeight)
+    }
+
+    @Test
+    fun testCheckmarkWhiteWeightPreviewAndColdStartRecovery() {
+        prefs.committedCheckmarkWhiteWeight = 8.8
+        prefs.beginCheckmarkWhiteWeightPreview(9.9)
+
+        assertEquals(8.8, prefs.committedCheckmarkWhiteWeight)
+        assertEquals(9.9, prefs.checkmarkWhiteWeight)
+        assertTrue(prefs.isCheckmarkWhiteWeightPreviewPending)
+
+        val restartedPreferences = Preferences(storage)
+        assertTrue(restartedPreferences.recoverInterruptedCheckmarkWhiteWeightPreview())
+        assertEquals(8.8, restartedPreferences.checkmarkWhiteWeight)
+        assertNull(restartedPreferences.checkmarkWhiteWeightPreview)
+        assertFalse(restartedPreferences.isCheckmarkWhiteWeightPreviewPending)
+    }
+
+    @Test
     fun testMidnightDelay() {
         assertFalse(prefs.isMidnightDelayEnabled)
         prefs.isMidnightDelayEnabled = true
