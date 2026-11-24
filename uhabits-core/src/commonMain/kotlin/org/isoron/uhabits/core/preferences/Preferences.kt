@@ -301,7 +301,19 @@ open class Preferences(private val storage: Storage) {
         return previous
     }
 
-    /** Reset only parameter-center values; habit and time-record data are untouched. */
+    open fun restoreHistoryChartWhiteWeightDefault() {
+        storage.putString(HISTORY_WHITE_WEIGHT_KEY, DEFAULT_HISTORY_WHITE_WEIGHT.toString())
+        storage.putString(HISTORY_WHITE_WEIGHT_BACKUP_KEY, DEFAULT_HISTORY_WHITE_WEIGHT.toString())
+        clearHistoryChartWhiteWeightPreview()
+    }
+
+    open fun restoreCheckmarkWhiteWeightDefault() {
+        storage.putString(CHECKMARK_WHITE_WEIGHT_KEY, DEFAULT_CHECKMARK_WHITE_WEIGHT.toString())
+        storage.putString(CHECKMARK_WHITE_WEIGHT_BACKUP_KEY, DEFAULT_CHECKMARK_WHITE_WEIGHT.toString())
+        clearCheckmarkWhiteWeightPreview()
+    }
+
+    /** Reset all parameter-center values; habit and time-record data are untouched. */
     open fun restoreParameterDefaults() {
         storage.putString(HISTORY_WHITE_WEIGHT_KEY, DEFAULT_HISTORY_WHITE_WEIGHT.toString())
         storage.putString(HISTORY_WHITE_WEIGHT_BACKUP_KEY, DEFAULT_HISTORY_WHITE_WEIGHT.toString())
