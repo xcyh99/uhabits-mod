@@ -74,7 +74,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         button("添加数字时钟到桌面") { pinWidget() }
         button("预览数字时钟") { showWidgetPreview() }
         button("数字显示样式") { showAppearanceSettings() }
-        button("四行布局比例") { showRowSettings() }
+        button("四行高度与间距") { showRowSettings() }
         button("背景颜色与透明度") { showBackgroundSettings() }
         button("快捷入口数量") { chooseShortcutCount() }
         button("恢复数字时钟默认设置") { confirmReset() }
@@ -126,7 +126,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 slots.forEach { store.edit().remove(key(it.key)).apply() }
                 listOf(KEY_HOUR_SIZE, KEY_MINUTE_SIZE, KEY_DATE_SIZE, KEY_TIME_COLOR, KEY_DATE_COLOR, KEY_DATE_FORMAT,
                     KEY_TIME_MODE, KEY_BG_COLOR, KEY_BG_ALPHA, KEY_SHORTCUT_COUNT,
-                    KEY_HOUR_WEIGHT, KEY_MINUTE_WEIGHT, KEY_DATE_WEIGHT, KEY_SHORTCUT_WEIGHT).forEach {
+                    KEY_HOUR_HEIGHT, KEY_MINUTE_HEIGHT, KEY_DATE_HEIGHT, KEY_SHORTCUT_HEIGHT, KEY_HOUR_WEIGHT, KEY_MINUTE_WEIGHT, KEY_DATE_WEIGHT, KEY_SHORTCUT_WEIGHT).forEach {
                     store.edit().remove(it).apply()
                 }
                 updateWidget()
@@ -290,28 +290,157 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             }.setNegativeButton("取消", null).show()
     }
 
+    /**
+     * The launcher owns the widget container size. Use only dimensions explicitly
+     * advertised by AppWidgetOptions; never invent a fallback maximum.
+     */
+    private fun readAvailableWidgetContentHeight(): Int? {
+        val manager = AppWidgetManager.getInstance(this)
+        val ids = manager.getAppWidgetIds(ComponentName(this, DigitalClockWidgetProvider::class.java))
+        if (ids.isEmpty()) return null
+        val heights = ids.mapNotNull { id ->
+            val options = manager.getAppWidgetOptions(id)
+            val maxHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
+            @Suppress("DEPRECATION")
+            val sizes = if (android.os.Build.VERSION.SDK_INT >= 31) {
+                options.getParcelableArrayList<android.util.SizeF>(AppWidgetManager.OPTION_APPWIDGET_SIZES)
+            } else null
+            val advertisedHeight = maxHeight.takeIf { it > 0 }
+                ?: sizes?.maxOfOrNull { it.height.toInt() }?.takeIf { it > 0 }
+            advertisedHeight?.minus(15)?.coerceAtLeast(0)
+        }
+        // Settings are shared by all clock widgets; use the smallest advertised
+        // content height so one setting does not overflow a smaller instance.
+        return heights.minOrNull()
+    }
+
     private fun showRowSettings() {
-        val rows = listOf(
-            Triple("小时行比例", KEY_HOUR_WEIGHT, 115),
-            Triple("分钟行比例", KEY_MINUTE_WEIGHT, 115),
-            Triple("日期行比例", KEY_DATE_WEIGHT, 65),
-            Triple("快捷栏比例", KEY_SHORTCUT_WEIGHT, 90)
+        if (android.os.Build.VERSION.SDK_INT < 31) {
+            AlertDialog.Builder(this)
+                .setTitle("当前系统暂不支持")
+                .setMessage("四行独立高度需要桌面组件动态尺寸接口（Android 12 / API 31 或更高）。当前系统无法可靠应用这些高度，因此暂不显示可调滑块。")
+                .setPositiveButton("知道了", null)
+                .show()
+            return
+        }
+        val availableHeight = readAvailableWidgetContentHeight()
+        if (availableHeight == null || availableHeight <= 0) {
+            AlertDialog.Builder(this)
+                .setTitle("暂时无法获取桌面高度")
+                .setMessage("请先把数字时钟组件添加到桌面，再重新打开此设置。如果鸿蒙桌面没有向组件提供尺寸信息，APP不会用猜测数值代替。")
+                .setPositiveButton("重新检测") { _, _ -> showRowSettings() }
+                .setNegativeButton("关闭", null)
+                .show()
+            return
+        }
+
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(8), dp(20), dp(4))
+        }
+        val info = TextView(this).apply {
+            text = "桌面提供的组件高度上限已自动读取。扣除组件上下内边距后，四行可分配高度为 $availableHeight dp。四个滑块均从 0 到 $availableHeight dp。"
+            textSize = 13f
+            setTextColor(resolveSecondaryText())
+            setPadding(0, 0, 0, dp(12))
+        }
+        panel.addView(info)
+        val rowSpecs = listOf(
+            Triple("第一行 · 小时", "digital_clock_hour_height", 48),
+            Triple("第二行 · 分钟", "digital_clock_minute_height", 48),
+            Triple("第三行 · 日期星期", "digital_clock_date_height", 27),
+            Triple("第四行 · 快捷入口", "digital_clock_shortcut_height", 37)
         )
-        val labels = rows.map { (title, key, default) -> "$title：${store.getInt(key, default)}" }.toTypedArray()
-        AlertDialog.Builder(this).setTitle("四行布局比例")
-            .setItems(labels) { _, which ->
-                val row = rows[which]
-                val values = (30..200 step 10).toList()
-                val current = store.getInt(row.second, row.third)
-                val selected = values.indexOf(current).coerceAtLeast(values.indexOf(row.third).coerceAtLeast(0))
-                AlertDialog.Builder(this).setTitle(row.first)
-                    .setSingleChoiceItems(values.map { "$it" }.toTypedArray(), selected) { dialog, index ->
-                        store.edit().putInt(row.second, values[index]).apply()
-                        updateWidget()
-                        dialog.dismiss()
-                        showRowSettings()
-                    }.setNegativeButton("取消", null).show()
-            }.setNegativeButton("关闭", null).show()
+        val bars = mutableListOf<android.widget.SeekBar>()
+        val valueLabels = mutableListOf<TextView>()
+        rowSpecs.forEach { (label, prefKey, defaultValue) ->
+            val line = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+            }
+            val name = TextView(this).apply {
+                text = label
+                textSize = 14f
+                setTextColor(resolvePrimaryText())
+            }
+            val value = TextView(this).apply {
+                textSize = 14f
+                setTextColor(resolvePrimaryText())
+                gravity = android.view.Gravity.END
+                minWidth = dp(58)
+            }
+            line.addView(name, LinearLayout.LayoutParams(0, -2, 1f))
+            line.addView(value, LinearLayout.LayoutParams(-2, -2))
+            panel.addView(line)
+            val seek = android.widget.SeekBar(this).apply {
+                max = availableHeight
+                progress = store.getInt(prefKey, defaultValue).coerceIn(0, availableHeight)
+            }
+            panel.addView(seek, LinearLayout.LayoutParams(-1, -2).apply {
+                bottomMargin = dp(7)
+            })
+            bars += seek
+            valueLabels += value
+        }
+        val summary = TextView(this).apply {
+            textSize = 14f
+            setPadding(0, dp(8), 0, dp(4))
+        }
+        val warning = TextView(this).apply {
+            textSize = 13f
+            setPadding(0, dp(2), 0, dp(4))
+        }
+        panel.addView(summary)
+        panel.addView(warning)
+
+        fun updateSummary() {
+            val sum = bars.sumOf { it.progress }
+            val remaining = availableHeight - sum
+            bars.forEachIndexed { index, bar -> valueLabels[index].text = "${bar.progress} dp" }
+            if (remaining >= 0) {
+                summary.text = "四行合计：$sum dp    剩余：$remaining dp    每个间隔：${"%.2f".format(remaining / 3.0)} dp"
+                summary.setTextColor(0xFF25834D.toInt())
+                warning.text = "空间充足：剩余空间平均分配到三个间隔。"
+                warning.setTextColor(0xFF25834D.toInt())
+            } else {
+                summary.text = "四行合计：$sum dp    超出：${-remaining} dp"
+                summary.setTextColor(Color.RED)
+                warning.text = "高度不足！请增加桌面组件高度，或调低某一行高度。"
+                warning.setTextColor(Color.RED)
+            }
+        }
+        bars.forEach { bar ->
+            bar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) = updateSummary()
+                override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) = Unit
+                override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) = Unit
+            })
+        }
+        updateSummary()
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("四行高度与自动间距")
+            .setView(panel)
+            .setNegativeButton("关闭", null)
+            .setPositiveButton("应用", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val sum = bars.sumOf { it.progress }
+                if (sum > availableHeight) {
+                    Toast.makeText(this, "四行高度超过桌面可用高度，请先调整。", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                rowSpecs.forEachIndexed { index, spec ->
+                    store.edit().putInt(spec.second, bars[index].progress).apply()
+                }
+                updateWidget()
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
     }
 
     private fun showBackgroundSettings() {
@@ -362,6 +491,10 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         private const val KEY_BG_COLOR = "digital_clock_bg_color"
         private const val KEY_BG_ALPHA = "digital_clock_bg_alpha"
         private const val KEY_SHORTCUT_COUNT = "digital_clock_shortcut_count"
+        private const val KEY_HOUR_HEIGHT = "digital_clock_hour_height"
+        private const val KEY_MINUTE_HEIGHT = "digital_clock_minute_height"
+        private const val KEY_DATE_HEIGHT = "digital_clock_date_height"
+        private const val KEY_SHORTCUT_HEIGHT = "digital_clock_shortcut_height"
         private const val KEY_HOUR_WEIGHT = "digital_clock_hour_weight"
         private const val KEY_MINUTE_WEIGHT = "digital_clock_minute_weight"
         private const val KEY_DATE_WEIGHT = "digital_clock_date_weight"

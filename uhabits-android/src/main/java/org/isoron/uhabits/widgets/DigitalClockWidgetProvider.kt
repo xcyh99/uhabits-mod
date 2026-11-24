@@ -71,21 +71,37 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             val alpha = prefs.getInt("digital_clock_bg_alpha", 90).coerceIn(0, 100) * 255 / 100
             views.setInt(R.id.digital_clock_widget_root, "setBackgroundColor", Color.argb(alpha, Color.red(bg), Color.green(bg), Color.blue(bg)))
             if (android.os.Build.VERSION.SDK_INT >= 31) {
-                val options = manager.getAppWidgetOptions(widgetId)
-                val totalDp = (options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 180) - 15).coerceAtLeast(60)
-                val totalPx = (totalDp * context.resources.displayMetrics.density).toInt()
-                val shortcutCount = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
-                val weights = mutableListOf(
-                    prefs.getInt("digital_clock_hour_weight", 115).coerceIn(20, 250),
-                    prefs.getInt("digital_clock_minute_weight", 115).coerceIn(20, 250),
-                    prefs.getInt("digital_clock_date_weight", 65).coerceIn(20, 250)
-                )
-                if (shortcutCount > 0) weights.add(prefs.getInt("digital_clock_shortcut_weight", 90).coerceIn(20, 250))
-                val rowIds = mutableListOf(R.id.digital_clock_time, R.id.digital_clock_minute, R.id.digital_clock_date)
-                if (shortcutCount > 0) rowIds.add(R.id.digital_clock_shortcut_row)
-                val sum = weights.sum().coerceAtLeast(1)
-                rowIds.forEachIndexed { i, viewId ->
-                    views.setViewLayoutHeight(viewId, (totalDp * weights[i] / sum).coerceAtLeast(1).toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
+                val totalDp = readAvailableContentHeight(manager, widgetId)
+                if (totalDp != null && totalDp > 0) {
+                    val shortcutCount = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
+                    val rowIds = intArrayOf(
+                        R.id.digital_clock_time,
+                        R.id.digital_clock_minute,
+                        R.id.digital_clock_date,
+                        R.id.digital_clock_shortcut_row
+                    )
+                    val gapIds = intArrayOf(
+                        R.id.digital_clock_gap1,
+                        R.id.digital_clock_gap2,
+                        R.id.digital_clock_gap3
+                    )
+                    val heights = intArrayOf(
+                        prefs.getInt("digital_clock_hour_height", 48),
+                        prefs.getInt("digital_clock_minute_height", 48),
+                        prefs.getInt("digital_clock_date_height", 27),
+                        if (shortcutCount > 0) prefs.getInt("digital_clock_shortcut_height", 37) else 0
+                    ).map { it.coerceAtLeast(0) }
+                    val sum = heights.sum()
+                    val gap = if (sum <= totalDp) (totalDp - sum) / 3f else 0f
+                    rowIds.forEachIndexed { index, viewId ->
+                        val rowHeight = heights[index]
+                        views.setViewVisibility(viewId, if (rowHeight == 0) android.view.View.GONE else android.view.View.VISIBLE)
+                        views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
+                    }
+                    gapIds.forEach { gapId ->
+                        views.setViewVisibility(gapId, if (gap > 0f) android.view.View.VISIBLE else android.view.View.GONE)
+                        views.setViewLayoutHeight(gapId, gap, android.util.TypedValue.COMPLEX_UNIT_DIP)
+                    }
                 }
             }
             val count = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
@@ -124,6 +140,18 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             val dateTarget = prefs.getString("digital_clock_target_date", null)
             if (dateTarget != "none") views.setOnClickPendingIntent(R.id.digital_clock_date, createTargetPendingIntent(context, widgetId, 1, dateTarget))
             manager.updateAppWidget(widgetId, views)
+        }
+        @Suppress("DEPRECATION")
+        private fun readAvailableContentHeight(manager: AppWidgetManager, widgetId: Int): Int? {
+            val options = manager.getAppWidgetOptions(widgetId)
+            val maxHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
+            val sizes = if (android.os.Build.VERSION.SDK_INT >= 31) {
+                options.getParcelableArrayList<android.util.SizeF>(AppWidgetManager.OPTION_APPWIDGET_SIZES)
+            } else null
+            val advertisedHeight = maxHeight.takeIf { it > 0 }
+                ?: sizes?.maxOfOrNull { it.height.toInt() }?.takeIf { it > 0 }
+            // The XML root reserves 8dp above and 7dp below the content.
+            return advertisedHeight?.minus(15)?.coerceAtLeast(0)
         }
         private fun resolveShortcut(context: Context, value: String?, index: Int): Pair<String, Bitmap?> {
             if (value.isNullOrBlank() || value == "none") return "快捷$index" to null
