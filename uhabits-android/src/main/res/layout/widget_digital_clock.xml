@@ -22,10 +22,10 @@
         android:textSize="48sp"
         android:fontFamily="sans-serif"
         android:maxLines="1" />
-    <View
+    <TextView
         android:id="@+id/digital_clock_gap1"
         android:layout_width="match_parent"
-        android:layout_height="0dp" />
+        android:layout_height="0dp" android:text="" android:includeFontPadding="false" android:minHeight="0dp" android:textSize="1sp" />
     <TextClock
         android:id="@+id/digital_clock_minute"
         android:layout_width="match_parent"
@@ -38,10 +38,10 @@
         android:textSize="48sp"
         android:fontFamily="sans-serif"
         android:maxLines="1" />
-    <View
+    <TextView
         android:id="@+id/digital_clock_gap2"
         android:layout_width="match_parent"
-        android:layout_height="0dp" />
+        android:layout_height="0dp" android:text="" android:includeFontPadding="false" android:minHeight="0dp" android:textSize="1sp" />
     <TextClock
         android:id="@+id/digital_clock_date"
         android:layout_width="match_parent"
@@ -54,10 +54,10 @@
         android:textSize="15sp"
         android:fontFamily="sans-serif-medium"
         android:maxLines="1" />
-    <View
+    <TextView
         android:id="@+id/digital_clock_gap3"
         android:layout_width="match_parent"
-        android:layout_height="0dp" />
+        android:layout_height="0dp" android:text="" android:includeFontPadding="false" android:minHeight="0dp" android:textSize="1sp" />
     <LinearLayout
         android:id="@+id/digital_clock_shortcut_row"
         android:layout_width="match_parent"
