@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.LayoutInflater
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -84,6 +83,10 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             val current = store.getString(key(slot.key), null)?.let(::targetLabel) ?: "未设置"
             button("${slot.title}    ·    $current") { chooseTarget(slot) }
         }
+        heading("其他桌面组件")
+        button("历史组件显示参数") { openWidgetParameter("history") }
+        button("标记组件显示参数") { openWidgetParameter("checkmark") }
+        button("组件白边参数") { openWidgetParameter("outline") }
         root.addView(TextView(this).apply {
             text = "当前这里只管理数字时钟组件。以后新增桌面组件时，再逐项加入。白字权重、白边、颜色阈值等显示参数仍由「参数中心」统一管理。"
             textSize = 12f
@@ -174,29 +177,10 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         if (ids.isNotEmpty()) DigitalClockWidgetProvider.updateAll(this, manager, ids)
     }
 
-    private fun showWidgetPreview() {
-        val preview = LayoutInflater.from(this).inflate(R.layout.widget_digital_clock, null, false)
-        AlertDialog.Builder(this)
-            .setTitle("数字时钟组件预览")
-            .setView(preview)
-            .setPositiveButton("关闭", null)
-            .show()
-    }
 
-    private fun confirmRestoreDefaults() {
-        AlertDialog.Builder(this)
-            .setTitle("恢复数字时钟默认设置")
-            .setMessage("将清除时间、日期和四个快捷入口的自定义点击目标。桌面组件将恢复默认点击行为。")
-            .setNegativeButton("取消", null)
-            .setPositiveButton("恢复默认") { _, _ ->
-                store.edit().apply { slots.forEach { remove(key(it.key)) } }.apply()
-                updateWidget()
-                render()
-                Toast.makeText(this, "数字时钟设置已恢复默认", Toast.LENGTH_SHORT).show()
-            }
-            .show()
+    private fun openWidgetParameter(target: String) {
+        startActivity(Intent(this, SettingsActivity::class.java).putExtra("open_widget_parameter", target))
     }
-
     private fun key(slot: String) = "digital_clock_target_$slot"
     private fun resolvePageBackground() = org.isoron.uhabits.utils.StyledResources(this).getColor(R.attr.contrast0)
     private fun resolvePrimaryText(): Int = if (isDark()) Color.WHITE else Color.BLACK
