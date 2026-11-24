@@ -64,6 +64,8 @@ class HistoryWidget(
             historyChart.series = model.series
             historyChart.defaultSquare = model.defaultSquare
             historyChart.notesIndicators = model.notesIndicators
+            // Apply the live parameter-center value on every widget refresh.
+            historyChart.whitePreferenceWeight = prefs.historyChartWhiteWeight
         }
     }
 
@@ -81,7 +83,8 @@ class HistoryWidget(
                     defaultSquare = HistoryChart.Square.OFF,
                     notesIndicators = listOf(),
                     padding = 2.5,
-                    compactWeekdayLabels = true
+                    compactWeekdayLabels = true,
+                    whitePreferenceWeight = prefs.historyChartWhiteWeight
                 )
             }
         ).apply {
