@@ -83,32 +83,26 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 prefs.getInt("digital_clock_date_height", 27),
                 prefs.getInt("digital_clock_shortcut_height", 37)
             ).map { it.coerceAtLeast(0) }
+            val density = context.resources.displayMetrics.density
+            val scaledDensity = context.resources.displayMetrics.scaledDensity
+            val naturalHeightsDp = floatArrayOf(
+                prefs.getFloat("digital_clock_hour_size", 48f) * scaledDensity / density * 1.05f,
+                prefs.getFloat("digital_clock_minute_size", 48f) * scaledDensity / density * 1.05f,
+                prefs.getFloat("digital_clock_date_size", 15f) * scaledDensity / density * 1.05f,
+                37f
+            )
             rowIds.forEachIndexed { index, viewId ->
                 val rowHeight = heights[index]
                 views.setViewVisibility(viewId, if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE else android.view.View.VISIBLE)
                 if (android.os.Build.VERSION.SDK_INT >= 31) {
+                    // Android 12+ supports changing a RemoteViews child's layout height directly.
                     views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                 } else {
-                    val heightPx = (rowHeight * context.resources.displayMetrics.density).toInt()
-                    if (index < 3) {
-                        // TextClock extends TextView; setHeight applies an exact pixel height.
-                        views.setInt(viewId, "setHeight", heightPx)
-                    } else {
-                        // On legacy RemoteViews, LinearLayout exposes minimum height but not
-                        // the API-31 layout-height action. The row may remain content-limited.
-                        views.setInt(viewId, "setMinimumHeight", heightPx)
-                    }
-                }
-            }
-            if (android.os.Build.VERSION.SDK_INT >= 31) {
-                val totalDp = readAvailableContentHeight(manager, widgetId)
-                if (totalDp != null && totalDp > 0) {
-                    val gapIds = intArrayOf(R.id.digital_clock_gap1, R.id.digital_clock_gap2, R.id.digital_clock_gap3)
-                    val gap = ((totalDp - heights.sum()).coerceAtLeast(0) / 3f)
-                    gapIds.forEach { gapId ->
-                        views.setViewVisibility(gapId, if (gap > 0f) android.view.View.VISIBLE else android.view.View.GONE)
-                        views.setViewLayoutHeight(gapId, gap, android.util.TypedValue.COMPLEX_UNIT_DIP)
-                    }
+                    // Older RemoteViews cannot change layout_height dynamically. Use the
+                    // supported padding action to add the requested height without relying on
+                    // unsupported reflective calls such as TextView.setHeight().
+                    val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
+                    views.setViewPadding(viewId, 0, extraPaddingPx, 0, extraPaddingPx)
                 }
             }
             val count = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
@@ -147,18 +141,6 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             val dateTarget = prefs.getString("digital_clock_target_date", null)
             if (dateTarget != "none") views.setOnClickPendingIntent(R.id.digital_clock_date, createTargetPendingIntent(context, widgetId, 1, dateTarget))
             manager.updateAppWidget(widgetId, views)
-        }
-        @Suppress("DEPRECATION")
-        private fun readAvailableContentHeight(manager: AppWidgetManager, widgetId: Int): Int? {
-            val options = manager.getAppWidgetOptions(widgetId)
-            val maxHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
-            val sizes = if (android.os.Build.VERSION.SDK_INT >= 31) {
-                options.getParcelableArrayList<android.util.SizeF>(AppWidgetManager.OPTION_APPWIDGET_SIZES)
-            } else null
-            val advertisedHeight = maxHeight.takeIf { it > 0 }
-                ?: sizes?.maxOfOrNull { it.height.toInt() }?.takeIf { it > 0 }
-            // The XML root reserves 8dp above and 7dp below the content.
-            return advertisedHeight?.minus(15)?.coerceAtLeast(0)
         }
         private fun resolveShortcut(context: Context, value: String?, index: Int): Pair<String, Bitmap?> {
             if (value.isNullOrBlank() || value == "none") return "快捷$index" to null
