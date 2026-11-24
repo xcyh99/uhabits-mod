@@ -80,10 +80,14 @@ class SettingsActivity : AppCompatActivity() {
             return
         }
 
-        if (launchIntent.getStringExtra("open_preference_key") != "widgetManager") return
+        val preferenceKey = launchIntent.getStringExtra("open_preference_key") ?: return
         launchIntent.removeExtra("open_preference_key")
         if (fragment?.isAdded == true && fragment.view != null) {
-            fragment.openBatchWidgetPicker(launchIntent)
+            if (preferenceKey == "widgetManager") {
+                fragment.openBatchWidgetPicker(launchIntent)
+            } else {
+                fragment.openPreferenceByKey(preferenceKey)
+            }
         }
     }
 }
