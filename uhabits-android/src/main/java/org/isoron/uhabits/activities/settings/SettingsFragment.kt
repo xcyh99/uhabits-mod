@@ -63,6 +63,8 @@ import org.isoron.uhabits.activities.habits.list.RESULT_EXPORT_LEGACY_DB
 import org.isoron.uhabits.activities.habits.list.RESULT_IMPORT_DATA
 import org.isoron.uhabits.activities.habits.list.RESULT_REPAIR_DB
 import org.isoron.uhabits.core.preferences.Preferences
+import org.isoron.uhabits.core.preferences.WhiteOutlineTarget
+import org.isoron.uhabits.core.preferences.WhiteOutlineSettings
 import org.isoron.uhabits.core.models.sqlite.SQLiteHabitList
 import org.isoron.uhabits.database.WebDavSync
 import org.isoron.uhabits.database.FullBackupManager
@@ -170,6 +172,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     showCheckmarkWhiteWeightSetting()
                     return@post
                 }
+                if (targetPreference == "whiteOutline") {
+                    showWhiteOutlineTargets()
+                    return@post
+                }
                 val key = when (targetPreference) {
                     "autoBackupNow", "autoBackupStatus", "publicBackupFolder" -> "autoBackup"
                     else -> targetPreference ?: "featureCenterCategory"
@@ -194,6 +200,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     "statusBarDays",
                     "parameterCenter",
                     "parameterEmergencyReset",
+                    "whiteOutline",
                     "desktopShortcuts"
                 )
                 if (key in directActionKeys) {
@@ -373,13 +380,145 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     private fun showParameterCenter() {
         AlertDialog.Builder(requireContext())
             .setTitle("参数中心")
-            .setItems(arrayOf("历史组件白色数字权重", "标记组件白色数字权重")) { _, which ->
+            .setItems(arrayOf("历史组件白色数字权重", "标记组件白色数字权重", "白边参数")) { _, which ->
                 when (which) {
                     0 -> showHistoryWhiteWeightSetting()
                     1 -> showCheckmarkWhiteWeightSetting()
+                    2 -> showWhiteOutlineTargets()
                 }
             }
             .setNegativeButton("关闭", null)
+            .show()
+    }
+
+    private fun showWhiteOutlineTargets() {
+        val targets = WhiteOutlineTarget.values()
+        AlertDialog.Builder(requireContext())
+            .setTitle("白边参数")
+            .setItems(targets.map { it.displayName }.toTypedArray()) { _, which ->
+                showWhiteOutlineSetting(targets[which])
+            }
+            .setNeutralButton("全部恢复默认") { _, _ ->
+                AlertDialog.Builder(requireContext())
+                    .setTitle("恢复全部白边参数")
+                    .setMessage("五类组件的白边阈值和宽度都将恢复到原始默认值。")
+                    .setNegativeButton("取消", null)
+                    .setPositiveButton("确认恢复") { _, _ ->
+                        prefs.restoreAllWhiteOutlineDefaults()
+                        widgetUpdater?.updateWidgets()
+                        Toast.makeText(requireContext(), "五类白边参数已恢复默认", Toast.LENGTH_SHORT).show()
+                    }
+                    .show()
+            }
+            .setNegativeButton("关闭", null)
+            .show()
+    }
+
+    private fun showWhiteOutlineSetting(target: WhiteOutlineTarget) {
+        val context = requireContext()
+        val current = prefs.getWhiteOutlineSettings(target)
+        val thresholdInput = EditText(context).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setSingleLine(true)
+            setText(current.threshold.toString())
+            hint = "阈值：0.0001–0.1"
+        }
+        val widthInput = EditText(context).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setSingleLine(true)
+            setText(current.width.toString())
+            hint = "宽度：0.05–2.0 dp"
+        }
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 8, 48, 0)
+            addView(TextView(context).apply { text = "触发阈值（数值越大，越容易出现白边）" })
+            addView(thresholdInput)
+            addView(TextView(context).apply { text = "白边宽度（dp）" })
+            addView(widthInput)
+            addView(TextView(context).apply {
+                text = "当前正式值：阈值 ${current.threshold}，宽度 ${current.width} dp。两个参数只影响这一类组件。"
+                textSize = 12f
+                setPadding(0, 10, 0, 0)
+            })
+        }
+        fun readSettings(): WhiteOutlineSettings? {
+            val threshold = thresholdInput.text.toString().trim().toDoubleOrNull()
+            val width = widthInput.text.toString().trim().toDoubleOrNull()
+            if (threshold == null || !threshold.isFinite() || threshold !in 0.0001..0.1) {
+                thresholdInput.error = "请输入 0.0001–0.1 之间的阈值"
+                return null
+            }
+            if (width == null || !width.isFinite() || width !in 0.05..2.0) {
+                widthInput.error = "请输入 0.05–2.0 dp 之间的宽度"
+                return null
+            }
+            return WhiteOutlineSettings(threshold, width)
+        }
+        val dialog = AlertDialog.Builder(context)
+            .setTitle(target.displayName + "白边")
+            .setView(container)
+            .setNeutralButton("桌面预览", null)
+            .setNegativeButton("恢复默认", null)
+            .setPositiveButton("保存", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val value = readSettings() ?: return@setOnClickListener
+                runCatching { prefs.setWhiteOutlineSettings(target, value) }
+                    .onSuccess {
+                        widgetUpdater?.updateWidgets()
+                        Toast.makeText(context, "白边参数已保存", Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                    }
+                    .onFailure { Toast.makeText(context, "保存失败，原参数未改变", Toast.LENGTH_LONG).show() }
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
+                prefs.restoreWhiteOutlineDefault(target)
+                widgetUpdater?.updateWidgets()
+                Toast.makeText(context, "已恢复该组件白边默认值", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                val value = readSettings() ?: return@setOnClickListener
+                prefs.beginWhiteOutlinePreview(target, value)
+                widgetUpdater?.updateWidgets()
+                dialog.dismiss()
+                val home = Intent(Intent.ACTION_MAIN).apply {
+                    addCategory(Intent.CATEGORY_HOME)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(home)
+                requireActivity().finish()
+            }
+        }
+        dialog.show()
+    }
+
+    private fun openWhiteOutlinePreviewManager(target: WhiteOutlineTarget) {
+        val context = requireContext()
+        val preview = prefs.getWhiteOutlineSettings(target)
+        prefs.markWhiteOutlinePreviewHandled(target)
+        AlertDialog.Builder(context)
+            .setTitle("白边临时预览")
+            .setMessage("组件：${target.displayName}\n临时阈值：${preview.threshold}\n临时宽度：${preview.width} dp\n\n请选择如何处理。")
+            .setCancelable(false)
+            .setPositiveButton("保存为永久配置") { _, _ ->
+                prefs.saveWhiteOutlinePreview(target)
+                widgetUpdater?.updateWidgets()
+                Toast.makeText(context, "白边参数已保存", Toast.LENGTH_SHORT).show()
+                returnToConfiguredStartup()
+            }
+            .setNegativeButton("取消本次预览") { _, _ ->
+                prefs.cancelWhiteOutlinePreview(target)
+                widgetUpdater?.updateWidgets()
+                Toast.makeText(context, "已恢复原白边参数", Toast.LENGTH_SHORT).show()
+                returnToConfiguredStartup()
+            }
+            .setNeutralButton("暂时不处理") { _, _ ->
+                prefs.markWhiteOutlinePreviewHandled(target)
+                returnToConfiguredStartup()
+            }
             .show()
     }
 
@@ -557,6 +696,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
 
     /** Called by SettingsActivity when the launcher returns to an active preview. */
     fun openParameterPreviewManager() {
+        prefs.pendingWhiteOutlinePreview()?.let {
+            openWhiteOutlinePreviewManager(it)
+            return
+        }
         if (prefs.checkmarkWhiteWeightPreview != null) {
             openCheckmarkParameterPreviewManager()
             return
