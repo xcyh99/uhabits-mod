@@ -191,6 +191,14 @@ open class Preferences(private val storage: Storage) {
 
     companion object {
         const val MIDNIGHT_DELAY_HOURS = 3
+        const val DEFAULT_HISTORY_WHITE_WEIGHT = 6.6
+        const val MIN_HISTORY_WHITE_WEIGHT = 0.1
+        const val MAX_HISTORY_WHITE_WEIGHT = 100.0
+        private const val HISTORY_WHITE_WEIGHT_KEY = "parameter_history_white_weight"
+        private const val HISTORY_WHITE_WEIGHT_BACKUP_KEY = "parameter_history_white_weight_backup"
+        private const val HISTORY_WHITE_PREVIEW_KEY = "parameter_history_white_weight_preview"
+        private const val HISTORY_WHITE_PREVIEW_ACTIVE_KEY = "parameter_history_white_weight_preview_active"
+        private const val HISTORY_WHITE_PREVIEW_PENDING_KEY = "parameter_history_white_weight_preview_pending"
     }
 
     open fun updateLastHint(number: Int, date: LocalDate) {
@@ -208,6 +216,102 @@ open class Preferences(private val storage: Storage) {
         set(value) {
             storage.putString("pref_widget_opacity", value.toString())
         }
+    /**
+     * User-adjustable white text preference for completed history squares.
+     * Values are validated and recovered before they can reach rendering code.
+     */
+    /** The committed value is kept separate from any in-process preview. */
+    open var committedHistoryChartWhiteWeight: Double
+        get() {
+            val current = readValidParameter(HISTORY_WHITE_WEIGHT_KEY)
+            if (current != null) return current
+            val recovered = readValidParameter(HISTORY_WHITE_WEIGHT_BACKUP_KEY)
+                ?: DEFAULT_HISTORY_WHITE_WEIGHT
+            runCatching { storage.putString(HISTORY_WHITE_WEIGHT_KEY, recovered.toString()) }
+            return recovered
+        }
+        set(value) {
+            require(isValidHistoryWhiteWeight(value)) { "Weight must be between 0.1 and 100.0" }
+            val previous = committedHistoryChartWhiteWeight
+            storage.putString(HISTORY_WHITE_WEIGHT_BACKUP_KEY, previous.toString())
+            storage.putString(HISTORY_WHITE_WEIGHT_KEY, value.toString())
+            clearHistoryChartWhiteWeightPreview()
+        }
+
+    /** Rendering reads the preview while it is active, otherwise the committed value. */
+    open var historyChartWhiteWeight: Double
+        get() = historyChartWhiteWeightPreview ?: committedHistoryChartWhiteWeight
+        set(value) { committedHistoryChartWhiteWeight = value }
+
+    open val historyChartWhiteWeightPreview: Double?
+        get() = if (storage.getBoolean(HISTORY_WHITE_PREVIEW_ACTIVE_KEY, false)) {
+            readValidParameter(HISTORY_WHITE_PREVIEW_KEY)
+        } else null
+
+    open val isHistoryChartWhiteWeightPreviewPending: Boolean
+        get() = storage.getBoolean(HISTORY_WHITE_PREVIEW_PENDING_KEY, false)
+
+    open fun beginHistoryChartWhiteWeightPreview(value: Double) {
+        require(isValidHistoryWhiteWeight(value)) { "Weight must be between 0.1 and 100.0" }
+        storage.putString(HISTORY_WHITE_PREVIEW_KEY, value.toString())
+        storage.putBoolean(HISTORY_WHITE_PREVIEW_ACTIVE_KEY, true)
+        storage.putBoolean(HISTORY_WHITE_PREVIEW_PENDING_KEY, true)
+    }
+
+    open fun markHistoryChartWhiteWeightPreviewHandled() {
+        storage.putBoolean(HISTORY_WHITE_PREVIEW_PENDING_KEY, false)
+    }
+
+    open fun saveHistoryChartWhiteWeightPreview(): Double {
+        val preview = historyChartWhiteWeightPreview ?: committedHistoryChartWhiteWeight
+        committedHistoryChartWhiteWeight = preview
+        return preview
+    }
+
+    open fun cancelHistoryChartWhiteWeightPreview(): Double {
+        val committed = committedHistoryChartWhiteWeight
+        clearHistoryChartWhiteWeightPreview()
+        return committed
+    }
+
+    /** Called once at process startup: unfinished previews never survive a cold start. */
+    open fun recoverInterruptedHistoryChartWhiteWeightPreview(): Boolean {
+        if (!storage.getBoolean(HISTORY_WHITE_PREVIEW_ACTIVE_KEY, false)) return false
+        clearHistoryChartWhiteWeightPreview()
+        return true
+    }
+
+    private fun clearHistoryChartWhiteWeightPreview() {
+        storage.putBoolean(HISTORY_WHITE_PREVIEW_ACTIVE_KEY, false)
+        storage.putBoolean(HISTORY_WHITE_PREVIEW_PENDING_KEY, false)
+        storage.remove(HISTORY_WHITE_PREVIEW_KEY)
+    }
+
+    /** Restore the last valid committed value saved before the most recent change. */
+    open fun restorePreviousHistoryChartWhiteWeight(): Double {
+        val previous = readValidParameter(HISTORY_WHITE_WEIGHT_BACKUP_KEY)
+            ?: DEFAULT_HISTORY_WHITE_WEIGHT
+        committedHistoryChartWhiteWeight = previous
+        return previous
+    }
+
+    /** Reset only parameter-center values; habit and time-record data are untouched. */
+    open fun restoreParameterDefaults() {
+        storage.putString(HISTORY_WHITE_WEIGHT_KEY, DEFAULT_HISTORY_WHITE_WEIGHT.toString())
+        storage.putString(HISTORY_WHITE_WEIGHT_BACKUP_KEY, DEFAULT_HISTORY_WHITE_WEIGHT.toString())
+        clearHistoryChartWhiteWeightPreview()
+    }
+
+    private fun readValidParameter(key: String): Double? {
+        val parsed = runCatching { storage.getString(key, "") }.getOrNull()
+            ?.toDoubleOrNull() ?: return null
+        return parsed.takeIf { isValidHistoryWhiteWeight(it) }
+    }
+
+    private fun isValidHistoryWhiteWeight(value: Double): Boolean =
+        !value.isNaN() && !value.isInfinite() &&
+            value >= MIN_HISTORY_WHITE_WEIGHT && value <= MAX_HISTORY_WHITE_WEIGHT
+
     open var isSkipEnabled: Boolean
         get() = storage.getBoolean("pref_skip_enabled", false)
         set(value) {

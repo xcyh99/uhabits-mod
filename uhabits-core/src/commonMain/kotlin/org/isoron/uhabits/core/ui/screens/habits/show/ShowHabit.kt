@@ -131,7 +131,8 @@ class ShowHabitPresenter(
                 history = HistoryCardPresenter.buildState(
                     habit = habit,
                     firstWeekday = preferences.firstWeekday,
-                    theme = theme
+                    theme = theme,
+                    whitePreferenceWeight = preferences.historyChartWhiteWeight
                 ),
                 bar = BarCardPresenter.buildState(
                     habit = habit,

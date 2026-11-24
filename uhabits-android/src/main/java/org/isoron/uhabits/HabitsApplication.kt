@@ -79,6 +79,9 @@ class HabitsApplication : Application() {
         )
 
         val prefs = component.preferences
+        // Any preview left by a previous process is interrupted and must be discarded
+        // before the first Activity or widget reads the effective parameter.
+        prefs.recoverInterruptedHistoryChartWhiteWeightPreview()
         prefs.lastAppVersion = BuildConfig.VERSION_CODE
 
         setToday(computeToday(component.preferences.midnightDelayHours, 0))

@@ -183,7 +183,9 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     "startupPage",
                     "floatingTimer",
                     "desktopDoodle",
-                    "statusBarDays"
+                    "statusBarDays",
+                    "parameterCenter",
+                    "parameterEmergencyReset"
                 )
                 if (key in directActionKeys) {
                     findPreference(key)?.performClick()
@@ -225,6 +227,22 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             }
             "timeRecords" -> {
                 startActivity(Intent(requireContext(), org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
+                return true
+            }
+            "parameterCenter" -> {
+                showParameterCenter()
+                return true
+            }
+            "parameterEmergencyReset" -> {
+                AlertDialog.Builder(requireContext())
+                    .setTitle("参数紧急恢复")
+                    .setMessage("将参数中心全部恢复为安全默认值（当前历史组件白色数字权重恢复为 6.6）。此操作不会删除或修改习惯、打卡记录和时间记录。")
+                    .setNegativeButton("取消", null)
+                    .setPositiveButton("确认恢复") { _, _ ->
+                        prefs.restoreParameterDefaults()
+                        Toast.makeText(requireContext(), "参数已恢复为安全默认值", Toast.LENGTH_LONG).show()
+                    }
+                    .show()
                 return true
             }
             "widgetManager" -> {
@@ -337,6 +355,132 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         showWidgetManager()
     }
 
+
+    private fun showParameterCenter() {
+        val context = requireContext()
+        val current = prefs.committedHistoryChartWhiteWeight
+        val input = EditText(context).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or
+                InputType.TYPE_NUMBER_FLAG_DECIMAL or
+                InputType.TYPE_NUMBER_FLAG_SIGNED
+            setSingleLine(true)
+            setText(current.toString())
+            setSelection(text.length)
+            hint = "范围：0.1 – 100.0"
+        }
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 8, 48, 0)
+            addView(input)
+            addView(TextView(context).apply {
+                text = "数值越大，历史打卡方格越倾向使用白色数字。正式值：$current。\n有效范围：0.1–100.0。每次正式修改前会自动保存上一有效值。"
+                textSize = 12f
+                setPadding(0, 12, 0, 0)
+            })
+        }
+        val dialog = AlertDialog.Builder(context)
+            .setTitle("历史组件白色数字权重")
+            .setView(container)
+            .setNeutralButton("桌面预览", null)
+            .setNegativeButton("恢复默认", null)
+            .setPositiveButton("直接确定", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val value = input.text.toString().trim().toDoubleOrNull()
+                if (value == null || value.isNaN() || value.isInfinite() ||
+                    value < Preferences.MIN_HISTORY_WHITE_WEIGHT ||
+                    value > Preferences.MAX_HISTORY_WHITE_WEIGHT
+                ) {
+                    input.error = "请输入 0.1–100.0 之间的有效数字"
+                    return@setOnClickListener
+                }
+                runCatching { prefs.committedHistoryChartWhiteWeight = value }
+                    .onSuccess {
+                        widgetUpdater?.updateWidgets()
+                        Toast.makeText(context, "已保存为正式值：$value", Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                    }
+                    .onFailure {
+                        Toast.makeText(context, "保存失败，原参数保持不变", Toast.LENGTH_LONG).show()
+                    }
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
+                prefs.restoreParameterDefaults()
+                widgetUpdater?.updateWidgets()
+                Toast.makeText(context, "参数已恢复默认值 6.6", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                val value = input.text.toString().trim().toDoubleOrNull()
+                if (value == null || value.isNaN() || value.isInfinite() ||
+                    value < Preferences.MIN_HISTORY_WHITE_WEIGHT ||
+                    value > Preferences.MAX_HISTORY_WHITE_WEIGHT
+                ) {
+                    input.error = "请输入 0.1–100.0 之间的有效数字"
+                    return@setOnClickListener
+                }
+                runCatching { prefs.beginHistoryChartWhiteWeightPreview(value) }
+                    .onSuccess {
+                        widgetUpdater?.updateWidgets()
+                        dialog.dismiss()
+                        Toast.makeText(context, "临时预览已应用：$value", Toast.LENGTH_SHORT).show()
+                        val home = Intent(Intent.ACTION_MAIN).apply {
+                            addCategory(Intent.CATEGORY_HOME)
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        context.startActivity(home)
+                        // Leave the main activity at the top of the app task. Its next
+                        // launcher delivery will route to the preview manager.
+                        requireActivity().finish()
+                    }
+                    .onFailure {
+                        Toast.makeText(context, "无法启动预览，正式参数未改变", Toast.LENGTH_LONG).show()
+                    }
+            }
+        }
+        dialog.show()
+    }
+
+    /** Called by SettingsActivity when the launcher returns to an active preview. */
+    fun openParameterPreviewManager() {
+        val context = requireContext()
+        val preview = prefs.historyChartWhiteWeightPreview ?: return
+        val committed = prefs.committedHistoryChartWhiteWeight
+        prefs.markHistoryChartWhiteWeightPreviewHandled()
+        AlertDialog.Builder(context)
+            .setTitle("临时预览管理")
+            .setMessage("当前正式值：$committed\n临时预览值：$preview\n\n请选择如何处理这次预览。")
+            .setCancelable(false)
+            .setPositiveButton("保存为永久配置") { _, _ ->
+                val saved = prefs.saveHistoryChartWhiteWeightPreview()
+                widgetUpdater?.updateWidgets()
+                Toast.makeText(context, "已保存为正式值：$saved", Toast.LENGTH_SHORT).show()
+                returnToConfiguredStartup()
+            }
+            .setNegativeButton("取消本次预览") { _, _ ->
+                val restored = prefs.cancelHistoryChartWhiteWeightPreview()
+                widgetUpdater?.updateWidgets()
+                Toast.makeText(context, "已恢复正式值：$restored", Toast.LENGTH_SHORT).show()
+                returnToConfiguredStartup()
+            }
+            .setNeutralButton("暂时不处理") { _, _ ->
+                prefs.markHistoryChartWhiteWeightPreviewHandled()
+                Toast.makeText(context, "暂时保留预览值：$preview", Toast.LENGTH_SHORT).show()
+                returnToConfiguredStartup()
+            }
+            .show()
+    }
+
+    private fun returnToConfiguredStartup() {
+        val context = requireContext()
+        val intent = Intent(context, ListHabitsActivity::class.java).apply {
+            action = Intent.ACTION_MAIN
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+        requireActivity().finish()
+    }
 
     private fun showStartupPageSettings() {
         val store = PreferenceManager.getDefaultSharedPreferences(requireContext())
@@ -804,7 +948,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 val selected = files[which]
                 AlertDialog.Builder(requireContext())
                     .setTitle("确认恢复设置")
-                    .setMessage("将使用以下备份覆盖本机对应的软件设置：\\n\\n$selected\\n\\n此操作不会修改习惯和打卡数据库。")
+                    .setMessage("将使用以下备份覆盖本机对应的软件设置：\n\n$selected\n\n此操作不会修改习惯和打卡数据库。")
                     .setNegativeButton("取消", null)
                     .setPositiveButton("确认恢复") { _, _ ->
                         Thread {

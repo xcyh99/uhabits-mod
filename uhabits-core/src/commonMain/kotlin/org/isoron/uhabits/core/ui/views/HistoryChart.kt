@@ -50,7 +50,8 @@ class HistoryChart(
     var today: LocalDate,
     var onDateClickedListener: OnDateClickedListener = object : OnDateClickedListener {},
     var padding: Double = 0.0,
-    var compactWeekdayLabels: Boolean = false
+    var compactWeekdayLabels: Boolean = false,
+    var whitePreferenceWeight: Double = 6.6
 ) : DataView {
 
     enum class Square {
@@ -312,8 +313,10 @@ class HistoryChart(
                 0.0722 * luminance(squareColor.blue)
             val whiteContrast = 1.05 / (checkInColorLuminance + 0.05)
             val blackContrast = (checkInColorLuminance + 0.05) / 0.05
-            val whitePreferenceWeight = 6.6
-            if (blackContrast / whiteContrast <= whitePreferenceWeight) {
+            val safeWhitePreferenceWeight = whitePreferenceWeight.takeIf {
+                !it.isNaN() && !it.isInfinite() && it >= 0.1 && it <= 100.0
+            } ?: 6.6
+            if (blackContrast / whiteContrast <= safeWhitePreferenceWeight) {
                 Color.WHITE
             } else {
                 Color.BLACK

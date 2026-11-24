@@ -79,6 +79,14 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val launchPreferences = (application as HabitsApplication).component.preferences
+        if (launchPreferences.isHistoryChartWhiteWeightPreviewPending) {
+            startActivity(Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
+                .putExtra("manage_parameter_preview", true))
+            finish()
+            return
+        }
+
         if (savedInstanceState == null && intent?.action == Intent.ACTION_MAIN) {
             val launchPrefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
             val mode = launchPrefs.getString("startup_page_mode", "main") ?: "main"
@@ -213,6 +221,13 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         setIntent(intent)
+
+        // A launcher tap can bring this task forward while a preview is awaiting a decision.
+        if (intent?.action == Intent.ACTION_MAIN && prefs.isHistoryChartWhiteWeightPreviewPending) {
+            startActivity(Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
+                .putExtra("manage_parameter_preview", true))
+            return
+        }
 
         // A launcher tap can bring an existing task to the foreground instead of
         // creating the activity again. Re-apply the configured startup destination
