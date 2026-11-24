@@ -42,7 +42,9 @@ abstract class BaseWidgetProvider : AppWidgetProvider() {
     private lateinit var widgetPrefs: WidgetPreferences
     fun getDimensionsFromOptions(
         ctx: Context,
-        options: Bundle
+        options: Bundle,
+        widgetId: Int,
+        fallback: WidgetDimensions
     ): WidgetDimensions {
         val maxWidth = dpToPixels(
             ctx,
@@ -60,7 +62,31 @@ abstract class BaseWidgetProvider : AppWidgetProvider() {
             ctx,
             options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT).toFloat()
         ).toInt()
-        return WidgetDimensions(minWidth, maxHeight, maxWidth, minHeight)
+
+        // Some launchers briefly send incomplete widget options during restore,
+        // resize, or process recreation. A zero/tiny dimension would otherwise
+        // produce a nearly 1px bitmap. Keep the last known good size per widget.
+        val stored = ctx.getSharedPreferences("widget_dimensions", Context.MODE_PRIVATE)
+        val minimumValidSize = dpToPixels(ctx, 40f).toInt().coerceAtLeast(1)
+        fun resolve(key: String, candidate: Int, defaultValue: Int): Int {
+            if (candidate >= minimumValidSize) return candidate
+            return stored.getInt("widget_${widgetId}_${key}", defaultValue)
+                .takeIf { it >= minimumValidSize } ?: defaultValue
+        }
+
+        val resolved = WidgetDimensions(
+            resolve("portrait_width", minWidth, fallback.portraitWidth),
+            resolve("portrait_height", maxHeight, fallback.portraitHeight),
+            resolve("landscape_width", maxWidth, fallback.landscapeWidth),
+            resolve("landscape_height", minHeight, fallback.landscapeHeight)
+        )
+        stored.edit()
+            .putInt("widget_${widgetId}_portrait_width", resolved.portraitWidth)
+            .putInt("widget_${widgetId}_portrait_height", resolved.portraitHeight)
+            .putInt("widget_${widgetId}_landscape_width", resolved.landscapeWidth)
+            .putInt("widget_${widgetId}_landscape_height", resolved.landscapeHeight)
+            .apply()
+        return resolved
     }
 
     override fun onAppWidgetOptionsChanged(
@@ -73,7 +99,7 @@ abstract class BaseWidgetProvider : AppWidgetProvider() {
             updateDependencies(context)
             context.setTheme(R.style.WidgetTheme)
             val widget = getWidgetFromId(context, widgetId)
-            val dims = getDimensionsFromOptions(context, options)
+            val dims = getDimensionsFromOptions(context, options, widgetId, widget.defaultDimensions())
             widget.setDimensions(dims)
             updateAppWidget(manager, widget)
         } catch (e: RuntimeException) {
@@ -149,7 +175,7 @@ abstract class BaseWidgetProvider : AppWidgetProvider() {
         try {
             val widget = getWidgetFromId(context, widgetId)
             val options = manager.getAppWidgetOptions(widgetId)
-            widget.setDimensions(getDimensionsFromOptions(context, options))
+            widget.setDimensions(getDimensionsFromOptions(context, options, widgetId, widget.defaultDimensions()))
             updateAppWidget(manager, widget)
         } catch (e: RuntimeException) {
             drawErrorWidget(context, manager, widgetId, e)
