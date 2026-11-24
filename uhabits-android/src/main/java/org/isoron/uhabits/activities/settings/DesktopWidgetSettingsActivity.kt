@@ -298,7 +298,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         val manager = AppWidgetManager.getInstance(this)
         val ids = manager.getAppWidgetIds(ComponentName(this, DigitalClockWidgetProvider::class.java))
         if (ids.isEmpty()) return null
-        val heights = ids.mapNotNull { id ->
+        val heights = ids.asIterable().mapNotNull { id ->
             val options = manager.getAppWidgetOptions(id)
             val maxHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
             @Suppress("DEPRECATION")
