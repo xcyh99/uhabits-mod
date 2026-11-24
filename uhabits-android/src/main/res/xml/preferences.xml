@@ -169,6 +169,12 @@
                 app:iconSpaceReserved="false" />
 
         <Preference
+                android:key="digitalClockWidget"
+                android:title="数字时钟组件"
+                android:summary="管理2×3桌面数字时钟组件；添加到桌面或查看使用说明。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
                 android:key="widgetManager"
                 android:title="桌面组件管理"
                 android:summary="选择多个组件，一次发起添加到手机桌面的请求。"
