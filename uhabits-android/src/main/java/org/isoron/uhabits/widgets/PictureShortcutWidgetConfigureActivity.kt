@@ -45,6 +45,10 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         widgetId = intent?.extras?.getInt(AppWidgetManager.EXTRA_APPWIDGET_ID,
             AppWidgetManager.INVALID_APPWIDGET_ID) ?: AppWidgetManager.INVALID_APPWIDGET_ID
         if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) { finish(); return }
+        // New widgets default both tap regions to this widget's own settings page.
+        val ownSettingsTarget = "pictureWidgetSettings:$widgetId"
+        leftTarget = ownSettingsTarget
+        rightTarget = ownSettingsTarget
 
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
@@ -180,12 +184,12 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         }
     }
 
-    private data class Choice(val key: String, val title: String)
+    private data class Choice(val key: String, val title: String, val category: String)
 
     private fun choices(): List<Choice> {
         val entries = FeatureShortcutCatalog.getSelectableEntries(this)
         return entries.mapNotNull { entry ->
-            Choice(entry.widgetTarget, entry.title)
+            Choice(entry.widgetTarget, entry.title, entry.category)
         }.distinctBy { it.key }.sortedBy { it.title }
     }
 
@@ -213,7 +217,8 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             override fun getItemId(position: Int) = position.toLong()
             override fun getView(position: Int, convertView: android.view.View?, parent: android.view.ViewGroup): android.view.View {
                 val view = (convertView as? TextView) ?: TextView(this@PictureShortcutWidgetConfigureActivity)
-                view.text = FeatureShortcutCatalog.styledTitle(getItem(position).title)
+                val item = getItem(position)
+                view.text = FeatureShortcutCatalog.styledTitle("【${item.category}】 ${item.title}")
                 view.textSize = 15f
                 view.setTextColor(if ((resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES) Color.WHITE else Color.BLACK)
                 view.setPadding(dp(14), dp(13), dp(14), dp(13))

@@ -76,6 +76,7 @@ object FeatureShortcutCatalog {
         BuiltIn("startupPage", "启动首页设置", "设置"),
         BuiltIn("statusBarDays", "状态栏天数设置", "设置"),
         BuiltIn("desktopWidgetSettings", "组件中心", "设置"),
+        BuiltIn("desktopWidgetTimeSettings", "时间组件设置", "设置"),
         BuiltIn("autoBackup", "自动备份设置", "设置"),
         BuiltIn("webDavSync", "WebDAV 云端管理", "设置"),
         BuiltIn("settingsBackupRestore", "设置备份与恢复", "设置"),
@@ -291,6 +292,8 @@ object FeatureShortcutCatalog {
         // Keep only direct routes that are part of the current catalog.
         val fallback = when (key) {
             "desktopWidgetSettings" -> Intent(context, ComponentCenterActivity::class.java)
+            "desktopWidgetTimeSettings" -> Intent(context, DesktopWidgetSettingsActivity::class.java)
+                .putExtra("open_time_widget_control_page", true)
             "widgetManager" -> Intent(context, ComponentAddActivity::class.java)
             "pictureShortcutWidgetSettings" -> Intent(context, PictureShortcutWidgetSettingsActivity::class.java)
             else -> null

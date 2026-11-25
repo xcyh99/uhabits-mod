@@ -121,6 +121,12 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
         private fun targetIntent(context: Context, value: String?): Intent {
             val target = value.orEmpty()
             val intent = when {
+                target.startsWith("pictureWidgetSettings:") -> {
+                    val widgetId = target.substringAfter(":").toIntOrNull()
+                    if (widgetId != null) Intent(context, PictureShortcutWidgetConfigureActivity::class.java)
+                        .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+                    else Intent(context, ListHabitsActivity::class.java)
+                }
                 target.startsWith("app:") -> {
                     val component = ComponentName.unflattenFromString(target.removePrefix("app:"))
                     if (component != null) Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setComponent(component)

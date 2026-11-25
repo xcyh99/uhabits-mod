@@ -151,7 +151,7 @@ class ShortcutEntryManagementActivity : AppCompatActivity() {
             })
             items.forEach { entry ->
                 list.addView(CheckBox(this).apply {
-                    this.text = entry.name
+                    this.text = FeatureShortcutCatalog.styledTitle(entry)
                     textSize = 14f
                     setTextColor(primaryText)
                     isChecked = entry.key in selected
