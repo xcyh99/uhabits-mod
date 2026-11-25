@@ -160,8 +160,10 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 // RemoteViews on older Android/HarmonyOS builds cannot reliably apply
                 // View.setTranslationY. Asymmetric padding moves the row content while
                 // keeping the widget update within the supported RemoteViews API.
-                val offsetTopPadding = (offsetPx * 2).coerceAtLeast(0)
-                val offsetBottomPadding = (-offsetPx * 2).coerceAtLeast(0)
+                // Keep B1's signed, zero-sum offset for the three clock rows.
+                // The shortcut row retains its original non-negative padding behavior.
+                val offsetTopPadding = if (index < 3) offsetPx else (offsetPx * 2).coerceAtLeast(0)
+                val offsetBottomPadding = if (index < 3) -offsetPx else (-offsetPx * 2).coerceAtLeast(0)
                 views.setViewVisibility(viewId, if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE else android.view.View.VISIBLE)
                 if (index < 3) {
                     // The outer viewport owns the fixed row height and clipping boundary.
