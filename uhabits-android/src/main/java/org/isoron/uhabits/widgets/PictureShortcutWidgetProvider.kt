@@ -73,16 +73,22 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
                 runCatching { BitmapFactory.decodeFile(it.absolutePath) }.getOrNull()
             }
             if (bitmap != null) {
-                // Let Android scale against the ImageView's actual on-screen bounds.
-                // Legacy width/height values are no longer supported and safely fall back to FIT_CENTER.
+                // RemoteViews cannot pass ImageView.ScaleType objects. Select one of
+                // three ImageViews whose native scaleType is fixed in XML.
                 val mode = prefs.getString(key(id, "imageMode"), "fit") ?: "fit"
-                val scaleType = when (mode) {
-                    "stretch" -> android.widget.ImageView.ScaleType.FIT_XY
-                    "crop" -> android.widget.ImageView.ScaleType.CENTER_CROP
-                    else -> android.widget.ImageView.ScaleType.FIT_CENTER
+                val selectedId = when (mode) {
+                    "stretch" -> R.id.picture_shortcut_image_stretch
+                    "crop" -> R.id.picture_shortcut_image_crop
+                    else -> R.id.picture_shortcut_image
                 }
-                views.setImageViewBitmap(R.id.picture_shortcut_image, bitmap)
-                views.setImageViewScaleType(R.id.picture_shortcut_image, scaleType)
+                intArrayOf(
+                    R.id.picture_shortcut_image,
+                    R.id.picture_shortcut_image_stretch,
+                    R.id.picture_shortcut_image_crop
+                ).forEach { imageId ->
+                    views.setImageViewBitmap(imageId, bitmap)
+                    views.setViewVisibility(imageId, if (imageId == selectedId) View.VISIBLE else View.GONE)
+                }
                 views.setViewVisibility(R.id.picture_shortcut_empty, View.GONE)
             } else {
                 views.setViewVisibility(R.id.picture_shortcut_empty, View.VISIBLE)
