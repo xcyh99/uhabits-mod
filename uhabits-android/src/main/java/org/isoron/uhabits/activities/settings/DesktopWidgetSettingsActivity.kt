@@ -233,8 +233,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             currentValue?.startsWith("app:") == true || currentValue?.startsWith("system:") == true -> currentValue
             else -> null
         }
-        val allowed = FeatureShortcutCatalog.getAllowedKeys(this) + listOfNotNull(currentKey)
-        FeatureShortcutCatalog.getEntries(this).filter { it.key in allowed }.forEach { options += it.widgetTarget to it.title }
+        FeatureShortcutCatalog.getSelectedEntries(this).forEach { options += it.widgetTarget to it.title }
         val filtered = options.toMutableList()
         val search = android.widget.EditText(this).apply {
             hint = "搜索应用或功能"; setSingleLine(true); inputType = android.text.InputType.TYPE_CLASS_TEXT
@@ -289,7 +288,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
     private fun targetLabel(value: String): String {
         if (value == "none") return "不设置"
         if (value.startsWith("feature:")) {
-            return FeatureShortcutCatalog.getEntries(this).firstOrNull { it.key == value.removePrefix("feature:") }?.name ?: "十字习惯功能"
+            return FeatureShortcutCatalog.getCachedEntry(this, value.removePrefix("feature:"))?.name ?: "十字习惯功能"
         }
         if (value.startsWith("system:")) return "手机系统设置"
         if (value.startsWith("app:")) {
