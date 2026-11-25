@@ -131,37 +131,60 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 prefs.getInt("digital_clock_shortcut_offset_y", 0)
             )
             val heights = rowHeights
-            val naturalHeightsDp = floatArrayOf(
-                hourSize * scaledDensity / density * 1.05f,
-                minuteSize * scaledDensity / density * 1.05f,
-                dateSize * scaledDensity / density * 1.05f,
-                37f
+            val rowTextSizes = floatArrayOf(hourSize, minuteSize, dateSize)
+            val rowTypefaces = arrayOf(
+                android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL),
+                android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL),
+                android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
             )
             rowIds.forEachIndexed { index, viewId ->
                 val rowHeight = heights[index]
                 val offsetPx = (offsets[index].coerceIn(-40, 40) * density).roundToInt()
-                // RemoteViews on older Android/HarmonyOS builds cannot reliably apply
-                // View.setTranslationY. Asymmetric padding moves the row content while
-                // keeping the widget update within the supported RemoteViews API.
-                val offsetTopPadding = (offsetPx * 2).coerceAtLeast(0)
-                val offsetBottomPadding = (-offsetPx * 2).coerceAtLeast(0)
                 views.setViewVisibility(viewId, if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE else android.view.View.VISIBLE)
                 if (index < 3) {
-                    // Keep the configured font size and clamp the TextClock viewport.
-                    val rowHeightPx = (rowHeight * density).toInt()
+                    // TextClock itself is the fixed-height viewport. On API 29-30,
+                    // TextView.setHeight() sets its min/max measured height, so the
+                    // user-selected row height remains effective without API 31 APIs.
+                    val rowHeightPx = (rowHeight * density).roundToInt()
                     if (android.os.Build.VERSION.SDK_INT >= 31) {
                         views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                     } else {
                         views.setInt(viewId, "setHeight", rowHeightPx)
                     }
-                    views.setViewPadding(viewId, 0, offsetTopPadding, 0, offsetBottomPadding)
+
+                    // Align from the nearer edge instead of shrinking a centered
+                    // content area by twice the offset. This keeps the glyph inside
+                    // the row whenever the configured row is tall enough.
+                    val paint = android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                        textSize = rowTextSizes[index] * scaledDensity
+                        typeface = rowTypefaces[index]
+                    }
+                    val textHeightPx = (paint.fontMetricsInt.descent - paint.fontMetricsInt.ascent + 1).coerceAtLeast(1)
+                    val freeSpacePx = (rowHeightPx - textHeightPx).coerceAtLeast(0)
+                    val centerGapPx = freeSpacePx / 2
+                    val safeOffsetPx = offsetPx.coerceIn(-centerGapPx, centerGapPx)
+                    val gravity: Int
+                    val topPadding: Int
+                    val bottomPadding: Int
+                    if (safeOffsetPx > 0) {
+                        gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL
+                        topPadding = centerGapPx + safeOffsetPx
+                        bottomPadding = 0
+                    } else if (safeOffsetPx < 0) {
+                        gravity = android.view.Gravity.BOTTOM or android.view.Gravity.CENTER_HORIZONTAL
+                        topPadding = 0
+                        bottomPadding = centerGapPx - safeOffsetPx
+                    } else {
+                        gravity = android.view.Gravity.CENTER
+                        topPadding = 0
+                        bottomPadding = 0
+                    }
+                    views.setInt(viewId, "setGravity", gravity)
+                    views.setViewPadding(viewId, 0, topPadding, 0, bottomPadding)
                 } else if (android.os.Build.VERSION.SDK_INT >= 31) {
                     views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
-                    val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
-                    views.setViewPadding(viewId, 0, extraPaddingPx + offsetTopPadding, 0, extraPaddingPx + offsetBottomPadding)
-                } else {
-                    val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
-                    views.setViewPadding(viewId, 0, extraPaddingPx + offsetTopPadding, 0, extraPaddingPx + offsetBottomPadding)
+                    val extraPaddingPx = (((rowHeight - 37f).coerceAtLeast(0f) / 2f) * density).toInt()
+                    views.setViewPadding(viewId, 0, extraPaddingPx, 0, extraPaddingPx)
                 }
             }
             val count = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
