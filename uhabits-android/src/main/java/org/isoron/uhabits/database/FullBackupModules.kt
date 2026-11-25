@@ -152,15 +152,15 @@ internal object FullBackupModuleRegistry {
                     ?.groupValues?.get(1)?.toIntOrNull()
             }.toSet()
             ids.forEach { id ->
-                val left = prefs.getString("\${id}_left", null)
-                val right = prefs.getString("\${id}_right", null)
-                if (left != null || right != null || prefs.contains("\${id}_split") || prefs.contains("\${id}_imageMode")) {
-                    val mode = prefs.getString("\${id}_imageMode", "fit") ?: "fit"
+                val left = prefs.getString("${id}_left", null)
+                val right = prefs.getString("${id}_right", null)
+                if (left != null || right != null || prefs.contains("${id}_split") || prefs.contains("${id}_imageMode")) {
+                    val mode = prefs.getString("${id}_imageMode", "fit") ?: "fit"
                     configs[id] = JSONObject()
                         .put("sourceWidgetId", id)
                         .put("left", left ?: "feature:__feature_center")
                         .put("right", right ?: "feature:__settings")
-                        .put("split", prefs.getInt("\${id}_split", 5).coerceIn(1, 9))
+                        .put("split", prefs.getInt("${id}_split", 5).coerceIn(1, 9))
                         .put("imageMode", if (mode in setOf("fit", "stretch", "crop")) mode else "fit")
                 }
             }

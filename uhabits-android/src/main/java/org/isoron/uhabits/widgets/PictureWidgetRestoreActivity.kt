@@ -52,7 +52,7 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
                     }
                 }
                 card.addView(TextView(this).apply {
-                    text = "图片组件 \${index + 1}（原组件编号 \${config.sourceWidgetId}）"
+                    text = "图片组件 ${index + 1}（原组件编号 ${config.sourceWidgetId}）"
                     textSize = 15f
                     setTypeface(typeface, android.graphics.Typeface.BOLD)
                     setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
