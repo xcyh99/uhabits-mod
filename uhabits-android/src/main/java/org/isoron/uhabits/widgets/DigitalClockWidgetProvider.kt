@@ -160,10 +160,14 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     else android.view.View.VISIBLE
                 )
                 if (index < 3) {
-                    // C1: the viewport owns the fixed crop bounds; the middle
-                    // container translates independently; TextClock stays native.
-                    views.setInt(viewId, "setViewportHeightPx", (rowHeight * density).roundToInt())
-                    views.setInt(moverIds[index], "setOffsetYPx", offsetPx)
+                    // C2: stock FrameLayouts only. The outer FrameLayout clips
+                    // the translated inner FrameLayout; TextClock remains native.
+                    // Dynamic viewport sizing is supported by RemoteViews on API 31+.
+                    // Older hosts keep the XML defaults (48dp, 48dp, 27dp).
+                    if (android.os.Build.VERSION.SDK_INT >= 31) {
+                        views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
+                    }
+                    views.setFloat(moverIds[index], "setTranslationY", offsetPx.toFloat())
                 } else if (android.os.Build.VERSION.SDK_INT >= 31) {
                     views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                     val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
