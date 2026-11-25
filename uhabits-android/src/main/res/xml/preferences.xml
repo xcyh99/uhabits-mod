@@ -170,20 +170,20 @@
 
         <Preference
                 android:key="desktopWidgetSettings"
-                android:title="桌面组件设置"
-                android:summary="管理数字时钟组件及其点击区域设置。"
+                android:title="组件中心"
+                android:summary="组件添加、批量添加，以及数字时钟和图片组件设置。"
                 app:iconSpaceReserved="false" />
 
         <Preference
                 android:key="widgetManager"
-                android:title="桌面组件管理"
-                android:summary="选择多个组件，一次发起添加到手机桌面的请求。"
+                android:title="组件添加"
+                android:summary="单个添加或批量添加已注册的桌面组件。"
                 app:iconSpaceReserved="false" />
 
         <Preference
                 android:key="shortcutManagement"
-                android:title="快捷管理"
-                android:summary="统一管理快捷入口候选内容、APP快捷弹出菜单和桌面快捷方式。"
+                android:title="快捷中心"
+                android:summary="统一管理功能、设置、习惯、应用和系统快捷入口。"
                 app:iconSpaceReserved="false" />
 
         <Preference
