@@ -162,15 +162,69 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
 
     private fun chooseTarget(isLeft: Boolean) {
         val items = choices()
-        val labels = items.map { it.title }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle(if (isLeft) "选择左侧点击目标" else "选择右侧点击目标")
-            .setItems(labels) { _, which ->
-                if (isLeft) leftTarget = items[which].key else rightTarget = items[which].key
-                updateTargetLabels()
+        val filtered = items.toMutableList()
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+        val search = android.widget.EditText(this).apply {
+            hint = "搜索功能、设置、习惯或应用"
+            setSingleLine(true)
+            textSize = 15f
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+        }
+        val list = android.widget.ListView(this).apply { dividerHeight = dp(1) }
+        val empty = TextView(this).apply {
+            text = "没有找到匹配的快捷入口"
+            textSize = 14f
+            gravity = android.view.Gravity.CENTER
+            visibility = android.view.View.GONE
+        }
+        val adapter = object : android.widget.BaseAdapter() {
+            override fun getCount() = filtered.size
+            override fun getItem(position: Int) = filtered[position]
+            override fun getItemId(position: Int) = position.toLong()
+            override fun getView(position: Int, convertView: android.view.View?, parent: android.view.ViewGroup): android.view.View {
+                val view = (convertView as? TextView) ?: TextView(this@PictureShortcutWidgetConfigureActivity)
+                view.text = FeatureShortcutCatalog.styledTitle(getItem(position).title)
+                view.textSize = 15f
+                view.setTextColor(if ((resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES) Color.WHITE else Color.BLACK)
+                view.setPadding(dp(14), dp(13), dp(14), dp(13))
+                return view
             }
+        }
+        list.adapter = adapter
+        fun filter(query: String) {
+            val q = query.trim().lowercase()
+            filtered.clear()
+            filtered.addAll(items.filter { q.isEmpty() || it.title.lowercase().contains(q) || it.key.lowercase().contains(q) })
+            adapter.notifyDataSetChanged()
+            list.visibility = if (filtered.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
+            empty.visibility = if (filtered.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+        }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(4), dp(16), dp(4))
+            addView(search, LinearLayout.LayoutParams(-1, -2))
+            addView(list, LinearLayout.LayoutParams(-1, dp(360)))
+            addView(empty, LinearLayout.LayoutParams(-1, dp(360)))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(if (isLeft) "选择左侧点击目标" else "选择右侧点击目标")
+            .setView(content)
             .setNegativeButton("取消", null)
-            .show()
+            .create()
+        list.setOnItemClickListener { _, _, position, _ ->
+            val selected = filtered[position]
+            if (isLeft) leftTarget = selected.key else rightTarget = selected.key
+            updateTargetLabels()
+            dialog.dismiss()
+        }
+        search.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = filter(s?.toString().orEmpty())
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
+        dialog.show()
+        filter("")
     }
 
     private fun updateTargetLabels() {
