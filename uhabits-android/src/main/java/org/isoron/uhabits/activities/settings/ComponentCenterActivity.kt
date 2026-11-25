@@ -60,8 +60,24 @@ class ComponentCenterActivity : AppCompatActivity() {
         card("组件添加", "单个添加或批量添加已注册的桌面组件") {
             startActivity(Intent(this, ComponentAddActivity::class.java))
         }
-        card("组件设置", "数字时钟、图片组件及其他组件的专属设置") {
-            startActivity(Intent(this, ComponentSettingsActivity::class.java))
+
+        // Component settings stay on this page as a section, not another navigation level.
+        root.addView(TextView(this).apply {
+            text = "组件设置"
+            textSize = 17f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(if (dark) Color.WHITE else Color.BLACK)
+            setPadding(dp(2), dp(12), dp(2), dp(10))
+        })
+
+        card("时间组件设置", "数字时钟的显示、布局、字体、颜色和点击区域") {
+            startActivity(
+                Intent(this, DesktopWidgetSettingsActivity::class.java)
+                    .putExtra("open_time_widget_control_page", true)
+            )
+        }
+        card("图片组件设置", "管理图片、左右点击区域及显示方式") {
+            startActivity(Intent(this, PictureShortcutWidgetSettingsActivity::class.java))
         }
         setContentView(ScrollView(this).apply { isFillViewport = true; addView(root) })
     }
