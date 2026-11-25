@@ -448,6 +448,11 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         }
     }
     fun openPreferenceByKey(key: String) {
+        val discovered = FeatureShortcutCatalog.createIntent(requireContext(), key)
+        if (discovered != null) {
+            startActivity(discovered)
+            return
+        }
         findPreference(key)?.performClick()
     }
 
