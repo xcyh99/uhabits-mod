@@ -91,7 +91,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         }
         content.addView(splitSeekBar)
         content.addView(TextView(this).apply {
-            text = "分界线每次移动 10%。桌面上可通过长按组件调整整体大小。"
+            text = "图片组件默认 2×2。添加到桌面后，长按并拖动边框调整大小（最小尺寸及最大尺寸由桌面网格决定）。图片显示方式可在下方选择。分界线每次移动 10%。"
             textSize = 12f
             setPadding(0, dp(4), 0, dp(8))
         })
