@@ -99,6 +99,15 @@
         </activity>
 
         <activity
+            android:name="org.isoron.uhabits.widgets.PictureShortcutWidgetConfigureActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.Light.Dialog.Alert">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name="org.isoron.uhabits.widgets.TimeRecordWidgetConfigureActivity"
             android:exported="true"
             android:theme="@style/Theme.AppCompat.Light.Dialog.Alert">
@@ -271,6 +280,18 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_time_record_info" />
+        </receiver>
+
+        <receiver
+            android:name="org.isoron.uhabits.widgets.PictureShortcutWidgetProvider"
+            android:exported="true"
+            android:label="图片快捷组件">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_picture_shortcut_info" />
         </receiver>
 
         <receiver
