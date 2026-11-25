@@ -21,7 +21,7 @@ object FeatureShortcutCatalog {
     const val KEY_ALLOWED_ENTRIES = "shortcut_candidate_keys_v1"
     private const val KEY_CATALOG_CACHE = "shortcut_catalog_cache_v1"
     private const val KEY_CATALOG_CACHE_VERSION = "shortcut_catalog_cache_version"
-    private const val CATALOG_CACHE_VERSION = 2
+    private const val CATALOG_CACHE_VERSION = 3
     private const val META_KEY = "org.isoron.uhabits.shortcut.key"
     private const val META_TITLE = "org.isoron.uhabits.shortcut.title"
     private const val META_CATEGORY = "org.isoron.uhabits.shortcut.category"
@@ -90,7 +90,7 @@ object FeatureShortcutCatalog {
 
     fun getEntries(context: Context): List<Entry> {
         val result = mutableListOf<Entry>()
-        builtIns.forEach { result.add(Entry(it.key, it.title, if (it.key.startsWith("system:")) "外" else "内", it.category)) }
+        builtIns.forEach { result.add(Entry(it.key, it.title, "", it.category)) }
 
         // A nested PreferenceScreen is a page; ordinary Preference/PreferenceCategory leaves
         // are not pages and are intentionally ignored (they are usually individual parameters).
@@ -102,7 +102,7 @@ object FeatureShortcutCatalog {
                     val key = preference.key
                     val title = preference.title?.toString()?.trim().orEmpty()
                     if (!key.isNullOrBlank() && title.isNotBlank() && key !in excludedKeys) {
-                        result.add(Entry(key, title, "内", "设置", preference.icon))
+                        result.add(Entry(key, title, "", "设置", preference.icon))
                     }
                 }
                 if (preference is PreferenceGroup) {
@@ -129,7 +129,7 @@ object FeatureShortcutCatalog {
                 val title = metadata.getString(META_TITLE)?.trim().orEmpty()
                 val category = metadata.getString(META_CATEGORY)?.trim().orEmpty()
                 if (key.isNotBlank() && title.isNotBlank() && category in categories && key !in excludedKeys) {
-                    result.add(Entry(key, title, "内", category, activityName = activity.name))
+                    result.add(Entry(key, title, "", category, activityName = activity.name))
                 }
 
                 // An Activity may expose additional in-Activity pages through
@@ -146,7 +146,7 @@ object FeatureShortcutCatalog {
                     if (pageKey.isNotBlank() && pageTitle.isNotBlank() && pageCategory in categories &&
                         pageKey !in excludedKeys) {
                         result.add(Entry(
-                            pageKey, pageTitle, "内", pageCategory,
+                            pageKey, pageTitle, "", pageCategory,
                             activityName = activity.name,
                             extraName = extraName,
                             extraValue = extraValue
@@ -160,7 +160,7 @@ object FeatureShortcutCatalog {
         runCatching {
             val app = context.applicationContext as org.isoron.uhabits.HabitsApplication
             app.component.habitList.filter { !it.isArchived && it.id != null }.forEach {
-                result.add(Entry("habit:${it.id}", it.name, "内", "习惯"))
+                result.add(Entry("habit:${it.id}", it.name, "", "习惯"))
             }
         }
 
@@ -174,7 +174,7 @@ object FeatureShortcutCatalog {
                 .sortedBy { it.loadLabel(pm).toString().lowercase() }
                 .forEach {
                     val component = ComponentName(it.activityInfo.packageName, it.activityInfo.name)
-                    result.add(Entry("app:${component.flattenToString()}", it.loadLabel(pm).toString(), "外", "应用", it.loadIcon(pm)))
+                    result.add(Entry("app:${component.flattenToString()}", it.loadLabel(pm).toString(), "", "应用", it.loadIcon(pm)))
                 }
         }
         val entries = result.distinctBy { it.key }
