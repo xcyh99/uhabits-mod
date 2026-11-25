@@ -119,11 +119,17 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             val alpha = prefs.getInt("digital_clock_bg_alpha", 90).coerceIn(0, 100) * 255 / 100
             views.setInt(R.id.digital_clock_widget_root, "setBackgroundColor", Color.argb(alpha, Color.red(bg), Color.green(bg), Color.blue(bg)))
             val shortcutCount = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
+            // Fixed outer clipping windows; TextClock children may extend beyond them.
             val rowIds = intArrayOf(
+                R.id.digital_clock_hour_viewport,
+                R.id.digital_clock_minute_viewport,
+                R.id.digital_clock_date_viewport,
+                R.id.digital_clock_shortcut_row
+            )
+            val contentIds = intArrayOf(
                 R.id.digital_clock_time,
                 R.id.digital_clock_minute,
-                R.id.digital_clock_date,
-                R.id.digital_clock_shortcut_row
+                R.id.digital_clock_date
             )
             val rowBorderKeys = arrayOf(
                 "digital_clock_hour_border_enabled",
@@ -158,14 +164,22 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 val offsetBottomPadding = (-offsetPx * 2).coerceAtLeast(0)
                 views.setViewVisibility(viewId, if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE else android.view.View.VISIBLE)
                 if (index < 3) {
-                    // Keep the configured font size and clamp the TextClock viewport.
+                    // The outer viewport owns the fixed row height and clipping boundary.
+                    // The inner TextClock is oversized and centered inside that window.
                     val rowHeightPx = (rowHeight * density).toInt()
+                    val contentId = contentIds[index]
+                    val overscanPx = (160f * density).roundToInt()
+                    val contentHeightPx = rowHeightPx + overscanPx
                     if (android.os.Build.VERSION.SDK_INT >= 31) {
                         views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
+                        views.setViewLayoutHeight(contentId, rowHeight + 160f, android.util.TypedValue.COMPLEX_UNIT_DIP)
                     } else {
                         views.setInt(viewId, "setHeight", rowHeightPx)
+                        views.setInt(contentId, "setHeight", contentHeightPx)
                     }
-                    views.setViewPadding(viewId, 0, offsetTopPadding, 0, offsetBottomPadding)
+                    // Equal-and-opposite padding moves glyphs inside the oversized child.
+                    // Clipping remains fixed at the independent outer viewport.
+                    views.setViewPadding(contentId, 0, offsetTopPadding, 0, offsetBottomPadding)
                 } else if (android.os.Build.VERSION.SDK_INT >= 31) {
                     views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                     val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
