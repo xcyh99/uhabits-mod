@@ -90,11 +90,6 @@ class SettingsActivity : AppCompatActivity() {
 
         val preferenceKey = launchIntent.getStringExtra("open_preference_key") ?: return
         launchIntent.removeExtra("open_preference_key")
-        val discoveredPage = FeatureShortcutCatalog.createIntent(this, preferenceKey)
-        if (discoveredPage != null) {
-            startActivity(discoveredPage)
-            return
-        }
         if (fragment?.isAdded == true && fragment.view != null) {
             if (preferenceKey == "widgetManager") {
                 fragment.openBatchWidgetPicker(launchIntent)
