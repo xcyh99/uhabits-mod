@@ -147,8 +147,12 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 // RemoteViews on older Android/HarmonyOS builds cannot reliably apply
                 // View.setTranslationY. Asymmetric padding moves the row content while
                 // keeping the widget update within the supported RemoteViews API.
-                val offsetTopPadding = (offsetPx * 2).coerceAtLeast(0)
-                val offsetBottomPadding = (-offsetPx * 2).coerceAtLeast(0)
+                // Padding2 / B1: for the three text rows, move the TextClock
+                // content with signed, equal-and-opposite padding. This preserves
+                // the total padding budget while allowing the glyphs to reach the
+                // top edge. Keep the shortcut row's original padding behavior.
+                val offsetTopPadding = if (index < 3) offsetPx else (offsetPx * 2).coerceAtLeast(0)
+                val offsetBottomPadding = if (index < 3) -offsetPx else (-offsetPx * 2).coerceAtLeast(0)
                 views.setViewVisibility(viewId, if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE else android.view.View.VISIBLE)
                 if (index < 3) {
                     // Keep the configured font size and clamp the TextClock viewport.
