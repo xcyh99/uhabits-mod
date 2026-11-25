@@ -21,7 +21,6 @@ import org.isoron.uhabits.widgets.DigitalClockWidgetProvider
 
 /** Central settings page for all home-screen widgets; individual widget settings live here. */
 class DesktopWidgetSettingsActivity : AppCompatActivity() {
-    private var activeSettingsPage: String? = null
     private val store by lazy { PreferenceManager.getDefaultSharedPreferences(this) }
     private val slots = listOf(
         Slot("hour", "小时区域", "单独设置点击小时数字后打开的目标"),
@@ -45,10 +44,6 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
     }
 
     private fun render() {
-        when (activeSettingsPage) {
-            "font" -> { renderFontSettingsPage(); return }
-            "border" -> { renderBorderSettingsPage(); return }
-        }
         val density = resources.displayMetrics.density
         fun dp(v: Int) = (v * density).toInt()
         val root = LinearLayout(this).apply {
@@ -115,15 +110,9 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         section("尺寸与裁切", "四行分别控制尺寸、窗口和位置")
         actionCard("字符间距与数字变形", "前三行分别调整字符间距和横向比例") { showSpacingAndTransformSettings() }
         actionCard("四行高度与自动布局", "独立设置四行窗口高度、自动适配与数字比例") { showRowSettings() }
-        section("显示设置", "字体与白边分别进入独立页面")
-        actionCard("字体设置", "调整小时、分钟、日期三行字号") {
-            activeSettingsPage = "font"
-            render()
-        }
-        actionCard("白边设置", "分别开关小时、分钟、日期、快捷入口白边") {
-            activeSettingsPage = "border"
-            render()
-        }
+        section("显示设置", "点击选项后弹出设置菜单")
+        actionCard("字体设置", "调整小时、分钟、日期三行字号") { showFontSettingsDialog() }
+        actionCard("白边设置", "分别开关小时、分钟、日期、快捷入口白边") { showBorderSettingsDialog() }
         actionCard("四行垂直位置", "小时、分钟、日期、快捷图标分别上下移动") { showVerticalOffsetSettings() }
 
         section("颜色与效果")
@@ -160,45 +149,18 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         })
     }
 
-    private fun createSettingsPageRoot(): LinearLayout {
+    private fun showFontSettingsDialog() {
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
-        return LinearLayout(this).apply {
+        val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(10), dp(16), dp(28))
-            setBackgroundColor(resolvePageBackground())
+            setPadding(dp(20), dp(8), dp(20), dp(4))
         }
-    }
-
-    private fun addSettingsPageHeader(root: LinearLayout, pageTitle: String) {
-        val density = resources.displayMetrics.density
-        fun dp(value: Int) = (value * density).toInt()
-        root.addView(Button(this).apply {
-            text = "‹ 返回设置"
-            setOnClickListener {
-                activeSettingsPage = null
-                render()
-            }
-        }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
-        root.addView(TextView(this).apply {
-            text = pageTitle
-            textSize = 20f
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
-            setTextColor(resolvePrimaryText())
-            setPadding(dp(2), dp(10), dp(2), dp(14))
-        })
-    }
-
-    private fun renderFontSettingsPage() {
-        val density = resources.displayMetrics.density
-        fun dp(value: Int) = (value * density).toInt()
-        val root = createSettingsPageRoot()
-        addSettingsPageHeader(root, "字体设置")
-        root.addView(TextView(this).apply {
-            text = "分别设置小时、分钟和日期字号。三项填写完成后统一应用。"
+        panel.addView(TextView(this).apply {
+            text = "三行字号在这里同时设置，应用后立即更新桌面组件。"
             textSize = 13f
             setTextColor(resolveSecondaryText())
-            setPadding(dp(2), 0, dp(2), dp(12))
+            setPadding(0, 0, 0, dp(10))
         })
         val specs = listOf(
             Triple("小时字号", KEY_HOUR_SIZE, 48f),
@@ -209,7 +171,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = android.view.Gravity.CENTER_VERTICAL
-                setPadding(dp(12), dp(5), dp(12), dp(5))
+                setPadding(0, dp(5), 0, dp(5))
             }
             row.addView(TextView(this).apply {
                 text = label
@@ -227,13 +189,18 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 setSelectAllOnFocus(true)
             }
             row.addView(input, LinearLayout.LayoutParams(dp(92), dp(46)))
-            root.addView(row, LinearLayout.LayoutParams(-1, -2))
+            panel.addView(row, LinearLayout.LayoutParams(-1, -2))
             prefKey to input
         }
-        root.addView(Button(this).apply {
-            text = "应用字号"
-            setOnClickListener {
-                val values = inputs.map { (key, input) -> key to input.text.toString().toFloatOrNull() }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("字体设置")
+            .setView(panel)
+            .setNegativeButton("取消", null)
+            .setPositiveButton("应用字号", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val values = inputs.map { (key, input) -> key to input.text.toString().trim().toFloatOrNull() }
                 val invalid = values.firstOrNull { (_, value) -> value == null || value !in 1f..300f }
                 if (invalid != null) {
                     inputs.firstOrNull { it.first == invalid.first }?.second?.error = "请输入 1～300"
@@ -243,25 +210,25 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 values.forEach { (key, value) -> editor.putFloat(key, value!!) }
                 editor.apply()
                 updateWidget()
-                Toast.makeText(this@DesktopWidgetSettingsActivity, "三行字号已保存", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+                Toast.makeText(this, "三行字号已保存", Toast.LENGTH_SHORT).show()
             }
-        }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
-        setContentView(android.widget.ScrollView(this).apply {
-            isFillViewport = true
-            addView(root)
-        })
+        }
+        dialog.show()
     }
 
-    private fun renderBorderSettingsPage() {
+    private fun showBorderSettingsDialog() {
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
-        val root = createSettingsPageRoot()
-        addSettingsPageHeader(root, "白边设置")
-        root.addView(TextView(this).apply {
-            text = "四行白边分别控制，互不影响。开关变化后立即保存并更新桌面组件。"
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(6), dp(20), dp(4))
+        }
+        panel.addView(TextView(this).apply {
+            text = "四行白边分别控制，勾选后点击保存生效。"
             textSize = 13f
             setTextColor(resolveSecondaryText())
-            setPadding(dp(2), 0, dp(2), dp(12))
+            setPadding(0, 0, 0, dp(8))
         })
         val defaults = store.getBoolean(KEY_ROW_BORDER_ENABLED, true)
         val specs = listOf(
@@ -270,23 +237,29 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             "日期白边" to "digital_clock_date_border_enabled",
             "快捷入口白边" to "digital_clock_shortcut_border_enabled"
         )
-        specs.forEach { (label, prefKey) ->
-            root.addView(android.widget.CheckBox(this).apply {
+        val toggles = specs.map { (label, prefKey) ->
+            val toggle = android.widget.CheckBox(this).apply {
                 text = label
                 textSize = 15f
                 setTextColor(resolvePrimaryText())
                 isChecked = store.getBoolean(prefKey, defaults)
-                setPadding(dp(12), dp(9), dp(12), dp(9))
-                setOnCheckedChangeListener { _, checked ->
-                    store.edit().putBoolean(prefKey, checked).apply()
-                    updateWidget()
-                }
-            }, LinearLayout.LayoutParams(-1, -2))
+                setPadding(0, dp(7), 0, dp(7))
+            }
+            panel.addView(toggle, LinearLayout.LayoutParams(-1, -2))
+            prefKey to toggle
         }
-        setContentView(android.widget.ScrollView(this).apply {
-            isFillViewport = true
-            addView(root)
-        })
+        AlertDialog.Builder(this)
+            .setTitle("白边设置")
+            .setView(panel)
+            .setNegativeButton("取消", null)
+            .setPositiveButton("保存") { _, _ ->
+                val editor = store.edit()
+                toggles.forEach { (key, toggle) -> editor.putBoolean(key, toggle.isChecked) }
+                editor.apply()
+                updateWidget()
+                Toast.makeText(this, "四行白边设置已保存", Toast.LENGTH_SHORT).show()
+            }
+            .show()
     }
 
     private fun showWidgetPreview() {
