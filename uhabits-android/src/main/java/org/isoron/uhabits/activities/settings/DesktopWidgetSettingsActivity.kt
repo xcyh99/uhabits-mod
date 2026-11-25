@@ -112,6 +112,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         actionCard("字符间距与数字变形", "前三行分别调整字符间距和横向比例") { showSpacingAndTransformSettings() }
         actionCard("四行高度与自动布局", "独立设置四行窗口高度、自动适配与数字比例") { showRowSettings() }
         actionCard("四行垂直位置", "小时、分钟、日期、快捷图标分别上下移动") { showVerticalOffsetSettings() }
+        actionCard("四行白色边框", if (store.getBoolean(KEY_ROW_BORDER_ENABLED, true)) "当前：开启（四行均显示边框）" else "当前：关闭（四行均隐藏边框）") { showRowBorderSettings() }
 
         section("颜色与效果")
         actionCard("颜色设置", "小时、分钟、日期分别设置颜色") { showColorSettings() }
@@ -169,6 +170,10 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 letterSpacing = spacing
                 scaleX = scale
             }
+        }
+        val previewBorder = store.getBoolean(KEY_ROW_BORDER_ENABLED, true)
+        listOf(R.id.digital_clock_time, R.id.digital_clock_minute, R.id.digital_clock_date, R.id.digital_clock_shortcut_row).forEach { id ->
+            preview.findViewById<android.view.View>(id).setBackgroundResource(if (previewBorder) R.drawable.digital_clock_row_border else android.R.color.transparent)
         }
         preview.findViewById<android.widget.TextClock>(R.id.digital_clock_date).apply {
             textSize = store.getFloat(KEY_DATE_SIZE, 15f)
@@ -623,6 +628,28 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    private fun showRowBorderSettings() {
+        val toggle = android.widget.CheckBox(this).apply {
+            text = "四行全部显示白色边框"
+            textSize = 15f
+            setTextColor(resolvePrimaryText())
+            isChecked = store.getBoolean(KEY_ROW_BORDER_ENABLED, true)
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        AlertDialog.Builder(this)
+            .setTitle("四行白色边框")
+            .setMessage("边框只用于标示每一行的范围，不改变行高、字号、文字位置或快捷图标尺寸。")
+            .setView(toggle)
+            .setNegativeButton("取消", null)
+            .setPositiveButton("保存") { _, _ ->
+                store.edit().putBoolean(KEY_ROW_BORDER_ENABLED, toggle.isChecked).apply()
+                updateWidget()
+                render()
+                Toast.makeText(this, if (toggle.isChecked) "四行白边已开启" else "四行白边已关闭", Toast.LENGTH_SHORT).show()
+            }
+            .show()
+    }
+
     private fun showVerticalOffsetSettings() {
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
@@ -894,6 +921,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         private const val KEY_SHORTCUT_WEIGHT = "digital_clock_shortcut_weight"
         private const val KEY_LAYOUT_MODE = "digital_clock_layout_mode"
         private const val KEY_KEEP_DIGIT_RATIO = "digital_clock_keep_digit_ratio"
+        private const val KEY_ROW_BORDER_ENABLED = "digital_clock_row_border_enabled"
         private const val KEY_HOUR_OFFSET_Y = "digital_clock_hour_offset_y"
         private const val KEY_MINUTE_OFFSET_Y = "digital_clock_minute_offset_y"
         private const val KEY_DATE_OFFSET_Y = "digital_clock_date_offset_y"
