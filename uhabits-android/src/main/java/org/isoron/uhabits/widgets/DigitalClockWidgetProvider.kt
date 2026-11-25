@@ -127,10 +127,10 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 R.id.digital_clock_date_viewport,
                 R.id.digital_clock_shortcut_row
             )
-            val moverIds = intArrayOf(
-                R.id.digital_clock_time_mover,
-                R.id.digital_clock_minute_mover,
-                R.id.digital_clock_date_mover
+            val textIds = intArrayOf(
+                R.id.digital_clock_time,
+                R.id.digital_clock_minute,
+                R.id.digital_clock_date
             )
             val rowBorderKeys = arrayOf(
                 "digital_clock_hour_border_enabled",
@@ -164,9 +164,17 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     else android.view.View.VISIBLE
                 )
                 if (index < 3) {
-                    // B3: keep the crop viewport fixed and move only its inner content layer.
-                    views.setInt(viewId, "setViewportHeightPx", (rowHeight * density).roundToInt())
-                    views.setInt(moverIds[index], "setOffsetYPx", offsetPx)
+                    // B3 standard RemoteViews: the outer FrameLayout remains the clipping viewport.
+                    // Opposing padding values move its TextClock child while their sum stays zero,
+                    // so the viewport's measured height and clipping edge do not move.
+                    val textId = textIds[index]
+                    val rowHeightPx = (rowHeight * density).roundToInt()
+                    if (android.os.Build.VERSION.SDK_INT >= 31) {
+                        views.setViewLayoutHeight(textId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
+                    } else {
+                        views.setInt(textId, "setHeight", rowHeightPx)
+                    }
+                    views.setViewPadding(viewId, 0, offsetPx, 0, -offsetPx)
                 } else if (android.os.Build.VERSION.SDK_INT >= 31) {
                     val offsetTopPadding = (offsetPx * 2).coerceAtLeast(0)
                     val offsetBottomPadding = (-offsetPx * 2).coerceAtLeast(0)
