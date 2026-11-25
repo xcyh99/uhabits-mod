@@ -119,7 +119,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         try {
             val bitmap = contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
                 ?: throw IllegalStateException("无法读取图片")
-            val maxSide = 480
+            val maxSide = 400
             val scale = minOf(1f, maxSide.toFloat() / maxOf(bitmap.width, bitmap.height))
             val saved = if (scale < 1f) Bitmap.createScaledBitmap(bitmap,
                 (bitmap.width * scale).toInt().coerceAtLeast(1),
