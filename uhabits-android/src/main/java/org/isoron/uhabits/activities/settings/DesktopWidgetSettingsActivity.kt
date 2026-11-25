@@ -95,6 +95,43 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             gravity = android.view.Gravity.CENTER
         })
         root.addView(item, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
+        val pictureItem = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(dp(16), dp(15), dp(14), dp(15))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(if (isDark()) Color.rgb(45, 48, 55) else Color.WHITE)
+                cornerRadius = dp(13).toFloat()
+                setStroke(dp(1), if (isDark()) Color.rgb(70, 74, 82) else Color.rgb(230, 233, 238))
+            }
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                startActivity(Intent(this@DesktopWidgetSettingsActivity,
+                    PictureShortcutWidgetSettingsActivity::class.java))
+            }
+        }
+        val pictureLabels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        pictureLabels.addView(TextView(this).apply {
+            text = "图片组件设置"
+            textSize = 15f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(resolvePrimaryText())
+        })
+        pictureLabels.addView(TextView(this).apply {
+            text = "管理已添加的图片组件，修改图片和左右点击目标"
+            textSize = 12f
+            setTextColor(resolveSecondaryText())
+            setPadding(0, dp(3), 0, 0)
+        })
+        pictureItem.addView(pictureLabels, LinearLayout.LayoutParams(0, -2, 1f))
+        pictureItem.addView(TextView(this).apply {
+            text = "›"
+            textSize = 27f
+            setTextColor(resolveSecondaryText())
+            gravity = android.view.Gravity.CENTER
+        })
+        root.addView(pictureItem, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
         setContentView(android.widget.ScrollView(this).apply {
             isFillViewport = true
             addView(root)
