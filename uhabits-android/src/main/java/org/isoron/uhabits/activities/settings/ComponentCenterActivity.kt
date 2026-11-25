@@ -12,7 +12,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import org.isoron.uhabits.HabitsApplication
 import org.isoron.uhabits.activities.AndroidThemeSwitcher
-import org.isoron.uhabits.widgets.WidgetCatalog
 
 class ComponentCenterActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -98,12 +97,6 @@ class ComponentSettingsActivity : AppCompatActivity() {
         }
         item("图片组件设置", "图片、点击区域及描边等设置") {
             startActivity(Intent(this, PictureShortcutWidgetSettingsActivity::class.java))
-        }
-        val known = WidgetCatalog.discover(this)
-        known.filter { it.title !in setOf("数字时钟（2×3）", "图片快捷组件") && it.configureActivity != null }.forEach { entry ->
-            item(entry.title + "设置", "打开该组件的配置页面") {
-                entry.configureActivity?.let { component -> startActivity(Intent().setComponent(component)) }
-            }
         }
         setContentView(ScrollView(this).apply { isFillViewport = true; addView(root) })
     }
