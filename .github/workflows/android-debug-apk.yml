@@ -31,6 +31,7 @@ on:
       - test/988-B2
       - stable/990
       - test/990B2
+      - test/990B3
   pull_request:
     branches:
       - dev
