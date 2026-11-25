@@ -225,39 +225,25 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
 
     private fun chooseTarget(slot: Slot) {
         val options = mutableListOf<Pair<String, String>>()
-        options += "none" to "【静默】点击无动作"
-        FeatureShortcutCatalog.getEntries(this).forEach {
-            options += "feature:${it.key}" to "【功能】${it.title}"
+        options += "none" to "【外】【设置】不执行操作"
+        val currentValue = store.getString(key(slot.key), null)
+            ?: if (slot.key == "hour" || slot.key == "minute") store.getString("digital_clock_target_time", null) else null
+        val currentKey = when {
+            currentValue?.startsWith("feature:") == true -> currentValue.removePrefix("feature:")
+            currentValue?.startsWith("app:") == true || currentValue?.startsWith("system:") == true -> currentValue
+            else -> null
         }
-        val pm = packageManager
-        val launchIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-        val apps = pm.queryIntentActivities(launchIntent, PackageManager.MATCH_ALL)
-            .filter { it.activityInfo.packageName != packageName }
-            .distinctBy { it.activityInfo.packageName }
-            .sortedBy { it.loadLabel(pm).toString().lowercase() }
-        apps.forEach { info ->
-            val component = ComponentName(info.activityInfo.packageName, info.activityInfo.name)
-            options += "app:${component.flattenToString()}" to "【应用】${info.loadLabel(pm)}"
-        }
-
-        // Every clickable slot shares this searchable target picker.
+        val allowed = FeatureShortcutCatalog.getAllowedKeys(this) + listOfNotNull(currentKey)
+        FeatureShortcutCatalog.getEntries(this).filter { it.key in allowed }.forEach { options += it.widgetTarget to it.title }
         val filtered = options.toMutableList()
         val search = android.widget.EditText(this).apply {
-            hint = "搜索程序或功能"
-            setSingleLine(true)
-            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            hint = "搜索应用或功能"; setSingleLine(true); inputType = android.text.InputType.TYPE_CLASS_TEXT
             setPadding(dp(14), dp(10), dp(14), dp(10))
         }
-        val list = android.widget.ListView(this).apply {
-            dividerHeight = dp(1)
-            isTextFilterEnabled = false
-        }
+        val list = android.widget.ListView(this).apply { dividerHeight = dp(1) }
         val empty = TextView(this).apply {
-            text = "没有找到匹配的程序或功能"
-            textSize = 14f
-            gravity = android.view.Gravity.CENTER
-            setTextColor(resolveSecondaryText())
-            visibility = android.view.View.GONE
+            text = "没有找到匹配的应用或功能"; textSize = 14f; gravity = android.view.Gravity.CENTER
+            setTextColor(resolveSecondaryText()); visibility = android.view.View.GONE
         }
         val adapter = object : android.widget.BaseAdapter() {
             override fun getCount() = filtered.size
@@ -265,67 +251,35 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             override fun getItemId(position: Int) = position.toLong()
             override fun getView(position: Int, convertView: android.view.View?, parent: android.view.ViewGroup): android.view.View {
                 val row = (convertView as? TextView) ?: TextView(this@DesktopWidgetSettingsActivity).apply {
-                    textSize = 15f
-                    setTextColor(resolvePrimaryText())
-                    gravity = android.view.Gravity.CENTER_VERTICAL
-                    setPadding(dp(16), dp(13), dp(16), dp(13))
-                    minHeight = dp(48)
+                    textSize = 15f; setTextColor(resolvePrimaryText()); gravity = android.view.Gravity.CENTER_VERTICAL
+                    setPadding(dp(16), dp(13), dp(16), dp(13)); minHeight = dp(48)
                 }
-                val label = getItem(position).second
-                val close = label.indexOf('】')
-                if (label.startsWith("【") && close > 0) {
-                    val styled = android.text.SpannableString(label)
-                    val tagColor = when (label.substring(1, close)) {
-                        "板块" -> android.graphics.Color.rgb(135, 95, 190)
-                        "功能" -> android.graphics.Color.rgb(35, 155, 105)
-                        "设置" -> android.graphics.Color.rgb(210, 135, 45)
-                        "项目" -> android.graphics.Color.rgb(195, 65, 125)
-                        "应用" -> android.graphics.Color.rgb(55, 125, 220)
-                        "静默" -> android.graphics.Color.rgb(145, 145, 145)
-                        else -> android.graphics.Color.rgb(145, 145, 145)
-                    }
-                    styled.setSpan(
-                        android.text.style.ForegroundColorSpan(tagColor),
-                        0, close + 1,
-                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                    )
-                    row.text = styled
-                } else {
-                    row.text = label
-                }
+                row.text = FeatureShortcutCatalog.styledTitle(getItem(position).second)
                 return row
             }
         }
-        list.adapter = adapter
-        list.emptyView = empty
+        list.adapter = adapter; list.emptyView = empty
         search.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 val query = s?.toString()?.trim()?.lowercase().orEmpty()
-                filtered.clear()
-                filtered.addAll(if (query.isEmpty()) options else options.filter { it.second.lowercase().contains(query) })
+                filtered.clear(); filtered.addAll(if (query.isEmpty()) options else options.filter { it.second.lowercase().contains(query) })
                 adapter.notifyDataSetChanged()
             }
             override fun afterTextChanged(s: android.text.Editable?) {}
         })
         val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(12), dp(4), dp(12), dp(4))
+            orientation = LinearLayout.VERTICAL; setPadding(dp(12), dp(4), dp(12), dp(4))
             addView(search, LinearLayout.LayoutParams(-1, -2))
             addView(list, LinearLayout.LayoutParams(-1, dp(360)))
             addView(empty, LinearLayout.LayoutParams(-1, dp(360)))
         }
-        val dialog = AlertDialog.Builder(this)
-            .setTitle("设置${slot.title}的点击目标")
-            .setView(content)
-            .setNegativeButton("取消", null)
-            .create()
+        val dialog = AlertDialog.Builder(this).setTitle("设置${slot.title}的点击目标")
+            .setView(content).setNegativeButton("取消", null).create()
         list.setOnItemClickListener { _, _, position, _ ->
             val selected = filtered[position]
             store.edit().putString(key(slot.key), selected.first).apply()
-            updateWidget()
-            dialog.dismiss()
-            render()
+            updateWidget(); dialog.dismiss(); render()
         }
         dialog.show()
     }
@@ -335,8 +289,9 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
     private fun targetLabel(value: String): String {
         if (value == "none") return "不设置"
         if (value.startsWith("feature:")) {
-            return FeatureShortcutCatalog.getEntries(this).firstOrNull { it.key == value.removePrefix("feature:") }?.title ?: "十字习惯功能"
+            return FeatureShortcutCatalog.getEntries(this).firstOrNull { it.key == value.removePrefix("feature:") }?.name ?: "十字习惯功能"
         }
+        if (value.startsWith("system:")) return "手机系统设置"
         if (value.startsWith("app:")) {
             val component = ComponentName.unflattenFromString(value.removePrefix("app:")) ?: return "手机应用"
             return runCatching { packageManager.getApplicationLabel(packageManager.getApplicationInfo(component.packageName, 0)).toString() }.getOrDefault("手机应用")
