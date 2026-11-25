@@ -181,14 +181,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         view.setBackgroundColor(sr.getColor(R.attr.contrast0))
         super.onViewCreated(view, savedInstanceState)
         val targetPreference = requireActivity().intent.getStringExtra("open_preference_key")
-        val discoveredPage = targetPreference?.let { FeatureShortcutCatalog.createIntent(requireContext(), it) }
-        if (discoveredPage != null) {
-            view.post {
-                startActivity(discoveredPage)
-                requireActivity().finish()
-            }
-            return
-        }
+        // Activity-backed subpages are dispatched by SettingsActivity after the
+        // fragment is ready; do not also try to scroll to a non-Preference key.
+        val isDiscoveredPage = targetPreference?.let {
+            FeatureShortcutCatalog.createIntent(requireContext(), it) != null
+        } ?: false
+        if (isDiscoveredPage) return
         val openFeatureCenter = requireActivity().intent.getBooleanExtra("open_feature_center", false)
         if ((targetPreference != null && targetPreference != "widgetManager") || openFeatureCenter) {
             view.post {
