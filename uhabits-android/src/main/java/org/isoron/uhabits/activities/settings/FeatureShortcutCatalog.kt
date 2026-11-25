@@ -55,7 +55,7 @@ object FeatureShortcutCatalog {
     // New nested PreferenceScreens and annotated Activities are discovered without editing this list.
     private data class BuiltIn(val key: String, val title: String, val category: String)
     private val builtIns = listOf(
-        BuiltIn("__feature_center", "功能中心", "功能"),
+        BuiltIn("__feature_center", "功能板块", "功能"),
         BuiltIn("__settings", "设置首页", "设置"),
         BuiltIn("system:settings", "手机系统设置", "系统"),
 
