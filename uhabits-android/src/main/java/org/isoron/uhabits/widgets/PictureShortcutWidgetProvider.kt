@@ -38,6 +38,7 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
         appWidgetIds.forEach { id ->
             prefs.getString(key(id, "image"), null)?.takeIf { it.isNotBlank() }?.let { File(context.filesDir, it).delete() }
             prefs.edit().remove(id.toString() + "_image")
+                .remove(id.toString() + "_outline")
                 .remove(id.toString() + "_left").remove(id.toString() + "_right")
                 .remove(id.toString() + "_split").apply()
         }
@@ -53,13 +54,14 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
             R.id.picture_zone_9
         )
 
-        fun save(context: Context, id: Int, imageName: String, left: String, right: String, split: Int, imageMode: String = "fit") {
+        fun save(context: Context, id: Int, imageName: String, left: String, right: String, split: Int, imageMode: String = "fit", outlineEnabled: Boolean = false) {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .putString(key(id, "image"), imageName)
                 .putString(key(id, "left"), left)
                 .putString(key(id, "right"), right)
                 .putInt(key(id, "split"), split.coerceIn(1, 9))
                 .putString(key(id, "imageMode"), imageMode)
+                .putBoolean(key(id, "outline"), outlineEnabled)
                 .apply()
         }
 
@@ -93,6 +95,8 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
             } else {
                 views.setViewVisibility(R.id.picture_shortcut_empty, View.VISIBLE)
             }
+
+            views.setViewVisibility(R.id.picture_shortcut_outline, if (prefs.getBoolean(key(id, "outline"), false)) View.VISIBLE else View.GONE)
 
             val split = prefs.getInt(key(id, "split"), 5).coerceIn(1, 9)
             val left = prefs.getString(key(id, "left"), "feature:__feature_center")
