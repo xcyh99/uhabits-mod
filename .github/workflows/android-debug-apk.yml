@@ -1,4 +1,5 @@
 name: Android APK (stable signing)
+# 990B2 validation rerun after Kotlin widget signature fix
 
 on:
   workflow_dispatch:
