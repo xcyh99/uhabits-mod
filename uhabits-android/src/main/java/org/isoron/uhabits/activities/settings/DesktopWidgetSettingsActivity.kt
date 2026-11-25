@@ -464,56 +464,16 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
     }
 
     private fun chooseTarget(slot: Slot) {
-        val options = mutableListOf<Pair<String, String>>()
-        options += "none" to "【外】【设置】不执行操作"
-        FeatureShortcutCatalog.getSelectedEntries(this).forEach { options += it.widgetTarget to it.title }
-        val filtered = options.toMutableList()
-        val search = android.widget.EditText(this).apply {
-            hint = "搜索应用或功能"; setSingleLine(true); inputType = android.text.InputType.TYPE_CLASS_TEXT
-            setPadding(dp(14), dp(10), dp(14), dp(10))
+        FeatureShortcutPicker.show(
+            context = this,
+            title = "设置" + slot.title + "的点击目标",
+            entries = FeatureShortcutCatalog.getSelectedEntries(this),
+            includeNone = true
+        ) { selectedKey ->
+            store.edit().putString(key(slot.key), selectedKey).apply()
+            updateWidget()
+            render()
         }
-        val list = android.widget.ListView(this).apply { dividerHeight = dp(1) }
-        val empty = TextView(this).apply {
-            text = "没有找到匹配的应用或功能"; textSize = 14f; gravity = android.view.Gravity.CENTER
-            setTextColor(resolveSecondaryText()); visibility = android.view.View.GONE
-        }
-        val adapter = object : android.widget.BaseAdapter() {
-            override fun getCount() = filtered.size
-            override fun getItem(position: Int) = filtered[position]
-            override fun getItemId(position: Int) = position.toLong()
-            override fun getView(position: Int, convertView: android.view.View?, parent: android.view.ViewGroup): android.view.View {
-                val row = (convertView as? TextView) ?: TextView(this@DesktopWidgetSettingsActivity).apply {
-                    textSize = 15f; setTextColor(resolvePrimaryText()); gravity = android.view.Gravity.CENTER_VERTICAL
-                    setPadding(dp(16), dp(13), dp(16), dp(13)); minHeight = dp(48)
-                }
-                row.text = FeatureShortcutCatalog.styledTitle(getItem(position).second)
-                return row
-            }
-        }
-        list.adapter = adapter; list.emptyView = empty
-        search.addTextChangedListener(object : android.text.TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                val query = s?.toString()?.trim()?.lowercase().orEmpty()
-                filtered.clear(); filtered.addAll(if (query.isEmpty()) options else options.filter { it.second.lowercase().contains(query) })
-                adapter.notifyDataSetChanged()
-            }
-            override fun afterTextChanged(s: android.text.Editable?) {}
-        })
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL; setPadding(dp(12), dp(4), dp(12), dp(4))
-            addView(search, LinearLayout.LayoutParams(-1, -2))
-            addView(list, LinearLayout.LayoutParams(-1, dp(360)))
-            addView(empty, LinearLayout.LayoutParams(-1, dp(360)))
-        }
-        val dialog = AlertDialog.Builder(this).setTitle("设置${slot.title}的点击目标")
-            .setView(content).setNegativeButton("取消", null).create()
-        list.setOnItemClickListener { _, _, position, _ ->
-            val selected = filtered[position]
-            store.edit().putString(key(slot.key), selected.first).apply()
-            updateWidget(); dialog.dismiss(); render()
-        }
-        dialog.show()
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()

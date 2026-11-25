@@ -53,7 +53,6 @@ class DesktopShortcutActivity : AppCompatActivity() {
     private var editingShortcutId: String? = null
 
     private val targets = mutableListOf<Target>()
-    private val visibleTargets = mutableListOf<Target>()
     private val iconNames = listOf("十字", "设置", "日历", "图表", "计时", "打卡", "历史", "相册")
     private val iconResources = listOf(
         android.R.drawable.ic_menu_view,
@@ -72,7 +71,8 @@ class DesktopShortcutActivity : AppCompatActivity() {
         Color.rgb(198, 55, 55), Color.rgb(45, 48, 55)
     )
     private lateinit var nameInput: EditText
-    private lateinit var targetSpinner: Spinner
+    private lateinit var targetButton: Button
+    private var selectedTargetKey: String? = null
     private lateinit var iconSpinner: Spinner
     private lateinit var colorSpinner: Spinner
     private lateinit var photoStatus: TextView
@@ -92,7 +92,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
             FeatureShortcutCatalog.getSelectedEntries(this)
                 .map { Target(it.key, "【${it.category}】 ${it.title}") }
         )
-        visibleTargets.addAll(targets)
+        selectedTargetKey = targets.firstOrNull()?.key
 
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
@@ -149,26 +149,9 @@ class DesktopShortcutActivity : AppCompatActivity() {
             setSingleLine(true)
             textSize = 16f
         }
-        targetSpinner = spinner(visibleTargets.map { it.title })
-        val targetSearch = EditText(this).apply {
-            hint = "搜索目标名称或分类"
-            setSingleLine(true)
-            textSize = 15f
-            setTextColor(primaryText)
-            setHintTextColor(secondaryText)
-            addTextChangedListener(object : android.text.TextWatcher {
-                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                    val query = s?.toString()?.trim()?.lowercase().orEmpty()
-                    visibleTargets.clear()
-                    visibleTargets.addAll(targets.filter { target ->
-                        query.isEmpty() || target.title.lowercase().contains(query) || target.key.lowercase().contains(query)
-                    })
-                    targetSpinner.adapter = spinner(visibleTargets.map { it.title }).adapter
-                    if (visibleTargets.isNotEmpty()) targetSpinner.setSelection(0)
-                }
-                override fun afterTextChanged(s: android.text.Editable?) {}
-            })
+        targetButton = Button(this).apply {
+            text = selectedTargetTitle()
+            setOnClickListener { chooseTarget() }
         }
         iconSpinner = spinner(iconNames)
         colorSpinner = spinner(colorNames)
@@ -185,8 +168,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
         content.addView(label("快捷方式名称"))
         content.addView(nameInput)
         content.addView(label("打开目标"))
-        content.addView(targetSearch, LinearLayout.LayoutParams(-1, -2))
-        content.addView(targetSpinner)
+        content.addView(targetButton)
         content.addView(label("内置图标"))
         content.addView(iconSpinner)
         content.addView(label("图标底色"))
@@ -217,6 +199,23 @@ class DesktopShortcutActivity : AppCompatActivity() {
         }
         content.addView(saveButton)
         setContentView(content)
+    }
+
+    private fun selectedTargetTitle(): CharSequence {
+        val target = targets.firstOrNull { it.key == selectedTargetKey }
+        return target?.let { FeatureShortcutCatalog.styledTitle(it.title) } ?: "请选择打开目标"
+    }
+
+    private fun chooseTarget() {
+        FeatureShortcutPicker.show(
+            context = this,
+            title = "选择桌面快捷方式的打开目标",
+            entries = FeatureShortcutCatalog.getSelectedEntries(this),
+            targetKey = { it.key }
+        ) { key ->
+            selectedTargetKey = key
+            targetButton.text = selectedTargetTitle()
+        }
     }
 
     private fun choosePhoto() {
@@ -266,7 +265,11 @@ class DesktopShortcutActivity : AppCompatActivity() {
             nameInput.error = "请填写快捷方式名称"
             return
         }
-        val target = visibleTargets.getOrNull(targetSpinner.selectedItemPosition) ?: return
+        val target = targets.firstOrNull { it.key == selectedTargetKey }
+        if (target == null) {
+            Toast.makeText(this, "请先选择一个打开目标", Toast.LENGTH_SHORT).show()
+            return
+        }
         val manager = getSystemService(ShortcutManager::class.java)
         if (manager == null || !manager.isRequestPinShortcutSupported) {
             Toast.makeText(this, "当前手机桌面不支持应用内添加快捷方式，请尝试桌面长按添加。", Toast.LENGTH_LONG).show()
@@ -394,7 +397,8 @@ class DesktopShortcutActivity : AppCompatActivity() {
     private fun editShortcut(entry: ShortcutEntry) {
         editingShortcutId = entry.id
         nameInput.setText(entry.name)
-        targetSpinner.setSelection(visibleTargets.indexOfFirst { it.key == entry.targetKey }.coerceAtLeast(0))
+        selectedTargetKey = entry.targetKey
+        targetButton.text = selectedTargetTitle()
         iconSpinner.setSelection(entry.iconIndex.coerceIn(iconNames.indices))
         colorSpinner.setSelection(entry.colorIndex.coerceIn(colorNames.indices))
         photoFile = entry.photoPath?.let(::File)?.takeIf { it.exists() }
