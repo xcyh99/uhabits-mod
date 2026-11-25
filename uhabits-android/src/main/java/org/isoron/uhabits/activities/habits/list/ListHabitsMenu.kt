@@ -144,7 +144,7 @@ class ListHabitsMenu(
             ?.split("|")?.filter { it.isNotBlank() }
         val selected = savedOrder?.takeIf { it.isNotEmpty() }
             ?: prefs.getStringSet("feature_shortcuts", emptySet())?.toList().orEmpty()
-        val entriesByKey = FeatureShortcutCatalog.getEntries(activity).associateBy { it.key }
+        val entriesByKey = FeatureShortcutCatalog.getCachedEntries(activity).associateBy { it.key }
         val iconResources = listOf(
             0,
             android.R.drawable.ic_menu_view,
@@ -159,7 +159,7 @@ class ListHabitsMenu(
         val available = selected.mapNotNull { key ->
             entriesByKey[key]?.let { entry ->
                 val customTitle = prefs.getString("feature_shortcut_title_$key", "")?.trim().orEmpty()
-                val displayTitle: CharSequence = FeatureShortcutCatalog.styledTitle("【${entry.source}】【${entry.category}】 " + customTitle.ifBlank { entry.name })
+                val displayTitle: CharSequence = FeatureShortcutCatalog.styledTitle(customTitle.ifBlank { entry.name })
                 val iconIndex = prefs.getInt("feature_shortcut_icon_$key", 0)
                 Triple(key, displayTitle, iconIndex)
             }
@@ -263,7 +263,7 @@ class ListHabitsMenu(
     }
 
     private fun shortcutTitle(key: String): String? =
-        FeatureShortcutCatalog.getEntries(activity).firstOrNull { it.key == key }?.title
+        FeatureShortcutCatalog.getCachedEntry(activity, key)?.title
 
     fun onItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
