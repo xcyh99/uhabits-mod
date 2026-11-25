@@ -181,10 +181,16 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     }
                     views.setInt(viewId, "setGravity", gravity)
                     views.setViewPadding(viewId, 0, topPadding, 0, bottomPadding)
-                } else if (android.os.Build.VERSION.SDK_INT >= 31) {
-                    views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
-                    val extraPaddingPx = (((rowHeight - 37f).coerceAtLeast(0f) / 2f) * density).toInt()
-                    views.setViewPadding(viewId, 0, extraPaddingPx, 0, extraPaddingPx)
+                } else {
+                    val shortcutTopPadding = (offsetPx * 2).coerceAtLeast(0)
+                    val shortcutBottomPadding = (-offsetPx * 2).coerceAtLeast(0)
+                    if (android.os.Build.VERSION.SDK_INT >= 31) {
+                        views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
+                        val extraPaddingPx = (((rowHeight - 37f).coerceAtLeast(0f) / 2f) * density).toInt()
+                        views.setViewPadding(viewId, 0, extraPaddingPx + shortcutTopPadding, 0, extraPaddingPx + shortcutBottomPadding)
+                    } else {
+                        views.setViewPadding(viewId, 0, shortcutTopPadding, 0, shortcutBottomPadding)
+                    }
                 }
             }
             val count = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
