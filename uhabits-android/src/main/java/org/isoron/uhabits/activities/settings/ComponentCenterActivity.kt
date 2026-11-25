@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import org.isoron.uhabits.HabitsApplication
 import org.isoron.uhabits.activities.AndroidThemeSwitcher
 import org.isoron.uhabits.widgets.WidgetCatalog
+import org.isoron.uhabits.widgets.PictureWidgetRestoreActivity
 
 class ComponentCenterActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,13 +58,17 @@ class ComponentCenterActivity : AppCompatActivity() {
             row.addView(TextView(this).apply { text = "›"; textSize = 26f; setTextColor(if (dark) Color.LTGRAY else Color.DKGRAY) })
             root.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
         }
-        card("组件添加", "单个添加或批量添加已注册的桌面组件") {
+        card("新建组件", "添加全新的桌面组件") {
             startActivity(Intent(this, ComponentAddActivity::class.java))
+        }
+
+        card("组件恢复向导", "从完全备份恢复组件设置，并重新添加到桌面") {
+            startActivity(Intent(this, PictureWidgetRestoreActivity::class.java))
         }
 
         // Component settings stay on this page as a section, not another navigation level.
         root.addView(TextView(this).apply {
-            text = "组件设置"
+            text = "组件板块"
             textSize = 17f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setTextColor(if (dark) Color.WHITE else Color.BLACK)
@@ -87,7 +92,7 @@ class ComponentAddActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         (application as HabitsApplication).component.preferences.let { AndroidThemeSwitcher(this, it).apply() }
         super.onCreate(savedInstanceState)
-        title = "组件添加"
+        title = "新建组件"
         val d = resources.displayMetrics.density
         fun dp(v: Int) = (v * d).toInt()
         val dark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES

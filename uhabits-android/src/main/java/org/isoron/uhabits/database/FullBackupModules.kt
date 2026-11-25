@@ -39,6 +39,7 @@ internal object FullBackupModuleRegistry {
     fun create(): List<FullBackupModule> = listOf(
         TimeRecordsModule,
         TimeRecordWidgetLinksModule,
+        PictureWidgetConfigurationsModule,
         AppPreferencesModule,
         FloatingTimerModule
     )
@@ -125,6 +126,85 @@ internal object FullBackupModuleRegistry {
             ).edit().clear()
             values.keys().forEach { key -> editor.putString(key, values.getString(key)) }
             if (!editor.commit()) throw IOException("时间记录小组件配置恢复失败")
+        }
+
+        override fun rollback(context: Context, safetyRoot: File) = restore(context, safetyRoot)
+    }
+
+
+    /**
+     * Portable picture-widget settings only. Photos and thumbnails are excluded
+     * so a full backup remains a compact data archive.
+     */
+    private object PictureWidgetConfigurationsModule : FullBackupModule {
+        private const val ENTRY = "widgets/picture_widget_configurations.json"
+        override val id = "picture_widget_configurations"
+        override val entries = setOf(ENTRY)
+        override val requiredEntries = emptySet<String>()
+
+        override fun export(context: Context, stagingRoot: File) {
+            val prefs = context.getSharedPreferences(
+                org.isoron.uhabits.widgets.PictureShortcutWidgetProvider.PREFS, Context.MODE_PRIVATE
+            )
+            val configs = linkedMapOf<Int, JSONObject>()
+            val ids = prefs.all.keys.mapNotNull { key ->
+                Regex("^(\\d+)_(left|right|split|imageMode)$").matchEntire(key)
+                    ?.groupValues?.get(1)?.toIntOrNull()
+            }.toSet()
+            ids.forEach { id ->
+                val left = prefs.getString("\${id}_left", null)
+                val right = prefs.getString("\${id}_right", null)
+                if (left != null || right != null || prefs.contains("\${id}_split") || prefs.contains("\${id}_imageMode")) {
+                    val mode = prefs.getString("\${id}_imageMode", "fit") ?: "fit"
+                    configs[id] = JSONObject()
+                        .put("sourceWidgetId", id)
+                        .put("left", left ?: "feature:__feature_center")
+                        .put("right", right ?: "feature:__settings")
+                        .put("split", prefs.getInt("\${id}_split", 5).coerceIn(1, 9))
+                        .put("imageMode", if (mode in setOf("fit", "stretch", "crop")) mode else "fit")
+                }
+            }
+            org.isoron.uhabits.widgets.PictureWidgetRestoreStore.pending(context).forEach { item ->
+                configs[item.sourceWidgetId] = JSONObject()
+                    .put("sourceWidgetId", item.sourceWidgetId)
+                    .put("left", item.left).put("right", item.right)
+                    .put("split", item.split).put("imageMode", item.imageMode)
+            }
+            val array = JSONArray()
+            configs.values.forEach { array.put(it) }
+            writePayload(stagingRoot, ENTRY, JSONObject()
+                .put("format", "SHIZI_PICTURE_WIDGET_CONFIGS")
+                .put("version", 1).put("configs", array).toString())
+        }
+
+        override fun validate(payloads: Map<String, ByteArray>) {
+            val root = jsonPayload(payloads, ENTRY)
+            val configs = root.optJSONArray("configs")
+            if (root.optString("format") != "SHIZI_PICTURE_WIDGET_CONFIGS" ||
+                root.optInt("version", -1) != 1 || configs == null
+            ) throw IOException("图片组件配置备份格式不受支持")
+            for (index in 0 until configs.length()) {
+                val item = configs.optJSONObject(index) ?: throw IOException("图片组件配置项无效")
+                val split = item.optInt("split", -1)
+                if (item.optInt("sourceWidgetId", -1) < 0 ||
+                    item.opt("left") !is String || item.opt("right") !is String ||
+                    split !in 1..9 || item.optString("imageMode") !in setOf("fit", "stretch", "crop")
+                ) throw IOException("图片组件配置字段无效")
+            }
+        }
+
+        override fun snapshot(context: Context, safetyRoot: File) = export(context, safetyRoot)
+
+        override fun restore(context: Context, restoreRoot: File) {
+            val array = JSONObject(readPayload(restoreRoot, ENTRY)).getJSONArray("configs")
+            val restored = (0 until array.length()).map { index ->
+                val item = array.getJSONObject(index)
+                org.isoron.uhabits.widgets.PictureWidgetRestoreStore.Config(
+                    item.getInt("sourceWidgetId"), item.getString("left"), item.getString("right"),
+                    item.getInt("split"), item.getString("imageMode")
+                )
+            }
+            org.isoron.uhabits.widgets.PictureWidgetRestoreStore.replacePending(context, restored)
         }
 
         override fun rollback(context: Context, safetyRoot: File) = restore(context, safetyRoot)

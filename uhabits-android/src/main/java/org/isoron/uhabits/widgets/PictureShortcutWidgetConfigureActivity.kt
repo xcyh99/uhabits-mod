@@ -31,6 +31,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     private var rightTarget = "feature:__settings"
     private var split = 5
     private var imageMode = "fit"
+    private var restoreSourceWidgetId: Int? = null
     private lateinit var modeSpinner: Spinner
     private lateinit var preview: ImageView
     private lateinit var imageStatus: TextView
@@ -139,13 +140,24 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         splitSeekBar.progress = split - 1
         leftTarget = saved.getString("${widgetId}_left", leftTarget) ?: leftTarget
         rightTarget = saved.getString("${widgetId}_right", rightTarget) ?: rightTarget
-        saved.getString("${widgetId}_image", null)?.let { name ->
+        saved.getString("${widgetId}_image", null)?.takeIf { it.isNotBlank() }?.let { name ->
             val existing = File(filesDir, name)
             if (existing.isFile) {
                 imageFile = existing
                 BitmapFactory.decodeFile(existing.absolutePath)?.let { preview.setImageBitmap(it) }
                 imageStatus.text = "当前图片：${existing.name}"
             }
+        }
+        PictureWidgetRestoreStore.selected(this)?.let { restored ->
+            restoreSourceWidgetId = restored.sourceWidgetId
+            leftTarget = restored.left
+            rightTarget = restored.right
+            split = restored.split
+            imageMode = restored.imageMode
+            imageFile = null
+            modeSpinner.setSelection(when (imageMode) { "stretch" -> 1; "crop" -> 2; else -> 0 })
+            splitSeekBar.progress = split - 1
+            imageStatus.text = "设置已载入；轻量备份不含图片，请重新选择图片（也可先保存组件）"
         }
         updateSplitLabel()
         updateTargetLabels()
@@ -228,11 +240,16 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
 
     private fun saveWidget() {
         val file = imageFile
-        if (file == null || !file.isFile) {
+        if ((file == null || !file.isFile) && restoreSourceWidgetId == null) {
             Toast.makeText(this, "请先选择一张图片", Toast.LENGTH_LONG).show()
             return
         }
-        PictureShortcutWidgetProvider.save(this, widgetId, file.name, leftTarget, rightTarget, split, imageMode)
+        PictureShortcutWidgetProvider.save(this, widgetId, file?.takeIf { it.isFile }?.name.orEmpty(),
+            leftTarget, rightTarget, split, imageMode)
+        restoreSourceWidgetId?.let { sourceId ->
+            PictureWidgetRestoreStore.consume(this, sourceId)
+            restoreSourceWidgetId = null
+        }
         PictureShortcutWidgetProvider.updateWidget(this, widgetId)
         setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
         finish()
