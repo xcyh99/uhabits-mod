@@ -172,15 +172,18 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     val contentId = contentIds[index]
                     val overscanPx = (160f * density).roundToInt()
                     val contentHeightPx = rowHeightPx + overscanPx
+                    // Negative outer padding makes the wrap-content FrameLayout's
+                    // measured height equal the requested row height while its child
+                    // remains 160dp taller. clipChildren then supplies the fixed window.
+                    val halfOverscanPx = overscanPx / 2
+                    views.setViewPadding(viewId, 0, -halfOverscanPx, 0, -halfOverscanPx)
                     if (android.os.Build.VERSION.SDK_INT >= 31) {
-                        views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                         views.setViewLayoutHeight(contentId, rowHeight + 160f, android.util.TypedValue.COMPLEX_UNIT_DIP)
                     } else {
-                        views.setInt(viewId, "setHeight", rowHeightPx)
                         views.setInt(contentId, "setHeight", contentHeightPx)
                     }
                     // Equal-and-opposite padding moves glyphs inside the oversized child.
-                    // Clipping remains fixed at the independent outer viewport.
+                    // The FrameLayout bounds, not the TextClock bounds, clip the glyphs.
                     views.setViewPadding(contentId, 0, offsetTopPadding, 0, offsetBottomPadding)
                 } else if (android.os.Build.VERSION.SDK_INT >= 31) {
                     views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
