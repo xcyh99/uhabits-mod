@@ -125,7 +125,17 @@
         <activity
             android:name="org.isoron.uhabits.activities.settings.DesktopWidgetSettingsActivity"
             android:exported="false"
-            android:label="桌面组件设置" />
+            android:label="桌面组件设置">
+            <meta-data
+                android:name="org.isoron.uhabits.shortcut.key"
+                android:value="desktopWidgetSettings" />
+            <meta-data
+                android:name="org.isoron.uhabits.shortcut.title"
+                android:value="桌面组件设置" />
+            <meta-data
+                android:name="org.isoron.uhabits.shortcut.category"
+                android:value="设置" />
+        </activity>
 
         <activity
             android:name="org.isoron.uhabits.activities.settings.SettingsActivity"
