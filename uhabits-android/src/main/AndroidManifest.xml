@@ -132,6 +132,11 @@
             android:label="桌面快捷" />
 
         <activity
+            android:name="org.isoron.uhabits.activities.settings.PictureShortcutWidgetSettingsActivity"
+            android:exported="false"
+            android:label="图片组件设置" />
+
+        <activity
             android:name="org.isoron.uhabits.activities.settings.DesktopWidgetSettingsActivity"
             android:exported="false"
             android:label="桌面组件设置">
