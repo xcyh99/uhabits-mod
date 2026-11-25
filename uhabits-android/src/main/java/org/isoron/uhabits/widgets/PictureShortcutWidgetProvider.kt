@@ -78,8 +78,24 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
             if (bitmap != null) {
                 val options = manager.getAppWidgetOptions(id)
                 val density = context.resources.displayMetrics.density
-                val w = (options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 180) * density).toInt().coerceIn(1, 1400)
-                val h = (options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110) * density).toInt().coerceIn(1, 1400)
+                // Estimate the current phone widget size from the launcher's bounds.
+                val portrait = context.resources.configuration.orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE
+                val widthDp = if (portrait) {
+                    options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,
+                        options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 180))
+                } else {
+                    options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH,
+                        options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 180))
+                }
+                val heightDp = if (portrait) {
+                    options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,
+                        options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110))
+                } else {
+                    options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,
+                        options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 110))
+                }
+                val w = (widthDp * density).toInt().coerceIn(1, 1400)
+                val h = (heightDp * density).toInt().coerceIn(1, 1400)
                 val output = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
                 val canvas = Canvas(output)
                 canvas.drawColor(android.graphics.Color.BLACK)
