@@ -119,7 +119,7 @@
         <activity
             android:name="org.isoron.uhabits.activities.settings.ShortcutManagementActivity"
             android:exported="false"
-            android:label="快捷管理" />
+            android:label="快捷中心" />
 
         <activity
             android:name="org.isoron.uhabits.activities.settings.ShortcutEntryManagementActivity"
@@ -174,8 +174,14 @@
         </activity>
 
         <activity android:name="org.isoron.uhabits.activities.settings.ComponentCenterActivity" android:exported="false" android:label="组件中心" />
-        <activity android:name="org.isoron.uhabits.activities.settings.ComponentSettingsActivity" android:exported="false" android:label="组件设置" />
-        <activity android:name="org.isoron.uhabits.activities.settings.ComponentAddActivity" android:exported="false" android:label="组件添加" />
+        <activity android:name="org.isoron.uhabits.activities.settings.ComponentSettingsActivity" android:exported="false" android:label="组件设置" 
+            <meta-data android:name="org.isoron.uhabits.shortcut.key" android:value="componentSettings" />
+            <meta-data android:name="org.isoron.uhabits.shortcut.title" android:value="组件设置" />
+            <meta-data android:name="org.isoron.uhabits.shortcut.category" android:value="设置" />/>
+        <activity android:name="org.isoron.uhabits.activities.settings.ComponentAddActivity" android:exported="false" android:label="组件添加" 
+            <meta-data android:name="org.isoron.uhabits.shortcut.key" android:value="componentAdd" />
+            <meta-data android:name="org.isoron.uhabits.shortcut.title" android:value="组件添加" />
+            <meta-data android:name="org.isoron.uhabits.shortcut.category" android:value="功能" />/>
 
         <activity
             android:name="org.isoron.uhabits.activities.settings.SettingsActivity"
