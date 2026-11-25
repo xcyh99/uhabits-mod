@@ -149,29 +149,7 @@
         <activity
             android:name="org.isoron.uhabits.activities.settings.DesktopWidgetSettingsActivity"
             android:exported="false"
-            android:label="组件中心">
-            <meta-data
-                android:name="org.isoron.uhabits.shortcut.key"
-                android:value="desktopWidgetSettings" />
-            <meta-data
-                android:name="org.isoron.uhabits.shortcut.title"
-                android:value="桌面组件设置" />
-            <meta-data
-                android:name="org.isoron.uhabits.shortcut.category"
-                android:value="设置" />
-            <meta-data
-                android:name="org.isoron.uhabits.shortcut.page.desktopWidgetTimeSettings.title"
-                android:value="时间组件设置" />
-            <meta-data
-                android:name="org.isoron.uhabits.shortcut.page.desktopWidgetTimeSettings.category"
-                android:value="设置" />
-            <meta-data
-                android:name="org.isoron.uhabits.shortcut.page.desktopWidgetTimeSettings.extraName"
-                android:value="open_time_widget_control_page" />
-            <meta-data
-                android:name="org.isoron.uhabits.shortcut.page.desktopWidgetTimeSettings.extraValue"
-                android:value="true" />
-        </activity>
+            android:label="数字时钟组件设置" />
 
         <activity
             android:name="org.isoron.uhabits.activities.settings.ComponentCenterActivity"
