@@ -102,7 +102,7 @@ class ComponentSettingsActivity : AppCompatActivity() {
         val known = WidgetCatalog.discover(this)
         known.filter { it.title !in setOf("数字时钟（2×3）", "图片快捷组件") && it.configureActivity != null }.forEach { entry ->
             item(entry.title + "设置", "打开该组件的配置页面") {
-                startActivity(Intent().setComponent(entry.configureActivity))
+                entry.configureActivity?.let { component -> startActivity(Intent().setComponent(component)) }
             }
         }
         setContentView(ScrollView(this).apply { isFillViewport = true; addView(root) })
