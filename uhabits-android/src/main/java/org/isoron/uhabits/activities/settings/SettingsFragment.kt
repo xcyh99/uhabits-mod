@@ -224,7 +224,8 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     "whiteOutline",
                     "desktopShortcuts",
                     "puzzleGames",
-                    "desktopWidgetSettings"
+                    "desktopWidgetSettings",
+                    "shortcutManagement"
                 )
                 if (key in directActionKeys) {
                     findPreference(key)?.performClick()
@@ -293,6 +294,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             }
             "desktopWidgetSettings" -> {
                 startActivity(Intent(requireContext(), DesktopWidgetSettingsActivity::class.java))
+                return true
+            }
+            "shortcutManagement" -> {
+                startActivity(Intent(requireContext(), ShortcutManagementActivity::class.java))
                 return true
             }
             "widgetManager" -> {
@@ -402,6 +407,8 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         findPreference("webDavSync").title =
             "☆ " + getString(R.string.webdav_sync)
         findPreference("reminderSound").isVisible = false
+        findPreference("featureShortcuts").isVisible = false
+        findPreference("desktopShortcuts").isVisible = false
     }
 
 
@@ -1082,29 +1089,26 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         dialog.show()
     }
     private fun showFeatureShortcutSettings() {
-        // Discover shortcut candidates from the same preference tree used by Settings.
-        // New user-facing entries in Feature Center or Settings appear here automatically.
-        val entries = FeatureShortcutCatalog.getEntries(requireContext())
-        val keys = entries.map { it.key }
-        val labels = entries.map { it.title }.toTypedArray()
         val store = PreferenceManager.getDefaultSharedPreferences(requireContext())
-        val savedOrder = store.getString("feature_shortcuts_order", null)
-            ?.split("|")?.filter { it in keys }
+        val allEntries = FeatureShortcutCatalog.getEntries(requireContext())
+        val allowed = FeatureShortcutCatalog.getAllowedKeys(requireContext())
+        val savedOrder = store.getString("feature_shortcuts_order", null)?.split("|").orEmpty()
         val legacySelection = store.getStringSet("feature_shortcuts", emptySet()).orEmpty()
-        val selected = (savedOrder?.takeIf { it.isNotEmpty() } ?: keys.filter { it in legacySelection })
-            .distinct().toMutableList()
+        val existingSelection = (savedOrder + legacySelection).toSet()
+        val entries = allEntries.filter { it.key in allowed || it.key in existingSelection }
+        val keys = entries.map { it.key }
+        val labels = entries.map { FeatureShortcutCatalog.styledTitle(it) }.toTypedArray()
+        val selected = (savedOrder.takeIf { it.isNotEmpty() } ?: legacySelection.toList()).filter { it in keys }.distinct().toMutableList()
         val checked = BooleanArray(keys.size) { keys[it] in selected }
         AlertDialog.Builder(requireContext())
-            .setTitle(R.string.shortcut_settings)
+            .setTitle("快捷菜单管理")
             .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
                 val key = keys[which]
                 if (isChecked && key !in selected) selected.add(key)
                 if (!isChecked) selected.remove(key)
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                showShortcutCustomizationDialog(selected, store)
-            }
+            .setPositiveButton(android.R.string.ok) { _, _ -> showShortcutCustomizationDialog(selected, store) }
             .show()
     }
 
@@ -1123,7 +1127,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         }
         val key = selected[index]
         val entry = FeatureShortcutCatalog.getEntries(requireContext()).firstOrNull { it.key == key }
-        val defaultTitle = entry?.title ?: key
+        val defaultTitle = entry?.name ?: key
         val nameInput = EditText(requireContext()).apply {
             setSingleLine(true)
             hint = defaultTitle
@@ -1211,7 +1215,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             return
         }
         var selectedIndex = initialSelectedIndex.coerceIn(0, selected.lastIndex)
-        val titles = FeatureShortcutCatalog.getEntries(requireContext()).associate { it.key to it.title }
+        val titles = FeatureShortcutCatalog.getEntries(requireContext()).associate { it.key to it.name }
         val labels = selected.map { key ->
             val custom = store.getString("feature_shortcut_title_$key", "")?.trim().orEmpty()
             custom.ifBlank { titles[key] ?: key }
