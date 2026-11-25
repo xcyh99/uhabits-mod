@@ -84,9 +84,9 @@ object FeatureShortcutCatalog {
         BuiltIn("featureShortcuts", "快捷菜单设置", "设置")
     )
 
-    private val recommended = builtIns.map { it.key }.toSet() + setOf("desktopWidgetTimeSettings")
+    private val recommended = builtIns.map { it.key }.toSet() + setOf("desktopWidgetTimeSettings", "pictureShortcutWidgetSettings")
     private const val KEY_ALLOWED_MIGRATION_VERSION = "shortcut_candidate_migration_version"
-    private const val ALLOWED_MIGRATION_VERSION = 2
+    private const val ALLOWED_MIGRATION_VERSION = 3
 
     fun getEntries(context: Context): List<Entry> {
         val result = mutableListOf<Entry>()
@@ -245,6 +245,7 @@ object FeatureShortcutCatalog {
             val allowed = saved.toMutableSet()
             if (store.getInt(KEY_ALLOWED_MIGRATION_VERSION, 0) < ALLOWED_MIGRATION_VERSION) {
                 allowed.add("desktopWidgetTimeSettings")
+                allowed.add("pictureShortcutWidgetSettings")
                 store.edit()
                     .putStringSet(KEY_ALLOWED_ENTRIES, allowed)
                     .putInt(KEY_ALLOWED_MIGRATION_VERSION, ALLOWED_MIGRATION_VERSION)
