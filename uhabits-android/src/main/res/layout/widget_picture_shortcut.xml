@@ -31,7 +31,7 @@
         android:textColor="#FFFFFFFF"
         android:background="#FF30343B"
         android:textSize="14sp" />
-    <View
+    <ImageView
         android:id="@+id/picture_shortcut_outline"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
