@@ -34,8 +34,71 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             AndroidThemeSwitcher(this, it).apply()
         }
         super.onCreate(savedInstanceState)
-        title = "桌面组件设置"
-        render()
+        val openControlPage = intent.getBooleanExtra(EXTRA_OPEN_CONTROL_PAGE, false)
+        title = if (openControlPage) "时间组件设置" else "桌面组件设置"
+        if (openControlPage) render() else renderLandingPage()
+    }
+
+    /**
+     * First-level landing page. Keep this separate from the existing control page so
+     * future widget types can be added here without crowding the settings controls.
+     */
+    private fun renderLandingPage() {
+        val density = resources.displayMetrics.density
+        fun dp(v: Int) = (v * density).toInt()
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(10), dp(16), dp(28))
+            setBackgroundColor(resolvePageBackground())
+        }
+        root.addView(TextView(this).apply {
+            text = "桌面组件设置"
+            textSize = 17f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(resolvePrimaryText())
+            setPadding(dp(2), dp(18), dp(2), dp(9))
+        })
+        val item = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(dp(16), dp(15), dp(14), dp(15))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(if (isDark()) Color.rgb(45, 48, 55) else Color.WHITE)
+                cornerRadius = dp(13).toFloat()
+                setStroke(dp(1), if (isDark()) Color.rgb(70, 74, 82) else Color.rgb(230, 233, 238))
+            }
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                startActivity(Intent(this@DesktopWidgetSettingsActivity, DesktopWidgetSettingsActivity::class.java)
+                    .putExtra(EXTRA_OPEN_CONTROL_PAGE, true))
+            }
+        }
+        val labels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        labels.addView(TextView(this).apply {
+            text = "时间组件设置"
+            textSize = 15f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(resolvePrimaryText())
+        })
+        labels.addView(TextView(this).apply {
+            text = "设置数字时钟组件的显示、布局和点击区域"
+            textSize = 12f
+            setTextColor(resolveSecondaryText())
+            setPadding(0, dp(3), 0, 0)
+        })
+        item.addView(labels, LinearLayout.LayoutParams(0, -2, 1f))
+        item.addView(TextView(this).apply {
+            text = "›"
+            textSize = 27f
+            setTextColor(resolveSecondaryText())
+            gravity = android.view.Gravity.CENTER
+        })
+        root.addView(item, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
+        setContentView(android.widget.ScrollView(this).apply {
+            isFillViewport = true
+            addView(root)
+        })
     }
 
     override fun onResume() {
@@ -1021,6 +1084,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
     private fun key(slot: String) = "digital_clock_target_$slot"
 
     companion object {
+        private const val EXTRA_OPEN_CONTROL_PAGE = "open_time_widget_control_page"
         private const val KEY_HOUR_SIZE = "digital_clock_hour_size"
         private const val KEY_MINUTE_SIZE = "digital_clock_minute_size"
         private const val KEY_DATE_SIZE = "digital_clock_date_size"
