@@ -28,6 +28,7 @@ on:
       - test/987-white-border-shortcuts-ready
       - test/B2-fixed-viewport-reveal
       - test/B2.1-wrap-content-height
+      - test/B2.2-font-aware-overscan
   pull_request:
     branches:
       - dev
