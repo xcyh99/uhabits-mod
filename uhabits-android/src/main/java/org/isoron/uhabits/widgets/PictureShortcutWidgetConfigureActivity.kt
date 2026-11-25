@@ -272,7 +272,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             Toast.makeText(this, "请先选择一张图片", Toast.LENGTH_LONG).show()
             return
         }
-        PictureShortcutWidgetProvider.save(this, widgetId, file.name, leftTarget, rightTarget, split, imageMode
+        PictureShortcutWidgetProvider.save(this, widgetId, file.name, leftTarget, rightTarget, split, imageMode)
         PictureShortcutWidgetProvider.updateWidget(this, widgetId)
         setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
         finish()
