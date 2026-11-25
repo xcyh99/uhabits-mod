@@ -220,11 +220,29 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             setPadding(dp(20), dp(8), dp(20), dp(4))
         }
         panel.addView(TextView(this).apply {
-            text = "三行字号在这里同时设置，应用后立即更新桌面组件。"
+            text = "第一、二行共用所选数字字体；第三行日期保持原字体。三行字号仍可分别设置。"
             textSize = 13f
             setTextColor(resolveSecondaryText())
             setPadding(0, 0, 0, dp(10))
         })
+        panel.addView(TextView(this).apply {
+            text = "数字字体（仅影响小时和分钟）"
+            textSize = 14f
+            setTextColor(resolvePrimaryText())
+            setPadding(0, dp(4), 0, dp(4))
+        })
+        val fontSelector = android.widget.Spinner(this).apply {
+            val adapter = android.widget.ArrayAdapter(
+                this@DesktopWidgetSettingsActivity,
+                android.R.layout.simple_spinner_item,
+                listOf("系统默认", "Roboto Light")
+            )
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            this.adapter = adapter
+            setSelection(if (store.getString(KEY_DIGITAL_FONT, "default") == "roboto_light") 1 else 0)
+        }
+        panel.addView(fontSelector, LinearLayout.LayoutParams(-1, dp(48)))
+
         val specs = listOf(
             Triple("小时字号", KEY_HOUR_SIZE, 48f),
             Triple("分钟字号", KEY_MINUTE_SIZE, 48f),
@@ -271,10 +289,11 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 }
                 val editor = store.edit()
                 values.forEach { (key, value) -> editor.putFloat(key, value!!) }
+                editor.putString(KEY_DIGITAL_FONT, if (fontSelector.selectedItemPosition == 1) "roboto_light" else "default")
                 editor.apply()
                 updateWidget()
                 dialog.dismiss()
-                Toast.makeText(this, "三行字号已保存", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "数字字体与字号已保存", Toast.LENGTH_SHORT).show()
             }
         }
         dialog.show()
@@ -326,7 +345,8 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
     }
 
     private fun showWidgetPreview() {
-        val preview = LayoutInflater.from(this).inflate(R.layout.widget_digital_clock, null, false)
+        val previewLayout = if (store.getString(KEY_DIGITAL_FONT, "default") == "roboto_light") R.layout.widget_digital_clock_roboto_light else R.layout.widget_digital_clock
+        val preview = LayoutInflater.from(this).inflate(previewLayout, null, false)
         preview.findViewById<TextView>(R.id.digital_clock_time).apply {
             textSize = store.getFloat(KEY_HOUR_SIZE, 48f)
             setTextColor(store.getInt(KEY_HOUR_COLOR, store.getInt(KEY_TIME_COLOR, Color.WHITE)))
@@ -395,7 +415,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                     KEY_HOUR_HEIGHT, KEY_MINUTE_HEIGHT, KEY_DATE_HEIGHT, KEY_SHORTCUT_HEIGHT, KEY_HOUR_WEIGHT, KEY_MINUTE_WEIGHT, KEY_DATE_WEIGHT, KEY_SHORTCUT_WEIGHT,
                     "digital_clock_letter_spacing", "digital_clock_transform_enabled", "digital_clock_horizontal_scale",
                     "digital_clock_hour_offset_y", "digital_clock_minute_offset_y", "digital_clock_date_offset_y", "digital_clock_shortcut_offset_y",
-                    KEY_LAYOUT_MODE, KEY_KEEP_DIGIT_RATIO) +
+                    KEY_LAYOUT_MODE, KEY_KEEP_DIGIT_RATIO, KEY_DIGITAL_FONT) +
                     listOf("hour", "minute", "date").flatMap { row ->
                         listOf("digital_clock_${row}_letter_spacing", "digital_clock_${row}_transform_enabled", "digital_clock_${row}_horizontal_scale")
                     }
@@ -1153,6 +1173,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         private const val KEY_HOUR_SIZE = "digital_clock_hour_size"
         private const val KEY_MINUTE_SIZE = "digital_clock_minute_size"
         private const val KEY_DATE_SIZE = "digital_clock_date_size"
+        private const val KEY_DIGITAL_FONT = "digital_clock_font_family"
         private const val KEY_TIME_COLOR = "digital_clock_time_color"
         private const val KEY_HOUR_COLOR = "digital_clock_hour_color"
         private const val KEY_MINUTE_COLOR = "digital_clock_minute_color"
