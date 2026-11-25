@@ -160,7 +160,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     else android.view.View.VISIBLE
                 )
                 if (index < 3) {
-                    // C2: stock FrameLayouts only. The outer FrameLayout clips
+                    // C2 experiment: stock FrameLayouts only. The outer FrameLayout clips
                     // the translated inner FrameLayout; TextClock remains native.
                     // Dynamic viewport sizing is supported by RemoteViews on API 31+.
                     // Older hosts keep the XML defaults (48dp, 48dp, 27dp).
