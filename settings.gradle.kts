@@ -11,7 +11,7 @@ pluginManagement {
     }
 }
 
-include(":uhabits-android", ":uhabits-core", ":remoteviews-stubs")
+include(":uhabits-android", ":uhabits-core")
 dependencyResolutionManagement {
     @Suppress("UnstableApiUsage")
     repositories {
