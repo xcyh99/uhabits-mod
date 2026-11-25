@@ -129,8 +129,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             imageFile = file
             preview.setImageBitmap(saved)
             imageStatus.text = "已选择：${file.name}"
-            if (saved !== bitmap) saved.recycle()
-            bitmap.recycle()
+            // Keep the preview bitmap alive until the ImageView releases it.
         } catch (error: Exception) {
             Toast.makeText(this, error.message ?: "图片读取失败", Toast.LENGTH_LONG).show()
         }
