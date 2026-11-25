@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import org.isoron.uhabits.HabitsApplication
 import org.isoron.uhabits.activities.AndroidThemeSwitcher
+import org.isoron.uhabits.widgets.WidgetCatalog
 
 class ComponentCenterActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
