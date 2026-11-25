@@ -119,12 +119,23 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             val alpha = prefs.getInt("digital_clock_bg_alpha", 90).coerceIn(0, 100) * 255 / 100
             views.setInt(R.id.digital_clock_widget_root, "setBackgroundColor", Color.argb(alpha, Color.red(bg), Color.green(bg), Color.blue(bg)))
             val shortcutCount = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
-            val rowIds = intArrayOf(
+            val textIds = intArrayOf(
                 R.id.digital_clock_time,
                 R.id.digital_clock_minute,
-                R.id.digital_clock_date,
+                R.id.digital_clock_date
+            )
+            val viewportIds = intArrayOf(
+                R.id.digital_clock_time_viewport,
+                R.id.digital_clock_minute_viewport,
+                R.id.digital_clock_date_viewport
+            )
+            val rowIds = intArrayOf(
+                viewportIds[0],
+                viewportIds[1],
+                viewportIds[2],
                 R.id.digital_clock_shortcut_row
             )
+            // Keep the user's white-border switch on the fixed outer viewport.
             rowIds.forEach { viewId ->
                 views.setInt(viewId, "setBackgroundResource", if (rowBorderEnabled) R.drawable.digital_clock_row_border else android.R.color.transparent)
             }
@@ -144,21 +155,20 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             rowIds.forEachIndexed { index, viewId ->
                 val rowHeight = heights[index]
                 val offsetPx = (offsets[index].coerceIn(-40, 40) * density).roundToInt()
-                // RemoteViews on older Android/HarmonyOS builds cannot reliably apply
-                // View.setTranslationY. Asymmetric padding moves the row content while
-                // keeping the widget update within the supported RemoteViews API.
-                val offsetTopPadding = (offsetPx * 2).coerceAtLeast(0)
-                val offsetBottomPadding = (-offsetPx * 2).coerceAtLeast(0)
-                views.setViewVisibility(viewId, if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE else android.view.View.VISIBLE)
+                // B2 = B1 signed-padding movement inside a separately fixed viewport.
+                // The viewport height is assigned independently; TextClock's measured
+                // height is allowed to exceed it and is clipped, never allowed to size it.
+                val offsetTopPadding = if (index < 3) offsetPx else (offsetPx * 2).coerceAtLeast(0)
+                val offsetBottomPadding = if (index < 3) -offsetPx else (-offsetPx * 2).coerceAtLeast(0)
+                views.setViewVisibility(
+                    viewId,
+                    if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE
+                    else android.view.View.VISIBLE
+                )
                 if (index < 3) {
-                    // Keep the configured font size and clamp the TextClock viewport.
-                    val rowHeightPx = (rowHeight * density).toInt()
-                    if (android.os.Build.VERSION.SDK_INT >= 31) {
-                        views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
-                    } else {
-                        views.setInt(viewId, "setHeight", rowHeightPx)
-                    }
-                    views.setViewPadding(viewId, 0, offsetTopPadding, 0, offsetBottomPadding)
+                    views.setInt(viewId, "setViewportHeightPx", (rowHeight * density).roundToInt())
+                    // Preserve B1's equal-and-opposite padding; its sum remains zero.
+                    views.setViewPadding(textIds[index], 0, offsetTopPadding, 0, offsetBottomPadding)
                 } else if (android.os.Build.VERSION.SDK_INT >= 31) {
                     views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                     val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
