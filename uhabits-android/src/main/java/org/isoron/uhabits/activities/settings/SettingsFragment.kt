@@ -1108,7 +1108,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     }
     private fun showFeatureShortcutSettings() {
         val store = PreferenceManager.getDefaultSharedPreferences(requireContext())
-        val allEntries = FeatureShortcutCatalog.getEntries(requireContext())
+        val allEntries = FeatureShortcutCatalog.getCachedEntries(requireContext())
         val allowed = FeatureShortcutCatalog.getAllowedKeys(requireContext())
         val savedOrder = store.getString("feature_shortcuts_order", null)?.split("|").orEmpty()
         val legacySelection = store.getStringSet("feature_shortcuts", emptySet()).orEmpty()
@@ -1144,7 +1144,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             return
         }
         val key = selected[index]
-        val entry = FeatureShortcutCatalog.getEntries(requireContext()).firstOrNull { it.key == key }
+        val entry = FeatureShortcutCatalog.getCachedEntry(requireContext(), key)
         val defaultTitle = entry?.name ?: key
         val nameInput = EditText(requireContext()).apply {
             setSingleLine(true)
@@ -1233,7 +1233,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             return
         }
         var selectedIndex = initialSelectedIndex.coerceIn(0, selected.lastIndex)
-        val titles = FeatureShortcutCatalog.getEntries(requireContext()).associate { it.key to it.name }
+        val titles = FeatureShortcutCatalog.getCachedEntries(requireContext()).associate { it.key to it.name }
         val labels = selected.map { key ->
             val custom = store.getString("feature_shortcut_title_$key", "")?.trim().orEmpty()
             custom.ifBlank { titles[key] ?: key }
