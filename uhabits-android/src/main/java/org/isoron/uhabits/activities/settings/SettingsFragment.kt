@@ -306,7 +306,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 return true
             }
             "desktopWidgetSettings" -> {
-                startActivity(Intent(requireContext(), DesktopWidgetSettingsActivity::class.java))
+                startActivity(Intent(requireContext(), ComponentCenterActivity::class.java))
                 return true
             }
             "shortcutManagement" -> {
