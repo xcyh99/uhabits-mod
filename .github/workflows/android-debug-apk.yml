@@ -23,6 +23,7 @@ on:
       - fix/harmonyos-widget-remoteviews
       - stable/987-white-border
       - test/shortcut-management-987
+      - test/pad-b2-white-border-shortcuts
   pull_request:
     branches:
       - dev
