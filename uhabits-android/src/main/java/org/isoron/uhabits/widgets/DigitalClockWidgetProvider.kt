@@ -229,7 +229,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             if (value == "system:settings") return "系统设置" to drawableBitmap(context.getDrawable(android.R.drawable.ic_menu_manage)!!)
             if (value.startsWith("feature:")) {
                 val key = value.removePrefix("feature:")
-                val entry = FeatureShortcutCatalog.getEntries(context).firstOrNull { it.key == key }
+                val entry = FeatureShortcutCatalog.getCachedEntry(context, key)
                 val icon = entry?.icon?.let(::drawableBitmap)
                     ?: drawableBitmap(context.getDrawable(android.R.drawable.ic_menu_view)!!)
                 return (entry?.name ?: "功能") to icon
