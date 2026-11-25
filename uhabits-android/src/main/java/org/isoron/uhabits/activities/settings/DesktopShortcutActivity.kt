@@ -120,12 +120,12 @@ class DesktopShortcutActivity : AppCompatActivity() {
                 }
                 override fun getView(position: Int, convertView: android.view.View?, parent: android.view.ViewGroup): android.view.View {
                     val view = (convertView as? TextView) ?: TextView(this@DesktopShortcutActivity)
-                    view.text = FeatureShortcutCatalog.styledTitle(getItem(position))
+                    view.text = FeatureShortcutCatalog.styledTitle(getItem(position).orEmpty())
                     return style(view, false)
                 }
                 override fun getDropDownView(position: Int, convertView: android.view.View?, parent: android.view.ViewGroup): android.view.View {
                     val view = (convertView as? TextView) ?: TextView(this@DesktopShortcutActivity)
-                    view.text = FeatureShortcutCatalog.styledTitle(getItem(position))
+                    view.text = FeatureShortcutCatalog.styledTitle(getItem(position).orEmpty())
                     return style(view, true)
                 }
             }
