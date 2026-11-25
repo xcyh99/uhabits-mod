@@ -582,24 +582,142 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
     }
 
     private fun chooseDateFormat() {
-        val formats = listOf(
-            "M月d日  EEEE" to "11月24日 星期二",
-            "yyyy年M月d日  EEEE" to "2026年11月24日 星期二",
-            "EEEE" to "星期二",
-            "yyyy-MM-dd  EEE" to "2026-11-24 周二"
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+        val current = store.getString(KEY_DATE_FORMAT, "M月d日  EEEE") ?: "M月d日  EEEE"
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(22), dp(4), dp(22), dp(4))
+        }
+        val input = android.widget.EditText(this).apply {
+            setSingleLine(true)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            hint = "例如：M/d（EEE）"
+            setText(current)
+            setSelection(text.length)
+            textSize = 16f
+        }
+        container.addView(TextView(this).apply {
+            text = "日期格式代码"
+            textSize = 13f
+            setTextColor(resolveSecondaryText())
+            setPadding(0, dp(4), 0, dp(4))
+        })
+        container.addView(input, LinearLayout.LayoutParams(-1, -2))
+
+        container.addView(TextView(this).apply {
+            text = "实时预览（按手机当前日期和语言显示）"
+            textSize = 12f
+            setTextColor(resolveSecondaryText())
+            setPadding(0, dp(12), 0, dp(3))
+        })
+        val preview = android.widget.TextClock(this).apply {
+            textSize = 22f
+            setTextColor(resolvePrimaryText())
+            format12Hour = current
+            format24Hour = current
+            setPadding(0, dp(3), 0, dp(8))
+        }
+        val previewStatus = TextView(this).apply {
+            textSize = 11f
+            setTextColor(resolveSecondaryText())
+        }
+        container.addView(preview)
+        container.addView(previewStatus)
+
+        fun refreshPreview(pattern: String) {
+            if (pattern.isBlank()) {
+                previewStatus.text = "格式不能为空"
+                return
+            }
+            runCatching {
+                preview.format12Hour = pattern
+                preview.format24Hour = pattern
+                previewStatus.text = "预览使用 Android 原生 TextClock 格式"
+            }.onFailure {
+                previewStatus.text = "当前格式无法预览，请检查格式代码"
+            }
+        }
+        input.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                refreshPreview(s?.toString().orEmpty())
+            }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
+
+        container.addView(TextView(this).apply {
+            text = "原生格式代码说明"
+            textSize = 15f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(resolvePrimaryText())
+            setPadding(0, dp(13), 0, dp(5))
+        })
+        container.addView(TextView(this).apply {
+            text = "y / yy / yyyy：年份（两位或四位）\n" +
+                "M / MM：月份（不补零 / 补零）\n" +
+                "d / dd：日期（不补零 / 补零）\n" +
+                "EEE：星期短格式，简体中文环境通常显示“周三”\n" +
+                "EEEE：星期完整名称，通常显示“星期三”\n" +
+                "EEEEE：星期窄格式，通常显示“三”\n\n" +
+                "汉字、数字、空格、斜杠和括号可以直接组合。若要把英文字母作为普通文字显示，请用单引号括起来。星期文字会受手机系统语言影响。"
+            textSize = 12f
+            setTextColor(resolveSecondaryText())
+            setLineSpacing(dp(2).toFloat(), 1f)
+        })
+
+        container.addView(TextView(this).apply {
+            text = "常用格式（点击即可填入）"
+            textSize = 14f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(resolvePrimaryText())
+            setPadding(0, dp(13), 0, dp(5))
+        })
+        val examples = listOf(
+            "月/日（短星期）" to "M/d（EEE）",
+            "月/日（窄星期）" to "M/d（EEEEE）",
+            "年月日（完整星期）" to "yyyy年M月d日 EEEE",
+            "数字日期" to "yyyy-MM-dd"
         )
-        val current = store.getString(KEY_DATE_FORMAT, formats[0].first)
-        val selected = formats.indexOfFirst { it.first == current }.coerceAtLeast(0)
-        AlertDialog.Builder(this)
+        examples.chunked(2).forEach { pair ->
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            pair.forEach { (label, pattern) ->
+                row.addView(android.widget.Button(this).apply {
+                    text = "$label\n$pattern"
+                    textSize = 11f
+                    setOnClickListener {
+                        input.setText(pattern)
+                        input.setSelection(input.text.length)
+                    }
+                }, LinearLayout.LayoutParams(0, -2, 1f).apply {
+                    if (pair.indexOfFirst { it.second == pattern } == 0) rightMargin = dp(5) else leftMargin = dp(5)
+                })
+            }
+            if (pair.size == 1) row.addView(android.view.View(this), LinearLayout.LayoutParams(0, 1, 1f))
+            container.addView(row)
+        }
+        refreshPreview(current)
+
+        val dialog = AlertDialog.Builder(this)
             .setTitle("日期显示格式")
-            .setSingleChoiceItems(formats.map { it.second }.toTypedArray(), selected) { dialog, which ->
-                store.edit().putString(KEY_DATE_FORMAT, formats[which].first).apply()
+            .setView(android.widget.ScrollView(this).apply { addView(container) })
+            .setNegativeButton("取消", null)
+            .setPositiveButton("保存格式", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val pattern = input.text.toString()
+                if (pattern.isBlank()) {
+                    input.error = "请输入日期格式"
+                    return@setOnClickListener
+                }
+                store.edit().putString(KEY_DATE_FORMAT, pattern).apply()
                 updateWidget()
                 dialog.dismiss()
                 showTimeDateSettings()
             }
-            .setNegativeButton("取消", null)
-            .show()
+        }
+        dialog.show()
     }
 
 
