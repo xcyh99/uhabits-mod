@@ -7,7 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
 import org.isoron.uhabits.R
-import org.isoron.uhabits.activities.settings.SettingsActivity
+import org.isoron.uhabits.activities.settings.ComponentAddActivity
 
 /** A dedicated home-screen entry that opens the batch widget picker with one tap. */
 class BatchAddWidgetProvider : AppWidgetProvider() {
