@@ -37,7 +37,7 @@ object FeatureShortcutCatalog {
         val extraName: String? = null,
         val extraValue: String? = null
     ) {
-        val title: String get() = "【$category】 $name"
+        val title: String get() = name
         val widgetTarget: String get() =
             if (key.startsWith("app:") || key.startsWith("system:")) key else "feature:$key"
     }
@@ -86,7 +86,7 @@ object FeatureShortcutCatalog {
 
     private val recommended = builtIns.map { it.key }.toSet() + setOf("desktopWidgetTimeSettings", "pictureShortcutWidgetSettings")
     private const val KEY_ALLOWED_MIGRATION_VERSION = "shortcut_candidate_migration_version"
-    private const val ALLOWED_MIGRATION_VERSION = 3
+    private const val ALLOWED_MIGRATION_VERSION = 4
 
     fun getEntries(context: Context): List<Entry> {
         val result = mutableListOf<Entry>()
@@ -154,6 +154,12 @@ object FeatureShortcutCatalog {
                     }
                 }
             }
+        }
+
+        // Include this app itself as a selectable launcher destination.
+        runCatching {
+            val ownComponent = ComponentName(context, org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java)
+            result.add(Entry("app:${ownComponent.flattenToString()}", "十字习惯", "", "应用"))
         }
 
         // Habits are always collected individually and open their complete habit page.
@@ -224,9 +230,8 @@ object FeatureShortcutCatalog {
                 }
             }.getOrDefault(emptyList())
         }
-        // Refresh once after an app update (or on first use) so new manifest pages
-        // and nested PreferenceScreens become available without manual catalog edits.
-        return getEntries(context)
+        // Ordinary consumers never trigger discovery. Only shortcut-entry management scans.
+        return emptyList()
     }
 
     /** Lightweight list for ordinary selection menus. */
@@ -246,6 +251,8 @@ object FeatureShortcutCatalog {
             if (store.getInt(KEY_ALLOWED_MIGRATION_VERSION, 0) < ALLOWED_MIGRATION_VERSION) {
                 allowed.add("desktopWidgetTimeSettings")
                 allowed.add("pictureShortcutWidgetSettings")
+                val ownComponent = ComponentName(context, org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java)
+                allowed.add("app:${ownComponent.flattenToString()}")
                 store.edit()
                     .putStringSet(KEY_ALLOWED_ENTRIES, allowed)
                     .putInt(KEY_ALLOWED_MIGRATION_VERSION, ALLOWED_MIGRATION_VERSION)
@@ -254,6 +261,8 @@ object FeatureShortcutCatalog {
             return allowed
         }
         val allowed = recommended.toMutableSet()
+        val ownComponent = ComponentName(context, org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java)
+        allowed.add("app:${ownComponent.flattenToString()}")
         allowed.addAll(store.getStringSet("feature_shortcuts", emptySet()).orEmpty())
         runCatching {
             val raw = store.getString("desktop_shortcut_entries_v1", null)
@@ -287,7 +296,7 @@ object FeatureShortcutCatalog {
         val entry = when {
             cached?.activityName != null -> cached
             cached != null -> return null
-            else -> getEntries(context).firstOrNull { it.key == key && it.activityName != null } ?: return null
+            else -> return null
         }
         val activityName = entry.activityName ?: return null
         return Intent().setClassName(context, activityName).apply {
@@ -312,19 +321,5 @@ object FeatureShortcutCatalog {
 
     fun styledTitle(entry: Entry): CharSequence = styledTitle(entry.title)
 
-    fun styledTitle(value: String): CharSequence {
-        val styled = SpannableString(value)
-        Regex("【([^】]+)】").findAll(value).forEach { match ->
-            val color = when (match.groupValues[1]) {
-                "功能" -> android.graphics.Color.rgb(52, 120, 212)
-                "设置" -> android.graphics.Color.rgb(137, 86, 200)
-                "习惯" -> android.graphics.Color.rgb(38, 155, 101)
-                "应用" -> android.graphics.Color.rgb(229, 138, 50)
-                "系统" -> android.graphics.Color.rgb(113, 128, 150)
-                else -> android.graphics.Color.GRAY
-            }
-            styled.setSpan(ForegroundColorSpan(color), match.range.first, match.range.last + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        }
-        return styled
-    }
-}
+    fun styledTitle(value: String): CharSequence =
+        value.replace(Regex("【[^】]+】\\s*"), "").trim()}
