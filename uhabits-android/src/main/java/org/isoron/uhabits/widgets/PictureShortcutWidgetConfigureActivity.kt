@@ -155,7 +155,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     private data class Choice(val key: String, val title: String)
 
     private fun choices(): List<Choice> {
-        val entries = FeatureShortcutCatalog.getEntries(this)
+        val entries = FeatureShortcutCatalog.getSelectableEntries(this)
         return entries.mapNotNull { entry ->
             Choice(entry.widgetTarget, entry.title)
         }.distinctBy { it.key }.sortedBy { it.title }
