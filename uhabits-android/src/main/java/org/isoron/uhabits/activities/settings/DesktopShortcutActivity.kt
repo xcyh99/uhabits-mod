@@ -85,8 +85,9 @@ class DesktopShortcutActivity : AppCompatActivity() {
         themeSwitcher.apply()
         super.onCreate(savedInstanceState)
         title = "桌面快捷"
-        targets.addAll(FeatureShortcutCatalog.getEntries(this).map { Target(it.key, it.title) })
-        targets.add(Target("historyWhiteWeight", "历史组件白色数字权重"))
+        val existingTargetKeys = readShortcuts().map { it.targetKey }.toSet()
+        val allowedTargetKeys = FeatureShortcutCatalog.getAllowedKeys(this) + existingTargetKeys
+        targets.addAll(FeatureShortcutCatalog.getEntries(this).filter { it.key in allowedTargetKeys }.map { Target(it.key, it.title) })
 
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
@@ -119,12 +120,12 @@ class DesktopShortcutActivity : AppCompatActivity() {
                 }
                 override fun getView(position: Int, convertView: android.view.View?, parent: android.view.ViewGroup): android.view.View {
                     val view = (convertView as? TextView) ?: TextView(this@DesktopShortcutActivity)
-                    view.text = getItem(position)
+                    view.text = FeatureShortcutCatalog.styledTitle(getItem(position))
                     return style(view, false)
                 }
                 override fun getDropDownView(position: Int, convertView: android.view.View?, parent: android.view.ViewGroup): android.view.View {
                     val view = (convertView as? TextView) ?: TextView(this@DesktopShortcutActivity)
-                    view.text = getItem(position)
+                    view.text = FeatureShortcutCatalog.styledTitle(getItem(position))
                     return style(view, true)
                 }
             }
