@@ -44,7 +44,7 @@ object FeatureShortcutCatalog {
                 val raw = store.getString("desktop_shortcut_entries_v1", null)
                 if (!raw.isNullOrBlank()) {
                     val array = JSONArray(raw)
-                    for (i in 0 until array.length()) array.optJSONObject(i)?.optString("target")?.takeIf { it.isNotBlank() }?.let(::add)
+                    for (i in 0 until array.length()) array.optJSONObject(i)?.optString("target")?.takeIf { it.isNotBlank() }?.let { add(it) }
                 }
             }
         }
