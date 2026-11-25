@@ -159,7 +159,7 @@ class ListHabitsMenu(
         val available = selected.mapNotNull { key ->
             entriesByKey[key]?.let { entry ->
                 val customTitle = prefs.getString("feature_shortcut_title_$key", "")?.trim().orEmpty()
-                val displayTitle: CharSequence = FeatureShortcutCatalog.styledTitle(customTitle.ifBlank { entry.name })
+                val displayTitle: CharSequence = FeatureShortcutCatalog.styledTitle("【${entry.category}】 " + customTitle.ifBlank { entry.name })
                 val iconIndex = prefs.getInt("feature_shortcut_icon_$key", 0)
                 Triple(key, displayTitle, iconIndex)
             }
