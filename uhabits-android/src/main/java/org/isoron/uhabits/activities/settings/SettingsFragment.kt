@@ -1107,29 +1107,71 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         dialog.show()
     }
     private fun showFeatureShortcutSettings() {
-        val store = PreferenceManager.getDefaultSharedPreferences(requireContext())
-        val allEntries = FeatureShortcutCatalog.getCachedEntries(requireContext())
-        val allowed = FeatureShortcutCatalog.getAllowedKeys(requireContext())
+        val context = requireContext()
+        val store = PreferenceManager.getDefaultSharedPreferences(context)
+        val allEntries = FeatureShortcutCatalog.getCachedEntries(context)
+        val allowed = FeatureShortcutCatalog.getAllowedKeys(context)
         val savedOrder = store.getString("feature_shortcuts_order", null)?.split("|").orEmpty()
         val legacySelection = store.getStringSet("feature_shortcuts", emptySet()).orEmpty()
         val existingSelection = (savedOrder + legacySelection).toSet()
         val entries = allEntries.filter { it.key in allowed || it.key in existingSelection }
-        val keys = entries.map { it.key }
-        val labels = entries.map { FeatureShortcutCatalog.styledTitle(it) }.toTypedArray()
-        val selected = (savedOrder.takeIf { it.isNotEmpty() } ?: legacySelection.toList()).filter { it in keys }.distinct().toMutableList()
-        val checked = BooleanArray(keys.size) { keys[it] in selected }
-        AlertDialog.Builder(requireContext())
-            .setTitle("快捷菜单管理")
-            .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
-                val key = keys[which]
-                if (isChecked && key !in selected) selected.add(key)
-                if (!isChecked) selected.remove(key)
+        val selected = (savedOrder.takeIf { it.isNotEmpty() } ?: legacySelection.toList())
+            .filter { key -> entries.any { it.key == key } }.distinct().toMutableList()
+        val filtered = entries.toMutableList()
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+        val search = EditText(context).apply {
+            hint = "搜索快捷入口"
+            setSingleLine(true)
+            textSize = 15f
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+        }
+        val list = ListView(context).apply { choiceMode = ListView.CHOICE_MODE_MULTIPLE; dividerHeight = dp(1) }
+        val adapter = object : BaseAdapter() {
+            override fun getCount() = filtered.size
+            override fun getItem(position: Int) = filtered[position]
+            override fun getItemId(position: Int) = position.toLong()
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val row = (convertView as? android.widget.CheckedTextView)
+                    ?: LayoutInflater.from(context).inflate(android.R.layout.simple_list_item_multiple_choice, parent, false) as android.widget.CheckedTextView
+                val entry = filtered[position]
+                row.text = FeatureShortcutCatalog.styledTitle(entry)
+                row.isChecked = entry.key in selected
+                row.setPadding(dp(14), dp(12), dp(14), dp(12))
+                return row
             }
+        }
+        list.adapter = adapter
+        list.setOnItemClickListener { _, _, position, _ ->
+            val key = filtered[position].key
+            if (key in selected) selected.remove(key) else selected.add(key)
+            adapter.notifyDataSetChanged()
+        }
+        fun filter(query: String) {
+            val q = query.trim().lowercase(Locale.ROOT)
+            filtered.clear()
+            filtered.addAll(entries.filter {
+                q.isEmpty() || it.name.lowercase(Locale.ROOT).contains(q) || it.category.lowercase(Locale.ROOT).contains(q)
+            })
+            adapter.notifyDataSetChanged()
+        }
+        search.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = filter(s?.toString().orEmpty())
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
+        val content = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(4), dp(16), dp(4))
+            addView(search, LinearLayout.LayoutParams(-1, -2))
+            addView(list, LinearLayout.LayoutParams(-1, dp(420)))
+        }
+        AlertDialog.Builder(context).setTitle("快捷菜单管理").setView(content)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(android.R.string.ok) { _, _ -> showShortcutCustomizationDialog(selected, store) }
             .show()
+        filter("")
     }
-
     /**
      * APP-menu appearance is stored separately from desktop shortcut appearance.
      * Icon index 0 means text-only; the remaining entries use built-in icons.
