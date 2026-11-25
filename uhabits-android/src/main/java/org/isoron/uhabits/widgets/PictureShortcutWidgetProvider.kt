@@ -108,6 +108,7 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
                     if (component != null) Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setComponent(component)
                     else Intent(context, ListHabitsActivity::class.java)
                 }
+                target == "system:settings" -> Intent(android.provider.Settings.ACTION_SETTINGS)
                 target.startsWith("feature:") -> {
                     val key = target.removePrefix("feature:")
                     FeatureShortcutCatalog.createIntent(context, key) ?: when (key) {
