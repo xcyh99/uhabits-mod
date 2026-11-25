@@ -40,7 +40,9 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
         }
         private fun updateWidget(context: Context, manager: AppWidgetManager, widgetId: Int) {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-            val views = RemoteViews(context.packageName, R.layout.widget_digital_clock)
+            val digitFontFamily = if (prefs.getString("digital_clock_font_family", "default") == "roboto_light") "sans-serif-light" else "sans-serif"
+            val layoutId = if (digitFontFamily == "sans-serif-light") R.layout.widget_digital_clock_roboto_light else R.layout.widget_digital_clock
+            val views = RemoteViews(context.packageName, layoutId)
             val rowBorderEnabled = prefs.getBoolean("digital_clock_row_border_enabled", true)
             val autoLayout = prefs.getInt("digital_clock_layout_mode", 0) == 1
             val keepDigitRatio = prefs.getBoolean("digital_clock_keep_digit_ratio", true)
@@ -66,7 +68,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             fun autoDigitWidth(sizeSp: Float): Float {
                 val paint = android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
                     textSize = sizeSp * scaledDensity
-                    typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL)
+                    typeface = android.graphics.Typeface.create(digitFontFamily, android.graphics.Typeface.NORMAL)
                 }
                 val availablePx = widthDp.coerceAtLeast(48) * density
                 val naturalPx = paint.measureText("88").coerceAtLeast(1f)
