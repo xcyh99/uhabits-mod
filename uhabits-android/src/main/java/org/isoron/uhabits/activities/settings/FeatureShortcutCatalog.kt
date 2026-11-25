@@ -20,6 +20,8 @@ import org.isoron.uhabits.R
 object FeatureShortcutCatalog {
     const val KEY_ALLOWED_ENTRIES = "shortcut_candidate_keys_v1"
     private const val KEY_CATALOG_CACHE = "shortcut_catalog_cache_v1"
+    private const val KEY_CATALOG_CACHE_VERSION = "shortcut_catalog_cache_version"
+    private const val CATALOG_CACHE_VERSION = 2
     private const val META_KEY = "org.isoron.uhabits.shortcut.key"
     private const val META_TITLE = "org.isoron.uhabits.shortcut.title"
     private const val META_CATEGORY = "org.isoron.uhabits.shortcut.category"
@@ -195,14 +197,16 @@ object FeatureShortcutCatalog {
             })
         }
         PreferenceManager.getDefaultSharedPreferences(context).edit()
-            .putString(KEY_CATALOG_CACHE, array.toString()).apply()
+            .putString(KEY_CATALOG_CACHE, array.toString())
+            .putInt(KEY_CATALOG_CACHE_VERSION, CATALOG_CACHE_VERSION)
+            .apply()
     }
 
     /** Reads the last full catalog snapshot without performing discovery. */
     fun getCachedEntries(context: Context): List<Entry> {
         val store = PreferenceManager.getDefaultSharedPreferences(context)
         val raw = store.getString(KEY_CATALOG_CACHE, null)
-        if (!raw.isNullOrBlank()) {
+        if (!raw.isNullOrBlank() && store.getInt(KEY_CATALOG_CACHE_VERSION, 0) >= CATALOG_CACHE_VERSION) {
             return runCatching {
                 val array = org.json.JSONArray(raw)
                 (0 until array.length()).mapNotNull { index ->
@@ -220,8 +224,9 @@ object FeatureShortcutCatalog {
                 }
             }.getOrDefault(emptyList())
         }
-        // First-run fallback: built-in defaults only; never trigger a global scan.
-        return builtIns.map { Entry(it.key, it.title, "内", it.category) }
+        // Refresh once after an app update (or on first use) so new manifest pages
+        // and nested PreferenceScreens become available without manual catalog edits.
+        return getEntries(context)
     }
 
     /** Lightweight list for ordinary selection menus. */
