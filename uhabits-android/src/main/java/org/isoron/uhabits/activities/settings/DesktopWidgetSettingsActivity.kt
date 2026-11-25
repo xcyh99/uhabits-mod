@@ -108,11 +108,75 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         actionCard("预览效果", "先查看当前设置，不会修改参数") { showWidgetPreview() }
 
         section("尺寸与裁切", "四行分别控制尺寸、窗口和位置")
-        actionCard("字号设置", "小时、分钟、日期星期分别设置字号") { showSizeSettings() }
         actionCard("字符间距与数字变形", "前三行分别调整字符间距和横向比例") { showSpacingAndTransformSettings() }
         actionCard("四行高度与自动布局", "独立设置四行窗口高度、自动适配与数字比例") { showRowSettings() }
+        section("字号设置", "小时、分钟、日期字号在这里直接修改，不再进入二级菜单")
+        val fontSpecs = listOf(
+            Triple("小时字号", KEY_HOUR_SIZE, 48f),
+            Triple("分钟字号", KEY_MINUTE_SIZE, 48f),
+            Triple("日期字号", KEY_DATE_SIZE, 15f)
+        )
+        val fontInputs = fontSpecs.map { (label, prefKey, defaultValue) ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(dp(12), dp(3), dp(12), dp(3))
+            }
+            row.addView(TextView(this).apply {
+                text = label
+                textSize = 14f
+                setTextColor(resolvePrimaryText())
+            }, LinearLayout.LayoutParams(0, -2, 1f))
+            val input = android.widget.EditText(this).apply {
+                inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+                setSingleLine(true)
+                setText(store.getFloat(prefKey, defaultValue).let { if (it % 1f == 0f) it.toInt().toString() else it.toString() })
+                gravity = android.view.Gravity.CENTER
+                textSize = 15f
+                selectAllOnFocus = true
+            }
+            row.addView(input, LinearLayout.LayoutParams(dp(92), dp(46)))
+            root.addView(row, LinearLayout.LayoutParams(-1, -2))
+            prefKey to input
+        }
+        root.addView(Button(this).apply {
+            text = "应用字号"
+            setOnClickListener {
+                val values = fontInputs.map { (prefKey, input) -> prefKey to input.text.toString().toFloatOrNull() }
+                val invalid = values.firstOrNull { (_, value) -> value == null || value !in 1f..300f }
+                if (invalid != null) {
+                    fontInputs.firstOrNull { it.first == invalid.first }?.second?.error = "请输入 1～300"
+                    return@setOnClickListener
+                }
+                val editor = store.edit()
+                values.forEach { (prefKey, value) -> editor.putFloat(prefKey, value!!) }
+                editor.apply()
+                updateWidget()
+                Toast.makeText(this@DesktopWidgetSettingsActivity, "三行字号已保存", Toast.LENGTH_SHORT).show()
+            }
+        }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(4); bottomMargin = dp(8) })
+
+        section("白色边框", "四行分别控制，开关状态互不影响")
+        val borderSpecs = listOf(
+            "小时白边" to "digital_clock_hour_border_enabled",
+            "分钟白边" to "digital_clock_minute_border_enabled",
+            "日期白边" to "digital_clock_date_border_enabled",
+            "快捷入口白边" to "digital_clock_shortcut_border_enabled"
+        )
+        borderSpecs.forEach { (label, prefKey) ->
+            root.addView(android.widget.CheckBox(this).apply {
+                text = label
+                textSize = 14f
+                setTextColor(resolvePrimaryText())
+                isChecked = store.getBoolean(prefKey, store.getBoolean(KEY_ROW_BORDER_ENABLED, true))
+                setPadding(dp(12), dp(5), dp(12), dp(5))
+                setOnCheckedChangeListener { _, checked ->
+                    store.edit().putBoolean(prefKey, checked).apply()
+                    updateWidget()
+                }
+            }, LinearLayout.LayoutParams(-1, -2))
+        }
         actionCard("四行垂直位置", "小时、分钟、日期、快捷图标分别上下移动") { showVerticalOffsetSettings() }
-        actionCard("四行白色边框", if (store.getBoolean(KEY_ROW_BORDER_ENABLED, true)) "当前：开启（四行均显示边框）" else "当前：关闭（四行均隐藏边框）") { showRowBorderSettings() }
 
         section("颜色与效果")
         actionCard("颜色设置", "小时、分钟、日期分别设置颜色") { showColorSettings() }
@@ -171,9 +235,16 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 scaleX = scale
             }
         }
-        val previewBorder = store.getBoolean(KEY_ROW_BORDER_ENABLED, true)
-        listOf(R.id.digital_clock_time, R.id.digital_clock_minute, R.id.digital_clock_date, R.id.digital_clock_shortcut_row).forEach { id ->
-            preview.findViewById<android.view.View>(id).setBackgroundResource(if (previewBorder) R.drawable.digital_clock_row_border else android.R.color.transparent)
+        val previewBorderDefaults = store.getBoolean(KEY_ROW_BORDER_ENABLED, true)
+        val previewBorderRows = listOf(
+            R.id.digital_clock_time to "digital_clock_hour_border_enabled",
+            R.id.digital_clock_minute to "digital_clock_minute_border_enabled",
+            R.id.digital_clock_date to "digital_clock_date_border_enabled",
+            R.id.digital_clock_shortcut_row to "digital_clock_shortcut_border_enabled"
+        )
+        previewBorderRows.forEach { (id, prefKey) ->
+            val enabled = store.getBoolean(prefKey, previewBorderDefaults)
+            preview.findViewById<android.view.View>(id).setBackgroundResource(if (enabled) R.drawable.digital_clock_row_border else android.R.color.transparent)
         }
         preview.findViewById<android.widget.TextClock>(R.id.digital_clock_date).apply {
             textSize = store.getFloat(KEY_DATE_SIZE, 15f)
