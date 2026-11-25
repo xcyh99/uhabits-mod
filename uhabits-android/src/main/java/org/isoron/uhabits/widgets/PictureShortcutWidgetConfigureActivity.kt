@@ -119,7 +119,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         try {
             val bitmap = contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
                 ?: throw IllegalStateException("无法读取图片")
-            val maxSide = 1600
+            val maxSide = 480
             val scale = minOf(1f, maxSide.toFloat() / maxOf(bitmap.width, bitmap.height))
             val saved = if (scale < 1f) Bitmap.createScaledBitmap(bitmap,
                 (bitmap.width * scale).toInt().coerceAtLeast(1),
@@ -140,12 +140,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     private fun choices(): List<Choice> {
         val entries = FeatureShortcutCatalog.getEntries(this)
         return entries.mapNotNull { entry ->
-            val key = when {
-                entry.key.startsWith("app:") -> entry.key
-                entry.key == "system:settings" -> "feature:system:settings"
-                else -> "feature:${entry.key}"
-            }
-            Choice(key, entry.title)
+            Choice(entry.widgetTarget, entry.title)
         }.distinctBy { it.key }.sortedBy { it.title }
     }
 
