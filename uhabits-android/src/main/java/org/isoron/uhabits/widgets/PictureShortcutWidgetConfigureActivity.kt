@@ -128,6 +128,8 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         // When opened from 图片组件设置, restore this widget's existing configuration.
         val saved = getSharedPreferences(PictureShortcutWidgetProvider.PREFS, MODE_PRIVATE)
         split = saved.getInt("${widgetId}_split", 5).coerceIn(1, 9)
+        imageMode = saved.getString("${widgetId}_imageMode", "crop") ?: "crop"
+        modeSpinner.setSelection(when (imageMode) { "fit" -> 0; "stretch" -> 1; else -> 2 })
         splitSeekBar.progress = split - 1
         leftTarget = saved.getString("${widgetId}_left", leftTarget) ?: leftTarget
         rightTarget = saved.getString("${widgetId}_right", rightTarget) ?: rightTarget
@@ -268,7 +270,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             Toast.makeText(this, "请先选择一张图片", Toast.LENGTH_LONG).show()
             return
         }
-        PictureShortcutWidgetProvider.save(this, widgetId, file.name, leftTarget, rightTarget, split)
+        PictureShortcutWidgetProvider.save(this, widgetId, file.name, leftTarget, rightTarget, split, imageMode)
         PictureShortcutWidgetProvider.updateWidget(this, widgetId)
         setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
         finish()
