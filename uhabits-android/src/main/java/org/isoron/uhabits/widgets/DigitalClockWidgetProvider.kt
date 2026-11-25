@@ -139,23 +139,44 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 "digital_clock_shortcut_border_enabled"
             )
             rowIds.forEachIndexed { index, viewId ->
+                val enabled = prefs.getBoolean(rowBorderKeys[index], rowBorderEnabled)
+                views.setInt(viewId, "setBackgroundResource", if (enabled) R.drawable.digital_clock_row_border else android.R.color.transparent)
+            }
+            val offsets = intArrayOf(
+                prefs.getInt("digital_clock_hour_offset_y", 0),
+                prefs.getInt("digital_clock_minute_offset_y", 0),
+                prefs.getInt("digital_clock_date_offset_y", 0),
+                prefs.getInt("digital_clock_shortcut_offset_y", 0)
+            )
+            val heights = rowHeights
+            val naturalHeightsDp = floatArrayOf(
+                hourSize * scaledDensity / density * 1.05f,
+                minuteSize * scaledDensity / density * 1.05f,
+                dateSize * scaledDensity / density * 1.05f,
+                37f
+            )
+            rowIds.forEachIndexed { index, viewId ->
                 val rowHeight = heights[index]
                 val offsetPx = (offsets[index].coerceIn(-40, 40) * density).roundToInt()
-                views.setViewVisibility(viewId, if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE else android.view.View.VISIBLE)
+                views.setViewVisibility(
+                    viewId,
+                    if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE
+                    else android.view.View.VISIBLE
+                )
                 if (index < 3) {
-                    // B3: the viewport keeps fixed crop bounds; only the inner mover receives Y offset.
+                    // B3: keep the crop viewport fixed and move only its inner content layer.
                     views.setInt(viewId, "setViewportHeightPx", (rowHeight * density).roundToInt())
                     views.setInt(moverIds[index], "setOffsetYPx", offsetPx)
                 } else if (android.os.Build.VERSION.SDK_INT >= 31) {
+                    val offsetTopPadding = (offsetPx * 2).coerceAtLeast(0)
+                    val offsetBottomPadding = (-offsetPx * 2).coerceAtLeast(0)
                     views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                     val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
-                    val offsetTopPadding = (offsetPx * 2).coerceAtLeast(0)
-                    val offsetBottomPadding = (-offsetPx * 2).coerceAtLeast(0)
                     views.setViewPadding(viewId, 0, extraPaddingPx + offsetTopPadding, 0, extraPaddingPx + offsetBottomPadding)
                 } else {
-                    val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
                     val offsetTopPadding = (offsetPx * 2).coerceAtLeast(0)
                     val offsetBottomPadding = (-offsetPx * 2).coerceAtLeast(0)
+                    val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
                     views.setViewPadding(viewId, 0, extraPaddingPx + offsetTopPadding, 0, extraPaddingPx + offsetBottomPadding)
                 }
             }
