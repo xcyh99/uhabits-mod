@@ -78,7 +78,7 @@
     <string name="links">链接</string>
     <string name="name">习惯标题</string>
     <string name="settings">设置</string>
-    <string name="feature_center">功能中心</string>
+    <string name="feature_center">功能板块</string>
     <string name="shortcuts">快捷入口</string>
     <string name="shortcut_settings">快捷入口设置</string>
     <string name="shortcut_settings_summary">设置主界面右上角快捷入口中显示的功能。</string>
