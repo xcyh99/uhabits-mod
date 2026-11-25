@@ -154,16 +154,14 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             rowIds.forEachIndexed { index, viewId ->
                 val rowHeight = heights[index]
                 val offsetPx = (offsets[index].coerceIn(-40, 40) * density).roundToInt()
-                // B2: on API 31+, the outer FrameLayout is the fixed clipping
-                // viewport. The TextClock is deliberately taller than that viewport
-                // and centered inside it, so its own bounds no longer become the
-                // moving crop edge. Signed padding retains B1's proven movement.
-                // API 28-30 keep the exact B1 layout/behavior for compatibility.
+                // B2: the outer FrameLayout is the fixed clipping viewport.
+                // The TextClock is deliberately taller than it and centered inside it,
+                // so the TextClock's own bounds no longer become the crop edge.
+                // Signed padding retains B1's proven movement on Android 10 and newer.
                 val offsetTopPadding = if (index < 3) offsetPx else (offsetPx * 2).coerceAtLeast(0)
                 val offsetBottomPadding = if (index < 3) -offsetPx else (-offsetPx * 2).coerceAtLeast(0)
                 views.setViewVisibility(viewId, if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE else android.view.View.VISIBLE)
                 if (index < 3) {
-                    val rowHeightPx = (rowHeight * density).roundToInt()
                     val textId = textIds[index]
                     // TextClock is taller than the viewport. Its fixed -40dp top/bottom
                     // margins make the wrap-content FrameLayout measure to rowHeight,
