@@ -184,7 +184,10 @@ object FeatureShortcutCatalog {
                     result.add(Entry("app:${component.flattenToString()}", it.loadLabel(pm).toString(), "", "应用", it.loadIcon(pm)))
                 }
         }
+        // Prefer the first current definition and collapse duplicate visible names
+        // within the same category, even if an old alias used a different internal key.
         val entries = result.distinctBy { it.key }
+            .distinctBy { "${it.category}:${it.name.trim().lowercase()}" }
         // Full discovery is reserved for shortcut management. Ordinary menus read this snapshot.
         saveCatalogCache(context, entries)
         return entries
