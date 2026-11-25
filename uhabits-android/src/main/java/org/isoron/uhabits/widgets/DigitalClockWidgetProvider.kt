@@ -41,6 +41,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
         private fun updateWidget(context: Context, manager: AppWidgetManager, widgetId: Int) {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context)
             val views = RemoteViews(context.packageName, R.layout.widget_digital_clock)
+            val rowBorderEnabled = prefs.getBoolean("digital_clock_row_border_enabled", true)
             val autoLayout = prefs.getInt("digital_clock_layout_mode", 0) == 1
             val keepDigitRatio = prefs.getBoolean("digital_clock_keep_digit_ratio", true)
             val density = context.resources.displayMetrics.density
@@ -124,6 +125,9 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 R.id.digital_clock_date,
                 R.id.digital_clock_shortcut_row
             )
+            rowIds.forEach { viewId ->
+                views.setInt(viewId, "setBackgroundResource", if (rowBorderEnabled) R.drawable.digital_clock_row_border else android.R.color.transparent)
+            }
             val offsets = intArrayOf(
                 prefs.getInt("digital_clock_hour_offset_y", 0),
                 prefs.getInt("digital_clock_minute_offset_y", 0),
