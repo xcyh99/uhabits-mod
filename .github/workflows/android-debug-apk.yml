@@ -24,6 +24,7 @@ on:
       - stable/987-white-border
       - test/shortcut-management-987
       - test/pad-c1-three-layer
+      - test/pad-c2-stock-remoteviews
   pull_request:
     branches:
       - dev
