@@ -8,9 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.RectF
 import android.view.View
 import android.widget.RemoteViews
 import org.isoron.uhabits.R
@@ -76,46 +73,16 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
                 runCatching { BitmapFactory.decodeFile(it.absolutePath) }.getOrNull()
             }
             if (bitmap != null) {
-                val options = manager.getAppWidgetOptions(id)
-                val density = context.resources.displayMetrics.density
-                // Estimate the current phone widget size from the launcher's bounds.
-                val portrait = context.resources.configuration.orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE
-                val widthDp = if (portrait) {
-                    options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,
-                        options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 180))
-                } else {
-                    options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH,
-                        options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 180))
-                }
-                val heightDp = if (portrait) {
-                    options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,
-                        options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110))
-                } else {
-                    options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,
-                        options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 110))
-                }
-                val w = (widthDp * density).toInt().coerceIn(1, 1400)
-                val h = (heightDp * density).toInt().coerceIn(1, 1400)
-                val output = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-                val canvas = Canvas(output)
-                canvas.drawColor(android.graphics.Color.BLACK)
+                // Let Android scale against the ImageView's actual on-screen bounds.
+                // Legacy width/height values are no longer supported and safely fall back to FIT_CENTER.
                 val mode = prefs.getString(key(id, "imageMode"), "fit") ?: "fit"
-                val sx = w.toFloat() / bitmap.width
-                val sy = h.toFloat() / bitmap.height
-                val factor = when (mode) {
-                    "fit" -> minOf(sx, sy)
-                    "width" -> sx
-                    "height" -> sy
-                    "crop" -> maxOf(sx, sy)
-                    else -> minOf(sx, sy)
+                val scaleType = when (mode) {
+                    "stretch" -> android.widget.ImageView.ScaleType.FIT_XY
+                    "crop" -> android.widget.ImageView.ScaleType.CENTER_CROP
+                    else -> android.widget.ImageView.ScaleType.FIT_CENTER
                 }
-                val rect = if (mode == "stretch") RectF(0f, 0f, w.toFloat(), h.toFloat()) else {
-                    val dw = bitmap.width * factor
-                    val dh = bitmap.height * factor
-                    RectF((w - dw) / 2f, (h - dh) / 2f, (w + dw) / 2f, (h + dh) / 2f)
-                }
-                canvas.drawBitmap(bitmap, null, rect, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
-                views.setImageViewBitmap(R.id.picture_shortcut_image, output)
+                views.setImageViewBitmap(R.id.picture_shortcut_image, bitmap)
+                views.setImageViewScaleType(R.id.picture_shortcut_image, scaleType)
                 views.setViewVisibility(R.id.picture_shortcut_empty, View.GONE)
             } else {
                 views.setViewVisibility(R.id.picture_shortcut_empty, View.VISIBLE)
