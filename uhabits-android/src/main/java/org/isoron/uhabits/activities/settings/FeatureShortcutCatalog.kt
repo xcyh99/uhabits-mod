@@ -22,7 +22,7 @@ object FeatureShortcutCatalog {
     const val KEY_ALLOWED_ENTRIES = "shortcut_candidate_keys_v1"
     private const val KEY_CATALOG_CACHE = "shortcut_catalog_cache_v1"
     private const val KEY_CATALOG_CACHE_VERSION = "shortcut_catalog_cache_version"
-    private const val CATALOG_CACHE_VERSION = 4
+    private const val CATALOG_CACHE_VERSION = 5
     private const val META_KEY = "org.isoron.uhabits.shortcut.key"
     private const val META_TITLE = "org.isoron.uhabits.shortcut.title"
     private const val META_CATEGORY = "org.isoron.uhabits.shortcut.category"
@@ -87,7 +87,7 @@ object FeatureShortcutCatalog {
 
     private val recommended = builtIns.map { it.key }.toSet() + setOf("desktopWidgetTimeSettings", "pictureShortcutWidgetSettings")
     private const val KEY_ALLOWED_MIGRATION_VERSION = "shortcut_candidate_migration_version"
-    private const val ALLOWED_MIGRATION_VERSION = 4
+    private const val ALLOWED_MIGRATION_VERSION = 5
 
     fun getEntries(context: Context): List<Entry> {
         val result = mutableListOf<Entry>()
@@ -247,44 +247,30 @@ object FeatureShortcutCatalog {
 
     fun getAllowedKeys(context: Context): Set<String> {
         val store = PreferenceManager.getDefaultSharedPreferences(context)
-        store.getStringSet(KEY_ALLOWED_ENTRIES, null)?.let { saved ->
-            val allowed = saved.toMutableSet()
-            if (store.getInt(KEY_ALLOWED_MIGRATION_VERSION, 0) < ALLOWED_MIGRATION_VERSION) {
-                allowed.add("desktopWidgetTimeSettings")
-                allowed.add("pictureShortcutWidgetSettings")
-                val ownComponent = ComponentName(context, org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java)
-                allowed.add("app:${ownComponent.flattenToString()}")
-                store.edit()
-                    .putStringSet(KEY_ALLOWED_ENTRIES, allowed)
-                    .putInt(KEY_ALLOWED_MIGRATION_VERSION, ALLOWED_MIGRATION_VERSION)
-                    .apply()
-            }
-            return allowed
+        val version = store.getInt(KEY_ALLOWED_MIGRATION_VERSION, 0)
+
+        // Version 5 intentionally drops all legacy shortcut imports. On the first
+        // launch after upgrading, start from the current built-in destinations only.
+        if (version < ALLOWED_MIGRATION_VERSION) {
+            val current = recommended.toMutableSet()
+            val ownComponent = ComponentName(
+                context,
+                org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java
+            )
+            current.add("app:${ownComponent.flattenToString()}")
+            store.edit()
+                .putStringSet(KEY_ALLOWED_ENTRIES, current)
+                .remove("feature_shortcuts")
+                .remove(KEY_CATALOG_CACHE)
+                .putInt(KEY_CATALOG_CACHE_VERSION, 0)
+                .putInt(KEY_ALLOWED_MIGRATION_VERSION, ALLOWED_MIGRATION_VERSION)
+                .apply()
+            return current
         }
-        val allowed = recommended.toMutableSet()
-        val ownComponent = ComponentName(context, org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java)
-        allowed.add("app:${ownComponent.flattenToString()}")
-        allowed.addAll(store.getStringSet("feature_shortcuts", emptySet()).orEmpty())
-        runCatching {
-            val raw = store.getString("desktop_shortcut_entries_v1", null)
-            if (!raw.isNullOrBlank()) {
-                val array = org.json.JSONArray(raw)
-                for (i in 0 until array.length()) {
-                    array.optJSONObject(i)?.optString("target")?.takeIf { it.isNotBlank() }?.let(allowed::add)
-                }
-            }
-        }
-        store.all.values.forEach { value ->
-            if (value is String) when {
-                value.startsWith("feature:") -> allowed.add(value.removePrefix("feature:"))
-                value.startsWith("app:") || value.startsWith("system:") -> allowed.add(value)
-            }
-        }
-        store.edit()
-            .putStringSet(KEY_ALLOWED_ENTRIES, allowed)
-            .putInt(KEY_ALLOWED_MIGRATION_VERSION, ALLOWED_MIGRATION_VERSION)
-            .apply()
-        return allowed
+
+        return store.getStringSet(KEY_ALLOWED_ENTRIES, recommended)
+            ?.toSet()
+            ?: recommended
     }
 
     /**
