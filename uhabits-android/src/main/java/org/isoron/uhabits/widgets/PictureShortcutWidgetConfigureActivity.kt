@@ -31,6 +31,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     private var rightTarget = "feature:__settings"
     private var split = 5
     private var imageMode = "fit"
+    private var outlineEnabled = false
     private lateinit var modeSpinner: Spinner
     private lateinit var preview: ImageView
     private lateinit var imageStatus: TextView
@@ -114,6 +115,13 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             }
         }
         content.addView(modeSpinner)
+        val outlineSwitch = android.widget.Switch(this).apply {
+            text = "显示图片组件描边（默认关闭）"
+            isChecked = false
+            setPadding(0, dp(8), 0, dp(4))
+            setOnCheckedChangeListener { _, checked -> outlineEnabled = checked }
+        }
+        content.addView(outlineSwitch)
         content.addView(TextView(this).apply {
             text = "新建图片组件默认尺寸为 1×1。添加到桌面后，仍可长按并拖动边框自由调整大小。图片显示由 Android 根据组件实际区域自动适配。分界线每次移动 10%。"
             textSize = 12f
@@ -129,6 +137,8 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         val saved = getSharedPreferences(PictureShortcutWidgetProvider.PREFS, MODE_PRIVATE)
         split = saved.getInt("${widgetId}_split", 5).coerceIn(1, 9)
         imageMode = saved.getString("${widgetId}_imageMode", "fit") ?: "fit"
+        outlineEnabled = saved.getBoolean("${widgetId}_outline", false)
+        outlineSwitch.isChecked = outlineEnabled
         // Migrate unsupported legacy modes to the default native FIT_CENTER mode.
         if (imageMode == "width" || imageMode == "height") imageMode = "fit"
         modeSpinner.setSelection(when (imageMode) { "stretch" -> 1; "crop" -> 2; else -> 0 })
@@ -272,7 +282,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             Toast.makeText(this, "请先选择一张图片", Toast.LENGTH_LONG).show()
             return
         }
-        PictureShortcutWidgetProvider.save(this, widgetId, file.name, leftTarget, rightTarget, split, imageMode)
+        PictureShortcutWidgetProvider.save(this, widgetId, file.name, leftTarget, rightTarget, split, imageMode, outlineEnabled)
         PictureShortcutWidgetProvider.updateWidget(this, widgetId)
         setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
         finish()
