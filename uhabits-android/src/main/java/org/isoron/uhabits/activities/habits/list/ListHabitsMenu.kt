@@ -144,7 +144,7 @@ class ListHabitsMenu(
             ?.split("|")?.filter { it.isNotBlank() }
         val selected = savedOrder?.takeIf { it.isNotEmpty() }
             ?: prefs.getStringSet("feature_shortcuts", emptySet())?.toList().orEmpty()
-        val titles = FeatureShortcutCatalog.getEntries(activity).associate { it.key to it.title }
+        val entriesByKey = FeatureShortcutCatalog.getEntries(activity).associateBy { it.key }
         val iconResources = listOf(
             0,
             android.R.drawable.ic_menu_view,
@@ -157,10 +157,11 @@ class ListHabitsMenu(
             0
         )
         val available = selected.mapNotNull { key ->
-            titles[key]?.let { defaultTitle ->
+            entriesByKey[key]?.let { entry ->
                 val customTitle = prefs.getString("feature_shortcut_title_$key", "")?.trim().orEmpty()
+                val displayTitle: CharSequence = if (customTitle.isBlank()) FeatureShortcutCatalog.styledTitle(entry) else customTitle
                 val iconIndex = prefs.getInt("feature_shortcut_icon_$key", 0)
-                Triple(key, customTitle.ifBlank { defaultTitle }, iconIndex)
+                Triple(key, displayTitle, iconIndex)
             }
         }
         // PopupMenu hides icons by default on some Android versions; request icon display
@@ -236,6 +237,19 @@ class ListHabitsMenu(
                             )
                         entry.first == "__settings" ->
                             activity.startActivity(Intent(activity, SettingsActivity::class.java))
+                        entry.first == "system:settings" ->
+                            activity.startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
+                        entry.first.startsWith("app:") -> {
+                            val component = android.content.ComponentName.unflattenFromString(entry.first.removePrefix("app:"))
+                            if (component != null) runCatching {
+                                activity.startActivity(
+                                    Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+                                        .setComponent(component).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                            }.onFailure {
+                                android.widget.Toast.makeText(activity, "该应用当前无法打开，可能已卸载", android.widget.Toast.LENGTH_LONG).show()
+                            }
+                        }
                         else -> activity.startActivity(
                             Intent(activity, SettingsActivity::class.java)
                                 .putExtra("open_preference_key", entry.first)
