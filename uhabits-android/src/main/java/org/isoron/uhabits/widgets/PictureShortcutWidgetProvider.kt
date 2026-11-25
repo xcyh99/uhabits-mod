@@ -7,6 +7,10 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.RectF
 import android.view.View
 import android.widget.RemoteViews
 import org.isoron.uhabits.R
@@ -52,12 +56,13 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
             R.id.picture_zone_9
         )
 
-        fun save(context: Context, id: Int, imageName: String, left: String, right: String, split: Int) {
+        fun save(context: Context, id: Int, imageName: String, left: String, right: String, split: Int, imageMode: String = "crop") {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .putString(key(id, "image"), imageName)
                 .putString(key(id, "left"), left)
                 .putString(key(id, "right"), right)
                 .putInt(key(id, "split"), split.coerceIn(1, 9))
+                .putString(key(id, "imageMode"), imageMode)
                 .apply()
         }
 
@@ -71,7 +76,24 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
                 runCatching { BitmapFactory.decodeFile(it.absolutePath) }.getOrNull()
             }
             if (bitmap != null) {
-                views.setImageViewBitmap(R.id.picture_shortcut_image, bitmap)
+                val options = manager.getAppWidgetOptions(id)
+                val density = context.resources.displayMetrics.density
+                val w = (options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 180) * density).toInt().coerceIn(1, 1400)
+                val h = (options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110) * density).toInt().coerceIn(1, 1400)
+                val output = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(output)
+                canvas.drawColor(android.graphics.Color.BLACK)
+                val mode = prefs.getString(key(id, "imageMode"), "crop") ?: "crop"
+                val sx = w.toFloat() / bitmap.width
+                val sy = h.toFloat() / bitmap.height
+                val factor = if (mode == "fit") minOf(sx, sy) else maxOf(sx, sy)
+                val rect = if (mode == "stretch") RectF(0f, 0f, w.toFloat(), h.toFloat()) else {
+                    val dw = bitmap.width * factor
+                    val dh = bitmap.height * factor
+                    RectF((w - dw) / 2f, (h - dh) / 2f, (w + dw) / 2f, (h + dh) / 2f)
+                }
+                canvas.drawBitmap(bitmap, null, rect, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
+                views.setImageViewBitmap(R.id.picture_shortcut_image, output)
                 views.setViewVisibility(R.id.picture_shortcut_empty, View.GONE)
             } else {
                 views.setViewVisibility(R.id.picture_shortcut_empty, View.VISIBLE)
