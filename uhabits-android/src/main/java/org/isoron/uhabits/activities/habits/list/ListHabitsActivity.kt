@@ -223,6 +223,15 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
             target == "__settings" -> startActivity(
                 Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
             )
+            target == "system:settings" -> startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
+            target.startsWith("app:") -> {
+                val component = android.content.ComponentName.unflattenFromString(target.removePrefix("app:"))
+                if (component != null) runCatching {
+                    startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setComponent(component).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                }.onFailure {
+                    android.widget.Toast.makeText(this, "该应用当前无法打开，可能已卸载", android.widget.Toast.LENGTH_LONG).show()
+                }
+            }
             else -> startActivity(
                 Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
                     .putExtra("open_preference_key", target)
