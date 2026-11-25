@@ -90,12 +90,13 @@ class SettingsActivity : AppCompatActivity() {
 
         val preferenceKey = launchIntent.getStringExtra("open_preference_key") ?: return
         launchIntent.removeExtra("open_preference_key")
+        if (preferenceKey == "widgetManager") {
+            // Keep legacy shortcuts working, but route them to the unified component catalog.
+            startActivity(Intent(this, ComponentAddActivity::class.java))
+            return
+        }
         if (fragment?.isAdded == true && fragment.view != null) {
-            if (preferenceKey == "widgetManager") {
-                fragment.openBatchWidgetPicker(launchIntent)
-            } else {
-                fragment.openPreferenceByKey(preferenceKey)
-            }
+            fragment.openPreferenceByKey(preferenceKey)
         }
     }
 }
