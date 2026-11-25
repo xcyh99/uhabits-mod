@@ -20,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity
 import org.isoron.uhabits.HabitsApplication
 import org.isoron.uhabits.activities.AndroidThemeSwitcher
 import org.isoron.uhabits.activities.settings.FeatureShortcutCatalog
+import org.isoron.uhabits.activities.settings.FeatureShortcutPicker
 import java.io.File
 import java.io.FileOutputStream
 
