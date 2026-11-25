@@ -127,6 +127,8 @@ dependencies {
     implementation(libs.opencsv)
     implementation(libs.konfetti.xml)
     implementation(project(":uhabits-core"))
+    // The platform annotation is hidden from the public SDK; compile against this stub only.
+    compileOnly(project(":remoteviews-stubs"))
     ksp(libs.kotlin.inject.compiler)
 
     androidTestImplementation(libs.annotation)
