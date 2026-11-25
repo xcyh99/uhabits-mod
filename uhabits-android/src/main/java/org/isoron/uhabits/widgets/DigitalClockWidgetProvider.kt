@@ -40,9 +40,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
         }
         private fun updateWidget(context: Context, manager: AppWidgetManager, widgetId: Int) {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-            val useFixedViewport = android.os.Build.VERSION.SDK_INT >= 31
-            val layoutId = if (useFixedViewport) R.layout.widget_digital_clock else R.layout.widget_digital_clock_legacy
-            val views = RemoteViews(context.packageName, layoutId)
+            val views = RemoteViews(context.packageName, R.layout.widget_digital_clock)
             val rowBorderEnabled = prefs.getBoolean("digital_clock_row_border_enabled", true)
             val autoLayout = prefs.getInt("digital_clock_layout_mode", 0) == 1
             val keepDigitRatio = prefs.getBoolean("digital_clock_keep_digit_ratio", true)
@@ -132,9 +130,9 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 R.id.digital_clock_date_viewport
             )
             val rowIds = intArrayOf(
-                if (useFixedViewport) viewportIds[0] else textIds[0],
-                if (useFixedViewport) viewportIds[1] else textIds[1],
-                if (useFixedViewport) viewportIds[2] else textIds[2],
+                viewportIds[0],
+                viewportIds[1],
+                viewportIds[2],
                 R.id.digital_clock_shortcut_row
             )
             rowIds.forEach { viewId ->
@@ -167,17 +165,13 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 if (index < 3) {
                     val rowHeightPx = (rowHeight * density).roundToInt()
                     val textId = textIds[index]
-                    if (useFixedViewport) {
-                        views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
-                        // The child extends 40dp beyond each side; the FrameLayout
-                        // clips it to the fixed rowHeight while preserving the full glyph.
-                        val expandedTextHeight = maxOf(rowHeight, naturalHeightsDp[index]) + 80f
-                        views.setViewLayoutHeight(textId, expandedTextHeight, android.util.TypedValue.COMPLEX_UNIT_DIP)
-                        views.setViewPadding(textId, 0, offsetTopPadding, 0, offsetBottomPadding)
-                    } else {
-                        views.setInt(textId, "setHeight", rowHeightPx)
-                        views.setViewPadding(textId, 0, offsetTopPadding, 0, offsetBottomPadding)
-                    }
+                    // TextClock is taller than the viewport. Its fixed -40dp top/bottom
+                    // margins make the wrap-content FrameLayout measure to rowHeight,
+                    // while centering the oversized child. This works on API 28+ without
+                    // RemoteViews.setViewLayoutHeight (API 31+ only).
+                    val expandedTextHeightPx = ((maxOf(rowHeight, naturalHeightsDp[index]) + 80f) * density).roundToInt()
+                    views.setInt(textId, "setHeight", expandedTextHeightPx)
+                    views.setViewPadding(textId, 0, offsetTopPadding, 0, offsetBottomPadding)
                 } else if (android.os.Build.VERSION.SDK_INT >= 31) {
                     views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                     val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
