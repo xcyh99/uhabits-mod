@@ -171,7 +171,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                         views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                         // The child extends 40dp beyond each side; the FrameLayout
                         // clips it to the fixed rowHeight while preserving the full glyph.
-                        val expandedTextHeight = rowHeight + 80f
+                        val expandedTextHeight = maxOf(rowHeight, naturalHeightsDp[index]) + 80f
                         views.setViewLayoutHeight(textId, expandedTextHeight, android.util.TypedValue.COMPLEX_UNIT_DIP)
                         views.setViewPadding(textId, 0, offsetTopPadding, 0, offsetBottomPadding)
                     } else {
