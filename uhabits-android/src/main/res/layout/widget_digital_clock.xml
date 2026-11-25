@@ -10,13 +10,13 @@
     android:paddingTop="0dp"
     android:paddingBottom="0dp"
     android:background="@drawable/time_record_widget_background">
-    <org.isoron.uhabits.widgets.WidgetViewportLayout
+    <FrameLayout
         android:id="@+id/digital_clock_time_viewport"
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:clipChildren="true"
         android:clipToPadding="true">
-        <org.isoron.uhabits.widgets.WidgetOffsetLayout
+        <FrameLayout
             android:id="@+id/digital_clock_time_mover"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
@@ -33,19 +33,19 @@
         android:textSize="48sp"
         android:fontFamily="sans-serif"
         android:maxLines="1" />
-        </org.isoron.uhabits.widgets.WidgetOffsetLayout>
-    </org.isoron.uhabits.widgets.WidgetViewportLayout>
+        </FrameLayout>
+    </FrameLayout>
     <TextView
         android:id="@+id/digital_clock_gap1"
         android:layout_width="match_parent"
         android:layout_height="0dp" android:layout_weight="1" android:text="" android:includeFontPadding="false" android:minHeight="0dp" android:textSize="1sp" />
-    <org.isoron.uhabits.widgets.WidgetViewportLayout
+    <FrameLayout
         android:id="@+id/digital_clock_minute_viewport"
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:clipChildren="true"
         android:clipToPadding="true">
-        <org.isoron.uhabits.widgets.WidgetOffsetLayout
+        <FrameLayout
             android:id="@+id/digital_clock_minute_mover"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
@@ -62,19 +62,19 @@
         android:textSize="48sp"
         android:fontFamily="sans-serif"
         android:maxLines="1" />
-        </org.isoron.uhabits.widgets.WidgetOffsetLayout>
-    </org.isoron.uhabits.widgets.WidgetViewportLayout>
+        </FrameLayout>
+    </FrameLayout>
     <TextView
         android:id="@+id/digital_clock_gap2"
         android:layout_width="match_parent"
         android:layout_height="0dp" android:layout_weight="1" android:text="" android:includeFontPadding="false" android:minHeight="0dp" android:textSize="1sp" />
-    <org.isoron.uhabits.widgets.WidgetViewportLayout
+    <FrameLayout
         android:id="@+id/digital_clock_date_viewport"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="27dp"
         android:clipChildren="true"
         android:clipToPadding="true">
-        <org.isoron.uhabits.widgets.WidgetOffsetLayout
+        <FrameLayout
             android:id="@+id/digital_clock_date_mover"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
@@ -91,8 +91,8 @@
         android:textSize="15sp"
         android:fontFamily="sans-serif-medium"
         android:maxLines="1" />
-        </org.isoron.uhabits.widgets.WidgetOffsetLayout>
-    </org.isoron.uhabits.widgets.WidgetViewportLayout>
+        </FrameLayout>
+    </FrameLayout>
     <TextView
         android:id="@+id/digital_clock_gap3"
         android:layout_width="match_parent"
