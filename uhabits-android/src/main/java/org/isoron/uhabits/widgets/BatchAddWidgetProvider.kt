@@ -16,8 +16,7 @@ class BatchAddWidgetProvider : AppWidgetProvider() {
         manager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
-        val intent = Intent(context, SettingsActivity::class.java).apply {
-            putExtra("open_preference_key", "widgetManager")
+        val intent = Intent(context, ComponentAddActivity::class.java).apply {
             addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
