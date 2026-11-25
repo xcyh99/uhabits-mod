@@ -33,12 +33,29 @@ object FeatureShortcutCatalog {
             Entry("system:settings", "手机系统设置", "外", "设置"),
             Entry("historyWhiteWeight", "历史组件白色数字权重", "内", "功能")
         )
+        val store = PreferenceManager.getDefaultSharedPreferences(context)
+        val legacyTargets = mutableSetOf<String>().apply {
+            addAll(store.getStringSet("feature_shortcuts", emptySet()).orEmpty())
+            addAll(store.getString("feature_shortcuts_order", null)?.split("|").orEmpty())
+            store.all.values.filterIsInstance<String>().forEach { value ->
+                if (value.startsWith("feature:")) add(value.removePrefix("feature:"))
+            }
+            runCatching {
+                val raw = store.getString("desktop_shortcut_entries_v1", null)
+                if (!raw.isNullOrBlank()) {
+                    val array = JSONArray(raw)
+                    for (i in 0 until array.length()) array.optJSONObject(i)?.optString("target")?.takeIf { it.isNotBlank() }?.let(::add)
+                }
+            }
+        }
         fun visit(preference: Preference, parentCategory: String) {
             if (preference is PreferenceCategory) {
                 if (preference.key == "devCategory") return
                 val name = preference.title?.toString()?.trim().orEmpty()
                 val next = if (preference.key == "featureCenterCategory") "功能" else parentCategory
-                if (!preference.key.isNullOrBlank() && name.isNotBlank() && preference.key != "featureCenterCategory") result.add(Entry(preference.key, name, "内", next))
+                if (!preference.key.isNullOrBlank() && name.isNotBlank() && preference.key != "featureCenterCategory" && preference.key in legacyTargets) {
+                    result.add(Entry(preference.key, name, "内", next))
+                }
                 for (i in 0 until preference.preferenceCount) visit(preference.getPreference(i), next)
                 return
             }
