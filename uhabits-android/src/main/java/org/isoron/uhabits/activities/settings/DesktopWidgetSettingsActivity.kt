@@ -109,6 +109,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
 
         section("尺寸与裁切", "四行分别控制尺寸、窗口和位置")
         actionCard("字号设置", "小时、分钟、日期星期分别设置字号") { showSizeSettings() }
+        actionCard("文字缩放倍率", "前三行统一缩放，当前 ${Math.round(store.getFloat(KEY_GLYPH_SCALE, 1.00f) * 100)}%") { showGlyphScaleSettings() }
         actionCard("字符间距与数字变形", "前三行分别调整字符间距和横向比例") { showSpacingAndTransformSettings() }
         actionCard("四行高度与自动布局", "独立设置四行窗口高度、自动适配与数字比例") { showRowSettings() }
         actionCard("四行垂直位置", "小时、分钟、日期、快捷图标分别上下移动") { showVerticalOffsetSettings() }
@@ -206,7 +207,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                     KEY_HOUR_HEIGHT, KEY_MINUTE_HEIGHT, KEY_DATE_HEIGHT, KEY_SHORTCUT_HEIGHT, KEY_HOUR_WEIGHT, KEY_MINUTE_WEIGHT, KEY_DATE_WEIGHT, KEY_SHORTCUT_WEIGHT,
                     "digital_clock_letter_spacing", "digital_clock_transform_enabled", "digital_clock_horizontal_scale",
                     "digital_clock_hour_offset_y", "digital_clock_minute_offset_y", "digital_clock_date_offset_y", "digital_clock_shortcut_offset_y",
-                    KEY_LAYOUT_MODE, KEY_KEEP_DIGIT_RATIO) +
+                    KEY_LAYOUT_MODE, KEY_KEEP_DIGIT_RATIO, KEY_GLYPH_SCALE) +
                     listOf("hour", "minute", "date").flatMap { row ->
                         listOf("digital_clock_${row}_letter_spacing", "digital_clock_${row}_transform_enabled", "digital_clock_${row}_horizontal_scale")
                     }
@@ -369,6 +370,64 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                     2 -> chooseSize("日期星期字号", KEY_DATE_SIZE, 15f)
                 }
             }.setNegativeButton("关闭", null).show()
+    }
+
+    private fun showGlyphScaleSettings() {
+        val current = store.getFloat(KEY_GLYPH_SCALE, 1.00f).coerceIn(0.80f, 1.50f)
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(8))
+        }
+        panel.addView(TextView(this).apply {
+            text = "统一放大或缩小前三行文字本身，不修改字号参数和每行窗口高度。100% 为原始大小。"
+            textSize = 13f
+            setTextColor(resolveSecondaryText())
+        })
+        val value = TextView(this).apply {
+            textSize = 24f
+            setTextColor(resolvePrimaryText())
+            setPadding(0, dp(12), 0, dp(4))
+            gravity = android.view.Gravity.CENTER
+        }
+        panel.addView(value)
+        val seek = android.widget.SeekBar(this).apply {
+            max = 70
+            progress = ((current * 100f).toInt() - 80).coerceIn(0, 70)
+        }
+        panel.addView(seek)
+        panel.addView(TextView(this).apply {
+            text = "范围：80%～150%，每格1%。三行共用同一倍率。"
+            textSize = 12f
+            setTextColor(resolveSecondaryText())
+        })
+        fun updateLabel(progress: Int) {
+            value.text = "${progress + 80}%"
+        }
+        updateLabel(seek.progress)
+        seek.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) = updateLabel(progress)
+            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
+        })
+        AlertDialog.Builder(this)
+            .setTitle("前三行文字缩放倍率")
+            .setView(panel)
+            .setNegativeButton("取消", null)
+            .setNeutralButton("恢复100%", null)
+            .setPositiveButton("保存", null)
+            .create().also { dialog ->
+                dialog.setOnShowListener {
+                    dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                        seek.progress = 20
+                    }
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                        store.edit().putFloat(KEY_GLYPH_SCALE, (seek.progress + 80) / 100f).apply()
+                        updateWidget()
+                        dialog.dismiss()
+                        render()
+                    }
+                }
+            }.show()
     }
 
     private fun showColorSettings() {
@@ -894,6 +953,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         private const val KEY_SHORTCUT_WEIGHT = "digital_clock_shortcut_weight"
         private const val KEY_LAYOUT_MODE = "digital_clock_layout_mode"
         private const val KEY_KEEP_DIGIT_RATIO = "digital_clock_keep_digit_ratio"
+        private const val KEY_GLYPH_SCALE = "digital_clock_glyph_scale"
         private const val KEY_HOUR_OFFSET_Y = "digital_clock_hour_offset_y"
         private const val KEY_MINUTE_OFFSET_Y = "digital_clock_minute_offset_y"
         private const val KEY_DATE_OFFSET_Y = "digital_clock_date_offset_y"
