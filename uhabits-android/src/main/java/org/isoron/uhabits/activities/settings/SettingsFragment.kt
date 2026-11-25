@@ -181,6 +181,14 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         view.setBackgroundColor(sr.getColor(R.attr.contrast0))
         super.onViewCreated(view, savedInstanceState)
         val targetPreference = requireActivity().intent.getStringExtra("open_preference_key")
+        val discoveredPage = targetPreference?.let { FeatureShortcutCatalog.createIntent(requireContext(), it) }
+        if (discoveredPage != null) {
+            view.post {
+                startActivity(discoveredPage)
+                requireActivity().finish()
+            }
+            return
+        }
         val openFeatureCenter = requireActivity().intent.getBooleanExtra("open_feature_center", false)
         if ((targetPreference != null && targetPreference != "widgetManager") || openFeatureCenter) {
             view.post {
