@@ -86,9 +86,12 @@ class DesktopShortcutActivity : AppCompatActivity() {
         themeSwitcher.apply()
         super.onCreate(savedInstanceState)
         title = "桌面快捷管理"
-        val existingTargetKeys = readShortcuts().map { it.targetKey }.toSet()
-        val allowedTargetKeys = FeatureShortcutCatalog.getAllowedKeys(this) + existingTargetKeys
-        targets.addAll(FeatureShortcutCatalog.getSelectedEntries(this).filter { it.key in allowedTargetKeys }.map { Target(it.key, "【${it.category}】 ${it.title}") })
+        // Only current, explicitly selected catalog entries are offered as targets.
+        // Previously saved shortcut targets are not re-imported into the candidate list.
+        targets.addAll(
+            FeatureShortcutCatalog.getSelectedEntries(this)
+                .map { Target(it.key, "【${it.category}】 ${it.title}") }
+        )
         visibleTargets.addAll(targets)
 
         val density = resources.displayMetrics.density
