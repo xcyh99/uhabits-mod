@@ -30,6 +30,8 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     private var leftTarget = "feature:__feature_center"
     private var rightTarget = "feature:__settings"
     private var split = 5
+    private var imageMode = "crop"
+    private lateinit var modeSpinner: Spinner
     private lateinit var preview: ImageView
     private lateinit var imageStatus: TextView
     private lateinit var leftButton: Button
