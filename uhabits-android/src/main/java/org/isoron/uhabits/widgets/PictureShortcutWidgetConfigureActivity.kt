@@ -185,10 +185,27 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     }
 
     private fun chooseTarget(isLeft: Boolean) {
+        // This is a contextual shortcut: when selected for this widget, bind this
+        // widget's own ID so its tap region always opens its own configuration.
+        val ownSettingsKey = "__current_picture_widget_settings"
+        val entries = FeatureShortcutCatalog.getSelectableEntries(this).toMutableList().apply {
+            add(
+                FeatureShortcutCatalog.Entry(
+                    key = ownSettingsKey,
+                    name = "打开本图片组件设置",
+                    source = "图片组件",
+                    category = "设置"
+                )
+            )
+        }
         FeatureShortcutPicker.show(
             context = this,
             title = if (isLeft) "选择左侧点击目标" else "选择右侧点击目标",
-            entries = FeatureShortcutCatalog.getSelectableEntries(this)
+            entries = entries,
+            targetKey = { entry ->
+                if (entry.key == ownSettingsKey) "pictureWidgetSettings:$widgetId"
+                else entry.widgetTarget
+            }
         ) { selectedKey ->
             if (isLeft) leftTarget = selectedKey else rightTarget = selectedKey
             updateTargetLabels()
