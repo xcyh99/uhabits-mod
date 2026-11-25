@@ -173,6 +173,10 @@
                 android:value="true" />
         </activity>
 
+        <activity android:name="org.isoron.uhabits.activities.settings.ComponentCenterActivity" android:exported="false" android:label="组件中心" />
+        <activity android:name="org.isoron.uhabits.activities.settings.ComponentSettingsActivity" android:exported="false" android:label="组件设置" />
+        <activity android:name="org.isoron.uhabits.activities.settings.ComponentAddActivity" android:exported="false" android:label="组件添加" />
+
         <activity
             android:name="org.isoron.uhabits.activities.settings.SettingsActivity"
             android:label="@string/settings"
