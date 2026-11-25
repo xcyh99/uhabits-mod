@@ -108,6 +108,16 @@
         </activity>
 
         <activity
+            android:name="org.isoron.uhabits.activities.settings.ShortcutManagementActivity"
+            android:exported="false"
+            android:label="快捷管理" />
+
+        <activity
+            android:name="org.isoron.uhabits.activities.settings.ShortcutEntryManagementActivity"
+            android:exported="false"
+            android:label="快捷入口管理" />
+
+        <activity
             android:name="org.isoron.uhabits.activities.settings.DesktopShortcutActivity"
             android:exported="false"
             android:label="桌面快捷" />
