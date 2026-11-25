@@ -1053,27 +1053,23 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
 
     private fun showWidgetManager() {
         val context = requireContext()
-        val widgets = listOf(
-            "历史" to org.isoron.uhabits.widgets.HistoryWidgetProvider::class.java,
-            "标记" to org.isoron.uhabits.widgets.CheckmarkWidgetProvider::class.java,
-            "得分" to org.isoron.uhabits.widgets.ScoreWidgetProvider::class.java,
-            "连续记录" to org.isoron.uhabits.widgets.StreakWidgetProvider::class.java,
-            "频率" to org.isoron.uhabits.widgets.FrequencyWidgetProvider::class.java,
-            "目标" to org.isoron.uhabits.widgets.TargetWidgetProvider::class.java,
-            "距离上次打卡" to org.isoron.uhabits.widgets.DaysSinceLastCheckinWidgetProvider::class.java,
-            "正计时 / 倒计时" to org.isoron.uhabits.widgets.TimeRecordWidgetProvider::class.java,
-            "批量添加" to org.isoron.uhabits.widgets.BatchAddWidgetProvider::class.java
-        )
-        val labels = widgets.map { it.first }.toTypedArray()
+        // Discover providers from Android's registered AppWidgetProvider list.
+        // This is shared with the desktop widget management page, not a hand-written list.
+        val widgets = org.isoron.uhabits.widgets.WidgetCatalog.discover(context)
+        if (widgets.isEmpty()) {
+            Toast.makeText(context, "暂时没有可添加的桌面组件", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val labels = widgets.map { it.title }.toTypedArray()
         var selectedIndex = -1
         var positiveButton: Button? = null
         val dialog = AlertDialog.Builder(context)
-            .setTitle("选择要添加的桌面组件（单选）")
+            .setTitle("选择要添加的桌面组件")
             .setSingleChoiceItems(labels, -1) { _, which ->
                 selectedIndex = which
                 positiveButton?.isEnabled = true
             }
-            .setNegativeButton(android.R.string.cancel, null)
+            .setNegativeButton("取消", null)
             .setPositiveButton("开始添加") { _, _ ->
                 val manager = android.appwidget.AppWidgetManager.getInstance(context)
                 if (!manager.isRequestPinAppWidgetSupported) {
@@ -1082,13 +1078,11 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 }
                 if (selectedIndex !in widgets.indices) return@setPositiveButton
 
-                val provider = widgets[selectedIndex].second
-                val store = PreferenceManager.getDefaultSharedPreferences(context)
-                store.edit().remove("widget_pin_queue").apply()
-                if (manager.requestPinAppWidget(
-                        android.content.ComponentName(context, provider), null, null
-                    )) {
-                    Toast.makeText(context, "已请求添加组件。请在桌面确认。", Toast.LENGTH_LONG).show()
+                val provider = widgets[selectedIndex].provider
+                androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
+                    .edit().remove("widget_pin_queue").apply()
+                if (manager.requestPinAppWidget(provider, null, null)) {
+                    Toast.makeText(context, "已请求添加“${widgets[selectedIndex].title}”。请在桌面确认。", Toast.LENGTH_LONG).show()
                     // The launcher must become foreground so its pin-confirmation UI
                     // is not covered by this app. Do this after the selection dialog
                     // has finished dismissing.
