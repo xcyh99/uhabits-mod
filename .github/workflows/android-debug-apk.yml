@@ -27,6 +27,7 @@ on:
       - stable/987-white-border-shortcuts
       - test/987-white-border-shortcuts-ready
       - test/988-B1
+      - test/988-B2
   pull_request:
     branches:
       - dev
