@@ -143,7 +143,7 @@ class ShortcutEntryManagementActivity : AppCompatActivity() {
             if (items.isEmpty()) return@forEach
             val color = categoryColor(category)
             list.addView(TextView(this).apply {
-                text = category
+                this.text = category
                 textSize = 18f
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
                 setTextColor(color)
@@ -151,7 +151,7 @@ class ShortcutEntryManagementActivity : AppCompatActivity() {
             })
             items.forEach { entry ->
                 list.addView(CheckBox(this).apply {
-                    text = entry.name
+                    this.text = entry.name
                     textSize = 14f
                     setTextColor(primaryText)
                     isChecked = entry.key in selected
@@ -166,7 +166,7 @@ class ShortcutEntryManagementActivity : AppCompatActivity() {
         }
         if (visible.isEmpty()) {
             list.addView(TextView(this).apply {
-                text = "没有找到匹配的入口"
+                this.text = "没有找到匹配的入口"
                 textSize = 14f
                 setTextColor(secondaryText)
                 setPadding(0, dp(24), 0, dp(24))
