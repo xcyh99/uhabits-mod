@@ -94,7 +94,7 @@ class ComponentSettingsActivity : AppCompatActivity() {
             root.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(9) })
         }
         item("数字时钟设置", "显示、布局、字体和点击区域") {
-            startActivity(Intent(this, DesktopWidgetSettingsActivity::class.java))
+            startActivity(Intent(this, DesktopWidgetSettingsActivity::class.java).putExtra("open_time_widget_control_page", true))
         }
         item("图片组件设置", "图片、点击区域及描边等设置") {
             startActivity(Intent(this, PictureShortcutWidgetSettingsActivity::class.java))
