@@ -19,6 +19,7 @@ import org.isoron.uhabits.R
  * and Activity metadata; leaf parameter controls are deliberately not collected. */
 object FeatureShortcutCatalog {
     const val KEY_ALLOWED_ENTRIES = "shortcut_candidate_keys_v1"
+    private const val KEY_CATALOG_CACHE = "shortcut_catalog_cache_v1"
     private const val META_KEY = "org.isoron.uhabits.shortcut.key"
     private const val META_TITLE = "org.isoron.uhabits.shortcut.title"
     private const val META_CATEGORY = "org.isoron.uhabits.shortcut.category"
@@ -146,8 +147,56 @@ object FeatureShortcutCatalog {
                     result.add(Entry("app:${component.flattenToString()}", it.loadLabel(pm).toString(), "外", "应用", it.loadIcon(pm)))
                 }
         }
-        return result.distinctBy { it.key }
+        val entries = result.distinctBy { it.key }
+        // Full discovery is reserved for shortcut management. Ordinary menus read this snapshot.
+        saveCatalogCache(context, entries)
+        return entries
     }
+
+    private fun saveCatalogCache(context: Context, entries: List<Entry>) {
+        val array = org.json.JSONArray()
+        entries.forEach { entry ->
+            array.put(org.json.JSONObject().apply {
+                put("key", entry.key)
+                put("name", entry.name)
+                put("source", entry.source)
+                put("category", entry.category)
+            })
+        }
+        PreferenceManager.getDefaultSharedPreferences(context).edit()
+            .putString(KEY_CATALOG_CACHE, array.toString()).apply()
+    }
+
+    /** Reads the last full catalog snapshot without performing discovery. */
+    fun getCachedEntries(context: Context): List<Entry> {
+        val store = PreferenceManager.getDefaultSharedPreferences(context)
+        val raw = store.getString(KEY_CATALOG_CACHE, null)
+        if (!raw.isNullOrBlank()) {
+            return runCatching {
+                val array = org.json.JSONArray(raw)
+                (0 until array.length()).mapNotNull { index ->
+                    val item = array.optJSONObject(index) ?: return@mapNotNull null
+                    val key = item.optString("key")
+                    val name = item.optString("name")
+                    val category = item.optString("category")
+                    if (key.isBlank() || name.isBlank()) null
+                    else Entry(key, name, item.optString("source"), category)
+                }
+            }.getOrDefault(emptyList())
+        }
+        // First-run fallback: built-in defaults only; never trigger a global scan.
+        return builtIns.map { Entry(it.key, it.title, "内", it.category) }
+    }
+
+    /** Lightweight list for ordinary selection menus. */
+    fun getSelectedEntries(context: Context): List<Entry> {
+        val allowed = getAllowedKeys(context)
+        return getCachedEntries(context).filter { it.key in allowed }
+    }
+
+    fun getCachedEntry(context: Context, key: String): Entry? =
+        getCachedEntries(context).firstOrNull { it.key == key }
+
 
     fun getAllowedKeys(context: Context): Set<String> {
         val store = PreferenceManager.getDefaultSharedPreferences(context)
