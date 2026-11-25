@@ -634,7 +634,8 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             textSize = 15f
             setTextColor(resolvePrimaryText())
             isChecked = store.getBoolean(KEY_ROW_BORDER_ENABLED, true)
-            setPadding(dp(20), dp(12), dp(20), dp(12))
+            val pad = (20 * resources.displayMetrics.density).toInt()
+            setPadding(pad, (12 * resources.displayMetrics.density).toInt(), pad, (12 * resources.displayMetrics.density).toInt())
         }
         AlertDialog.Builder(this)
             .setTitle("四行白色边框")
