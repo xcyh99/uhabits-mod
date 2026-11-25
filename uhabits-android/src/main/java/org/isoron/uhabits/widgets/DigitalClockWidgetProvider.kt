@@ -125,8 +125,15 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 R.id.digital_clock_date,
                 R.id.digital_clock_shortcut_row
             )
-            rowIds.forEach { viewId ->
-                views.setInt(viewId, "setBackgroundResource", if (rowBorderEnabled) R.drawable.digital_clock_row_border else android.R.color.transparent)
+            val rowBorderKeys = arrayOf(
+                "digital_clock_hour_border_enabled",
+                "digital_clock_minute_border_enabled",
+                "digital_clock_date_border_enabled",
+                "digital_clock_shortcut_border_enabled"
+            )
+            rowIds.forEachIndexed { index, viewId ->
+                val enabled = prefs.getBoolean(rowBorderKeys[index], rowBorderEnabled)
+                views.setInt(viewId, "setBackgroundResource", if (enabled) R.drawable.digital_clock_row_border else android.R.color.transparent)
             }
             val offsets = intArrayOf(
                 prefs.getInt("digital_clock_hour_offset_y", 0),

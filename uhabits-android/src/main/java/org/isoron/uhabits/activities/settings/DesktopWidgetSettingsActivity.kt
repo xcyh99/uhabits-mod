@@ -34,8 +34,71 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             AndroidThemeSwitcher(this, it).apply()
         }
         super.onCreate(savedInstanceState)
-        title = "桌面组件设置"
-        render()
+        val openControlPage = intent.getBooleanExtra(EXTRA_OPEN_CONTROL_PAGE, false)
+        title = if (openControlPage) "时间组件设置" else "桌面组件设置"
+        if (openControlPage) render() else renderLandingPage()
+    }
+
+    /**
+     * First-level landing page. Keep this separate from the existing control page so
+     * future widget types can be added here without crowding the settings controls.
+     */
+    private fun renderLandingPage() {
+        val density = resources.displayMetrics.density
+        fun dp(v: Int) = (v * density).toInt()
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(10), dp(16), dp(28))
+            setBackgroundColor(resolvePageBackground())
+        }
+        root.addView(TextView(this).apply {
+            text = "桌面组件设置"
+            textSize = 17f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(resolvePrimaryText())
+            setPadding(dp(2), dp(18), dp(2), dp(9))
+        })
+        val item = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(dp(16), dp(15), dp(14), dp(15))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(if (isDark()) Color.rgb(45, 48, 55) else Color.WHITE)
+                cornerRadius = dp(13).toFloat()
+                setStroke(dp(1), if (isDark()) Color.rgb(70, 74, 82) else Color.rgb(230, 233, 238))
+            }
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                startActivity(Intent(this@DesktopWidgetSettingsActivity, DesktopWidgetSettingsActivity::class.java)
+                    .putExtra(EXTRA_OPEN_CONTROL_PAGE, true))
+            }
+        }
+        val labels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        labels.addView(TextView(this).apply {
+            text = "时间组件设置"
+            textSize = 15f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(resolvePrimaryText())
+        })
+        labels.addView(TextView(this).apply {
+            text = "设置数字时钟组件的显示、布局和点击区域"
+            textSize = 12f
+            setTextColor(resolveSecondaryText())
+            setPadding(0, dp(3), 0, 0)
+        })
+        item.addView(labels, LinearLayout.LayoutParams(0, -2, 1f))
+        item.addView(TextView(this).apply {
+            text = "›"
+            textSize = 27f
+            setTextColor(resolveSecondaryText())
+            gravity = android.view.Gravity.CENTER
+        })
+        root.addView(item, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
+        setContentView(android.widget.ScrollView(this).apply {
+            isFillViewport = true
+            addView(root)
+        })
     }
 
     override fun onResume() {
@@ -108,11 +171,12 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         actionCard("预览效果", "先查看当前设置，不会修改参数") { showWidgetPreview() }
 
         section("尺寸与裁切", "四行分别控制尺寸、窗口和位置")
-        actionCard("字号设置", "小时、分钟、日期星期分别设置字号") { showSizeSettings() }
         actionCard("字符间距与数字变形", "前三行分别调整字符间距和横向比例") { showSpacingAndTransformSettings() }
         actionCard("四行高度与自动布局", "独立设置四行窗口高度、自动适配与数字比例") { showRowSettings() }
+        section("显示设置", "点击选项后弹出设置菜单")
+        actionCard("字体设置", "调整小时、分钟、日期三行字号") { showFontSettingsDialog() }
+        actionCard("白边设置", "分别开关小时、分钟、日期、快捷入口白边") { showBorderSettingsDialog() }
         actionCard("四行垂直位置", "小时、分钟、日期、快捷图标分别上下移动") { showVerticalOffsetSettings() }
-        actionCard("四行白色边框", if (store.getBoolean(KEY_ROW_BORDER_ENABLED, true)) "当前：开启（四行均显示边框）" else "当前：关闭（四行均隐藏边框）") { showRowBorderSettings() }
 
         section("颜色与效果")
         actionCard("颜色设置", "小时、分钟、日期分别设置颜色") { showColorSettings() }
@@ -148,6 +212,119 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         })
     }
 
+    private fun showFontSettingsDialog() {
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(8), dp(20), dp(4))
+        }
+        panel.addView(TextView(this).apply {
+            text = "三行字号在这里同时设置，应用后立即更新桌面组件。"
+            textSize = 13f
+            setTextColor(resolveSecondaryText())
+            setPadding(0, 0, 0, dp(10))
+        })
+        val specs = listOf(
+            Triple("小时字号", KEY_HOUR_SIZE, 48f),
+            Triple("分钟字号", KEY_MINUTE_SIZE, 48f),
+            Triple("日期字号", KEY_DATE_SIZE, 15f)
+        )
+        val inputs = specs.map { (label, prefKey, defaultValue) ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(0, dp(5), 0, dp(5))
+            }
+            row.addView(TextView(this).apply {
+                text = label
+                textSize = 14f
+                setTextColor(resolvePrimaryText())
+            }, LinearLayout.LayoutParams(0, -2, 1f))
+            val input = android.widget.EditText(this).apply {
+                inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+                setSingleLine(true)
+                setText(store.getFloat(prefKey, defaultValue).let {
+                    if (it % 1f == 0f) it.toInt().toString() else it.toString()
+                })
+                gravity = android.view.Gravity.CENTER
+                textSize = 15f
+                setSelectAllOnFocus(true)
+            }
+            row.addView(input, LinearLayout.LayoutParams(dp(92), dp(46)))
+            panel.addView(row, LinearLayout.LayoutParams(-1, -2))
+            prefKey to input
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("字体设置")
+            .setView(panel)
+            .setNegativeButton("取消", null)
+            .setPositiveButton("应用字号", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val values = inputs.map { (key, input) -> key to input.text.toString().trim().toFloatOrNull() }
+                val invalid = values.firstOrNull { (_, value) -> value == null || value !in 1f..300f }
+                if (invalid != null) {
+                    inputs.firstOrNull { it.first == invalid.first }?.second?.error = "请输入 1～300"
+                    return@setOnClickListener
+                }
+                val editor = store.edit()
+                values.forEach { (key, value) -> editor.putFloat(key, value!!) }
+                editor.apply()
+                updateWidget()
+                dialog.dismiss()
+                Toast.makeText(this, "三行字号已保存", Toast.LENGTH_SHORT).show()
+            }
+        }
+        dialog.show()
+    }
+
+    private fun showBorderSettingsDialog() {
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(6), dp(20), dp(4))
+        }
+        panel.addView(TextView(this).apply {
+            text = "四行白边分别控制，勾选后点击保存生效。"
+            textSize = 13f
+            setTextColor(resolveSecondaryText())
+            setPadding(0, 0, 0, dp(8))
+        })
+        val defaults = store.getBoolean(KEY_ROW_BORDER_ENABLED, true)
+        val specs = listOf(
+            "小时白边" to "digital_clock_hour_border_enabled",
+            "分钟白边" to "digital_clock_minute_border_enabled",
+            "日期白边" to "digital_clock_date_border_enabled",
+            "快捷入口白边" to "digital_clock_shortcut_border_enabled"
+        )
+        val toggles = specs.map { (label, prefKey) ->
+            val toggle = android.widget.CheckBox(this).apply {
+                text = label
+                textSize = 15f
+                setTextColor(resolvePrimaryText())
+                isChecked = store.getBoolean(prefKey, defaults)
+                setPadding(0, dp(7), 0, dp(7))
+            }
+            panel.addView(toggle, LinearLayout.LayoutParams(-1, -2))
+            prefKey to toggle
+        }
+        AlertDialog.Builder(this)
+            .setTitle("白边设置")
+            .setView(panel)
+            .setNegativeButton("取消", null)
+            .setPositiveButton("保存") { _, _ ->
+                val editor = store.edit()
+                toggles.forEach { (key, toggle) -> editor.putBoolean(key, toggle.isChecked) }
+                editor.apply()
+                updateWidget()
+                Toast.makeText(this, "四行白边设置已保存", Toast.LENGTH_SHORT).show()
+            }
+            .show()
+    }
+
     private fun showWidgetPreview() {
         val preview = LayoutInflater.from(this).inflate(R.layout.widget_digital_clock, null, false)
         preview.findViewById<TextView>(R.id.digital_clock_time).apply {
@@ -171,9 +348,16 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 scaleX = scale
             }
         }
-        val previewBorder = store.getBoolean(KEY_ROW_BORDER_ENABLED, true)
-        listOf(R.id.digital_clock_time, R.id.digital_clock_minute, R.id.digital_clock_date, R.id.digital_clock_shortcut_row).forEach { id ->
-            preview.findViewById<android.view.View>(id).setBackgroundResource(if (previewBorder) R.drawable.digital_clock_row_border else android.R.color.transparent)
+        val previewBorderDefaults = store.getBoolean(KEY_ROW_BORDER_ENABLED, true)
+        val previewBorderRows = listOf(
+            R.id.digital_clock_time to "digital_clock_hour_border_enabled",
+            R.id.digital_clock_minute to "digital_clock_minute_border_enabled",
+            R.id.digital_clock_date to "digital_clock_date_border_enabled",
+            R.id.digital_clock_shortcut_row to "digital_clock_shortcut_border_enabled"
+        )
+        previewBorderRows.forEach { (id, prefKey) ->
+            val enabled = store.getBoolean(prefKey, previewBorderDefaults)
+            preview.findViewById<android.view.View>(id).setBackgroundResource(if (enabled) R.drawable.digital_clock_row_border else android.R.color.transparent)
         }
         preview.findViewById<android.widget.TextClock>(R.id.digital_clock_date).apply {
             textSize = store.getFloat(KEY_DATE_SIZE, 15f)
@@ -847,6 +1031,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
     private fun key(slot: String) = "digital_clock_target_$slot"
 
     companion object {
+        private const val EXTRA_OPEN_CONTROL_PAGE = "open_time_widget_control_page"
         private const val KEY_HOUR_SIZE = "digital_clock_hour_size"
         private const val KEY_MINUTE_SIZE = "digital_clock_minute_size"
         private const val KEY_DATE_SIZE = "digital_clock_date_size"
