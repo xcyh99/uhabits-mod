@@ -222,8 +222,7 @@ object FeatureShortcutCatalog {
         return allowed
     }
 
-    fun getSelectableEntries(context: Context) =
-        getEntries(context).filter { it.key in getAllowedKeys(context) }
+    fun getSelectableEntries(context: Context) = getSelectedEntries(context)
 
     fun saveAllowedKeys(context: Context, keys: Set<String>) {
         PreferenceManager.getDefaultSharedPreferences(context).edit()
