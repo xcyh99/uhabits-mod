@@ -158,6 +158,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             textSize = store.getFloat(KEY_MINUTE_SIZE, 48f)
             setTextColor(store.getInt(KEY_MINUTE_COLOR, store.getInt(KEY_TIME_COLOR, Color.WHITE)))
         }
+        val glyphScale = store.getFloat(KEY_GLYPH_SCALE, 1.00f).coerceIn(0.80f, 1.50f)
         listOf(
             Triple(R.id.digital_clock_time, "hour", -0.04f),
             Triple(R.id.digital_clock_minute, "minute", -0.04f),
@@ -168,7 +169,8 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             val scale = if (enabled) store.getFloat("digital_clock_${rowKey}_horizontal_scale", 0.90f) else 1f
             preview.findViewById<TextView>(id).apply {
                 letterSpacing = spacing
-                scaleX = scale
+                scaleX = scale * glyphScale
+                scaleY = glyphScale
             }
         }
         preview.findViewById<android.widget.TextClock>(R.id.digital_clock_date).apply {
