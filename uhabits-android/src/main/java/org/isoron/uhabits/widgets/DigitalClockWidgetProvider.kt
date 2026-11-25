@@ -231,7 +231,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 val entry = FeatureShortcutCatalog.getEntries(context).firstOrNull { it.key == key }
                 val icon = entry?.icon?.let(::drawableBitmap)
                     ?: drawableBitmap(context.getDrawable(android.R.drawable.ic_menu_view)!!)
-                return (entry?.title ?: "功能").replace(Regex("^【[^】]+】\\s*"), "") to icon
+                return (entry?.name ?: "功能") to icon
             }
             return "快捷$index" to null
         }
@@ -251,6 +251,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     val component = ComponentName.unflattenFromString(value.removePrefix("app:"))
                     Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setComponent(component)
                 }
+                value == "system:settings" -> Intent(android.provider.Settings.ACTION_SETTINGS)
                 value.startsWith("feature:") -> Intent(context, ListHabitsActivity::class.java).apply {
                     action = DesktopShortcutActivity.ACTION_OPEN_DESKTOP_SHORTCUT
                     putExtra(DesktopShortcutActivity.EXTRA_TARGET, value.removePrefix("feature:"))
