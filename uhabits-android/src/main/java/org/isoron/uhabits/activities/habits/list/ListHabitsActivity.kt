@@ -199,30 +199,34 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
         val target = source.getStringExtra(
             org.isoron.uhabits.activities.settings.DesktopShortcutActivity.EXTRA_TARGET
         ) ?: "__settings"
-        when {
-            target.startsWith("habit:") -> {
-                val habitId = target.removePrefix("habit:").toLongOrNull()
-                val habitExists = habitId?.let {
-                    (application as HabitsApplication).component.habitList.getById(it) != null
-                } ?: false
-                if (habitId != null && habitExists) {
-                    startActivity(
-                        Intent(this, org.isoron.uhabits.activities.habits.show.ShowHabitActivity::class.java)
-                            .setData(android.net.Uri.parse("content://org.isoron.uhabits/habit/$habitId"))
-                    )
-                } else {
-                    android.widget.Toast.makeText(this, "这个习惯可能已删除，请重新设置快捷方式", android.widget.Toast.LENGTH_LONG).show()
-                    startActivity(Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java))
-                }
+
+        if (target.startsWith("habit:")) {
+            val habitId = target.removePrefix("habit:").toLongOrNull()
+            val habitExists = habitId?.let {
+                (application as HabitsApplication).component.habitList.getById(it) != null
+            } ?: false
+            if (habitId != null && habitExists) {
+                startActivity(
+                    Intent(this, org.isoron.uhabits.activities.habits.show.ShowHabitActivity::class.java)
+                        .setData(android.net.Uri.parse("content://org.isoron.uhabits/habit/$habitId"))
+                )
+            } else {
+                android.widget.Toast.makeText(this, "这个习惯可能已删除，请重新设置快捷方式", android.widget.Toast.LENGTH_LONG).show()
+                startActivity(Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java))
             }
-            else -> {
-                val discovered = org.isoron.uhabits.activities.settings.FeatureShortcutCatalog.createIntent(this, target)
-                if (discovered != null) {
-                    startActivity(discovered)
-                    return
-                }
-                when {
-                    target == "timeRecords" -> startActivity(Intent(this, org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
+            return
+        }
+
+        // Manifest-discovered Activity pages (including in-Activity subpages)
+        // open directly with their declared intent extras.
+        val discovered = org.isoron.uhabits.activities.settings.FeatureShortcutCatalog.createIntent(this, target)
+        if (discovered != null) {
+            startActivity(discovered)
+            return
+        }
+
+        when {
+            target == "timeRecords" -> startActivity(Intent(this, org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
             target == "__feature_center" -> startActivity(
                 Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
                     .putExtra("open_feature_center", true)
@@ -239,12 +243,10 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
                     android.widget.Toast.makeText(this, "该应用当前无法打开，可能已卸载", android.widget.Toast.LENGTH_LONG).show()
                 }
             }
-                    else -> startActivity(
-                        Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
-                            .putExtra("open_preference_key", target)
-                    )
-                }
-            }
+            else -> startActivity(
+                Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
+                    .putExtra("open_preference_key", target)
+            )
         }
     }
 
