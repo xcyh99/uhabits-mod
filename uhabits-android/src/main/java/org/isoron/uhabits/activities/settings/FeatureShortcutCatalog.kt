@@ -296,10 +296,22 @@ object FeatureShortcutCatalog {
         val cached = getCachedEntries(context).firstOrNull { it.key == key }
         val entry = when {
             cached?.activityName != null -> cached
-            cached != null -> return null
-            else -> return null
+            cached != null -> null
+            else -> null
         }
-        val activityName = entry.activityName ?: return null
+        // Explicit fallbacks keep previously-created shortcuts working even when
+        // an upgraded installation has an older or empty catalog cache.
+        val fallback = when (key) {
+            "desktopWidgetSettings" -> Intent(context, ComponentCenterActivity::class.java)
+            "widgetManager", "componentAdd" -> Intent(context, ComponentAddActivity::class.java)
+            "componentSettings" -> Intent(context, ComponentSettingsActivity::class.java)
+            "desktopWidgetTimeSettings" -> Intent(context, DesktopWidgetSettingsActivity::class.java)
+                .putExtra("open_time_widget_control_page", true)
+            "pictureShortcutWidgetSettings" -> Intent(context, PictureShortcutWidgetSettingsActivity::class.java)
+            else -> null
+        }
+        if (entry == null) return fallback?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        val activityName = entry.activityName ?: return fallback
         return Intent().setClassName(context, activityName).apply {
             val name = entry.extraName
             if (!name.isNullOrBlank()) {
