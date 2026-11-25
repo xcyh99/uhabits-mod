@@ -262,7 +262,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 value == "system:settings" -> Intent(android.provider.Settings.ACTION_SETTINGS)
                 value.startsWith("feature:") -> {
                     val key = value.removePrefix("feature:")
-                    when (key) {
+                    FeatureShortcutCatalog.createIntent(context, key) ?: when (key) {
                         // These destinations have their own Activity. Open them directly,
                         // without starting ListHabitsActivity as a forwarding trampoline.
                         "desktopWidgetSettings" -> Intent(context, org.isoron.uhabits.activities.settings.DesktopWidgetSettingsActivity::class.java)
