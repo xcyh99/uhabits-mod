@@ -56,7 +56,7 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
             R.id.picture_zone_9
         )
 
-        fun save(context: Context, id: Int, imageName: String, left: String, right: String, split: Int, imageMode: String = "crop") {
+        fun save(context: Context, id: Int, imageName: String, left: String, right: String, split: Int, imageMode: String = "fit") {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .putString(key(id, "image"), imageName)
                 .putString(key(id, "left"), left)
@@ -83,10 +83,15 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
                 val output = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
                 val canvas = Canvas(output)
                 canvas.drawColor(android.graphics.Color.BLACK)
-                val mode = prefs.getString(key(id, "imageMode"), "crop") ?: "crop"
+                val mode = prefs.getString(key(id, "imageMode"), "fit") ?: "fit"
                 val sx = w.toFloat() / bitmap.width
                 val sy = h.toFloat() / bitmap.height
-                val factor = if (mode == "fit") minOf(sx, sy) else maxOf(sx, sy)
+                val factor = when (mode) {
+                    "fit" -> minOf(sx, sy)
+                    "width" -> sx
+                    "height" -> sy
+                    else -> maxOf(sx, sy)
+                }
                 val rect = if (mode == "stretch") RectF(0f, 0f, w.toFloat(), h.toFloat()) else {
                     val dw = bitmap.width * factor
                     val dh = bitmap.height * factor
