@@ -94,6 +94,27 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         }
         content.addView(splitSeekBar)
         content.addView(TextView(this).apply {
+            text = "图片显示方式"
+            textSize = 14f
+            setPadding(0, dp(10), 0, dp(4))
+        })
+        modeSpinner = Spinner(this)
+        val modeLabels = listOf("完整显示（保持原比例）", "拉伸填满（可能变形）", "居中裁剪（保持原比例）")
+        modeSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, modeLabels)
+        modeSpinner.setSelection(2)
+        modeSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                imageMode = listOf("fit", "stretch", "crop")[position]
+                preview.scaleType = when (imageMode) {
+                    "fit" -> ImageView.ScaleType.FIT_CENTER
+                    "stretch" -> ImageView.ScaleType.FIT_XY
+                    else -> ImageView.ScaleType.CENTER_CROP
+                }
+            }
+        }
+        content.addView(modeSpinner)
+        content.addView(TextView(this).apply {
             text = "图片组件默认 2×2。添加到桌面后，长按并拖动边框调整大小（最小尺寸及最大尺寸由桌面网格决定）。图片显示方式可在下方选择。分界线每次移动 10%。"
             textSize = 12f
             setPadding(0, dp(4), 0, dp(8))
