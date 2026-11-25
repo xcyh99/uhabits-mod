@@ -30,7 +30,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     private var leftTarget = "feature:__feature_center"
     private var rightTarget = "feature:__settings"
     private var split = 5
-    private var imageMode = "crop"
+    private var imageMode = "fit"
     private lateinit var modeSpinner: Spinner
     private lateinit var preview: ImageView
     private lateinit var imageStatus: TextView
@@ -99,13 +99,13 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             setPadding(0, dp(10), 0, dp(4))
         })
         modeSpinner = Spinner(this)
-        val modeLabels = listOf("完整显示（保持原比例）", "拉伸填满（可能变形）", "居中裁剪（保持原比例）")
+        val modeLabels = listOf("完全适应（完整显示）", "宽度适应", "高度适应", "拉伸填满（可能变形）", "居中裁剪（保持原比例）")
         modeSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, modeLabels)
-        modeSpinner.setSelection(2)
+        modeSpinner.setSelection(0)
         modeSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
-                imageMode = listOf("fit", "stretch", "crop")[position]
+                imageMode = listOf("fit", "width", "height", "stretch", "crop")[position]
                 preview.scaleType = when (imageMode) {
                     "fit" -> ImageView.ScaleType.FIT_CENTER
                     "stretch" -> ImageView.ScaleType.FIT_XY
@@ -115,7 +115,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         }
         content.addView(modeSpinner)
         content.addView(TextView(this).apply {
-            text = "图片组件默认 2×2。添加到桌面后，长按并拖动边框调整大小（最小尺寸及最大尺寸由桌面网格决定）。图片显示方式可在下方选择。分界线每次移动 10%。"
+            text = "新建图片组件默认尺寸为 1×1。添加到桌面后，仍可长按并拖动边框自由调整大小。图片默认采用“完全适应”，也可选择宽度适应或高度适应。分界线每次移动 10%。"
             textSize = 12f
             setPadding(0, dp(4), 0, dp(8))
         })
@@ -128,8 +128,8 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         // When opened from 图片组件设置, restore this widget's existing configuration.
         val saved = getSharedPreferences(PictureShortcutWidgetProvider.PREFS, MODE_PRIVATE)
         split = saved.getInt("${widgetId}_split", 5).coerceIn(1, 9)
-        imageMode = saved.getString("${widgetId}_imageMode", "crop") ?: "crop"
-        modeSpinner.setSelection(when (imageMode) { "fit" -> 0; "stretch" -> 1; else -> 2 })
+        imageMode = saved.getString("${widgetId}_imageMode", "fit") ?: "fit"
+        modeSpinner.setSelection(when (imageMode) { "fit" -> 0; "width" -> 1; "height" -> 2; "stretch" -> 3; else -> 4 })
         splitSeekBar.progress = split - 1
         leftTarget = saved.getString("${widgetId}_left", leftTarget) ?: leftTarget
         rightTarget = saved.getString("${widgetId}_right", rightTarget) ?: rightTarget
