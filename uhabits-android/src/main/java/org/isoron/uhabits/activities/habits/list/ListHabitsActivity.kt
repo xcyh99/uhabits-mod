@@ -215,7 +215,14 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
                     startActivity(Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java))
                 }
             }
-            target == "timeRecords" -> startActivity(Intent(this, org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
+            else -> {
+                val discovered = org.isoron.uhabits.activities.settings.FeatureShortcutCatalog.createIntent(this, target)
+                if (discovered != null) {
+                    startActivity(discovered)
+                    return
+                }
+                when {
+                    target == "timeRecords" -> startActivity(Intent(this, org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
             target == "__feature_center" -> startActivity(
                 Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
                     .putExtra("open_feature_center", true)
@@ -232,10 +239,12 @@ class ListHabitsActivity : AppCompatActivity(), Preferences.Listener {
                     android.widget.Toast.makeText(this, "该应用当前无法打开，可能已卸载", android.widget.Toast.LENGTH_LONG).show()
                 }
             }
-            else -> startActivity(
-                Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
-                    .putExtra("open_preference_key", target)
-            )
+                    else -> startActivity(
+                        Intent(this, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
+                            .putExtra("open_preference_key", target)
+                    )
+                }
+            }
         }
     }
 
