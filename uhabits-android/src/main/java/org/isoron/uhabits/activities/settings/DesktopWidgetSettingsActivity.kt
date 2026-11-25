@@ -133,7 +133,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 setText(store.getFloat(prefKey, defaultValue).let { if (it % 1f == 0f) it.toInt().toString() else it.toString() })
                 gravity = android.view.Gravity.CENTER
                 textSize = 15f
-                selectAllOnFocus = true
+                setSelectAllOnFocus(true)
             }
             row.addView(input, LinearLayout.LayoutParams(dp(92), dp(46)))
             root.addView(row, LinearLayout.LayoutParams(-1, -2))
