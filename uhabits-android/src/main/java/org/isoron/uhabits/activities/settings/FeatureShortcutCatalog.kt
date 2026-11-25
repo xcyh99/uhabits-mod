@@ -23,13 +23,17 @@ object FeatureShortcutCatalog {
     private const val META_KEY = "org.isoron.uhabits.shortcut.key"
     private const val META_TITLE = "org.isoron.uhabits.shortcut.title"
     private const val META_CATEGORY = "org.isoron.uhabits.shortcut.category"
+    private const val META_PAGE_PREFIX = "org.isoron.uhabits.shortcut.page."
 
     data class Entry(
         val key: String,
         val name: String,
         val source: String,
         val category: String,
-        val icon: Drawable? = null
+        val icon: Drawable? = null,
+        val activityName: String? = null,
+        val extraName: String? = null,
+        val extraValue: String? = null
     ) {
         val title: String get() = "【$category】 $name"
         val widgetTarget: String get() =
@@ -78,7 +82,9 @@ object FeatureShortcutCatalog {
         BuiltIn("featureShortcuts", "快捷菜单设置", "设置")
     )
 
-    private val recommended = builtIns.map { it.key }.toSet()
+    private val recommended = builtIns.map { it.key }.toSet() + setOf("desktopWidgetTimeSettings")
+    private const val KEY_ALLOWED_MIGRATION_VERSION = "shortcut_candidate_migration_version"
+    private const val ALLOWED_MIGRATION_VERSION = 2
 
     fun getEntries(context: Context): List<Entry> {
         val result = mutableListOf<Entry>()
@@ -121,7 +127,29 @@ object FeatureShortcutCatalog {
                 val title = metadata.getString(META_TITLE)?.trim().orEmpty()
                 val category = metadata.getString(META_CATEGORY)?.trim().orEmpty()
                 if (key.isNotBlank() && title.isNotBlank() && category in categories && key !in excludedKeys) {
-                    result.add(Entry(key, title, "内", category))
+                    result.add(Entry(key, title, "内", category, activityName = activity.name))
+                }
+
+                // An Activity may expose additional in-Activity pages through
+                // namespaced manifest metadata. Each page gets its own shortcut key
+                // and can pass an intent extra to open that page directly.
+                metadata.keySet().filter {
+                    it.startsWith(META_PAGE_PREFIX) && it.endsWith(".title")
+                }.forEach { titleMeta ->
+                    val pageKey = titleMeta.removePrefix(META_PAGE_PREFIX).removeSuffix(".title")
+                    val pageTitle = metadata.getString(titleMeta)?.trim().orEmpty()
+                    val pageCategory = metadata.getString("$META_PAGE_PREFIX$pageKey.category")?.trim().orEmpty()
+                    val extraName = metadata.getString("$META_PAGE_PREFIX$pageKey.extraName")?.trim()?.takeIf { it.isNotBlank() }
+                    val extraValue = metadata.getString("$META_PAGE_PREFIX$pageKey.extraValue")
+                    if (pageKey.isNotBlank() && pageTitle.isNotBlank() && pageCategory in categories &&
+                        pageKey !in excludedKeys) {
+                        result.add(Entry(
+                            pageKey, pageTitle, "内", pageCategory,
+                            activityName = activity.name,
+                            extraName = extraName,
+                            extraValue = extraValue
+                        ))
+                    }
                 }
             }
         }
@@ -161,6 +189,9 @@ object FeatureShortcutCatalog {
                 put("name", entry.name)
                 put("source", entry.source)
                 put("category", entry.category)
+                entry.activityName?.let { put("activityName", it) }
+                entry.extraName?.let { put("extraName", it) }
+                entry.extraValue?.let { put("extraValue", it) }
             })
         }
         PreferenceManager.getDefaultSharedPreferences(context).edit()
@@ -180,7 +211,12 @@ object FeatureShortcutCatalog {
                     val name = item.optString("name")
                     val category = item.optString("category")
                     if (key.isBlank() || name.isBlank()) null
-                    else Entry(key, name, item.optString("source"), category)
+                    else Entry(
+                        key, name, item.optString("source"), category,
+                        activityName = item.optString("activityName").takeIf { it.isNotBlank() },
+                        extraName = item.optString("extraName").takeIf { it.isNotBlank() },
+                        extraValue = item.optString("extraValue").takeIf { it.isNotBlank() }
+                    )
                 }
             }.getOrDefault(emptyList())
         }
@@ -200,7 +236,17 @@ object FeatureShortcutCatalog {
 
     fun getAllowedKeys(context: Context): Set<String> {
         val store = PreferenceManager.getDefaultSharedPreferences(context)
-        store.getStringSet(KEY_ALLOWED_ENTRIES, null)?.let { return it.toSet() }
+        store.getStringSet(KEY_ALLOWED_ENTRIES, null)?.let { saved ->
+            val allowed = saved.toMutableSet()
+            if (store.getInt(KEY_ALLOWED_MIGRATION_VERSION, 0) < ALLOWED_MIGRATION_VERSION) {
+                allowed.add("desktopWidgetTimeSettings")
+                store.edit()
+                    .putStringSet(KEY_ALLOWED_ENTRIES, allowed)
+                    .putInt(KEY_ALLOWED_MIGRATION_VERSION, ALLOWED_MIGRATION_VERSION)
+                    .apply()
+            }
+            return allowed
+        }
         val allowed = recommended.toMutableSet()
         allowed.addAll(store.getStringSet("feature_shortcuts", emptySet()).orEmpty())
         runCatching {
@@ -218,8 +264,35 @@ object FeatureShortcutCatalog {
                 value.startsWith("app:") || value.startsWith("system:") -> allowed.add(value)
             }
         }
-        store.edit().putStringSet(KEY_ALLOWED_ENTRIES, allowed).apply()
+        store.edit()
+            .putStringSet(KEY_ALLOWED_ENTRIES, allowed)
+            .putInt(KEY_ALLOWED_MIGRATION_VERSION, ALLOWED_MIGRATION_VERSION)
+            .apply()
         return allowed
+    }
+
+    /**
+     * Creates a direct destination for an Activity-backed shortcut page.
+     * The page metadata is discovered from the manifest, so adding another
+     * page does not require another hard-coded routing branch.
+     */
+    fun createIntent(context: Context, key: String): Intent? {
+        val cached = getCachedEntries(context).firstOrNull { it.key == key }
+        val entry = cached?.takeIf { it.activityName != null }
+            ?: getEntries(context).firstOrNull { it.key == key && it.activityName != null }
+            ?: return null
+        val activityName = entry.activityName ?: return null
+        return Intent().setClassName(context, activityName).apply {
+            val name = entry.extraName
+            if (!name.isNullOrBlank()) {
+                when (entry.extraValue?.lowercase()) {
+                    "true" -> putExtra(name, true)
+                    "false" -> putExtra(name, false)
+                    else -> entry.extraValue?.let { putExtra(name, it) }
+                }
+            }
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        }
     }
 
     fun getSelectableEntries(context: Context) = getSelectedEntries(context)
