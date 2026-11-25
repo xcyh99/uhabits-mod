@@ -118,11 +118,10 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             val alpha = prefs.getInt("digital_clock_bg_alpha", 90).coerceIn(0, 100) * 255 / 100
             views.setInt(R.id.digital_clock_widget_root, "setBackgroundColor", Color.argb(alpha, Color.red(bg), Color.green(bg), Color.blue(bg)))
             val shortcutCount = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
+            val textIds = intArrayOf(R.id.digital_clock_time, R.id.digital_clock_minute, R.id.digital_clock_date)
+            val viewportIds = intArrayOf(R.id.digital_clock_time_viewport, R.id.digital_clock_minute_viewport, R.id.digital_clock_date_viewport)
             val rowIds = intArrayOf(
-                R.id.digital_clock_time,
-                R.id.digital_clock_minute,
-                R.id.digital_clock_date,
-                R.id.digital_clock_shortcut_row
+                viewportIds[0], viewportIds[1], viewportIds[2], R.id.digital_clock_shortcut_row
             )
             val offsets = intArrayOf(
                 prefs.getInt("digital_clock_hour_offset_y", 0),
@@ -137,24 +136,19 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 dateSize * scaledDensity / density * 1.05f,
                 37f
             )
+            val moverIds = intArrayOf(R.id.digital_clock_time_mover, R.id.digital_clock_minute_mover, R.id.digital_clock_date_mover)
             rowIds.forEachIndexed { index, viewId ->
                 val rowHeight = heights[index]
                 val offsetPx = (offsets[index].coerceIn(-40, 40) * density).roundToInt()
-                // RemoteViews on older Android/HarmonyOS builds cannot reliably apply
-                // View.setTranslationY. Asymmetric padding moves the row content while
-                // keeping the widget update within the supported RemoteViews API.
                 val offsetTopPadding = (offsetPx * 2).coerceAtLeast(0)
                 val offsetBottomPadding = (-offsetPx * 2).coerceAtLeast(0)
                 views.setViewVisibility(viewId, if (rowHeight == 0 || (index == 3 && shortcutCount == 0)) android.view.View.GONE else android.view.View.VISIBLE)
                 if (index < 3) {
-                    // Keep the configured font size and clamp the TextClock viewport.
-                    val rowHeightPx = (rowHeight * density).toInt()
+                    // C1: stock FrameLayout viewport -> stock FrameLayout mover -> native TextClock.
                     if (android.os.Build.VERSION.SDK_INT >= 31) {
                         views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
-                    } else {
-                        views.setInt(viewId, "setHeight", rowHeightPx)
                     }
-                    views.setViewPadding(viewId, 0, offsetTopPadding, 0, offsetBottomPadding)
+                    views.setFloat(moverIds[index], "setTranslationY", offsetPx.toFloat())
                 } else if (android.os.Build.VERSION.SDK_INT >= 31) {
                     views.setViewLayoutHeight(viewId, rowHeight.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                     val extraPaddingPx = (((rowHeight - naturalHeightsDp[index]).coerceAtLeast(0f) / 2f) * density).toInt()
