@@ -447,3 +447,5 @@ internal object FullBackupModuleRegistry {
         return file.readText(Charsets.UTF_8)
     }
 }
+
+// Build validation marker for the 990B3 lightweight component restore wizard.
