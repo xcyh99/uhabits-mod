@@ -253,9 +253,22 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setComponent(component)
                 }
                 value == "system:settings" -> Intent(android.provider.Settings.ACTION_SETTINGS)
-                value.startsWith("feature:") -> Intent(context, ListHabitsActivity::class.java).apply {
-                    action = DesktopShortcutActivity.ACTION_OPEN_DESKTOP_SHORTCUT
-                    putExtra(DesktopShortcutActivity.EXTRA_TARGET, value.removePrefix("feature:"))
+                value.startsWith("feature:") -> {
+                    val key = value.removePrefix("feature:")
+                    when (key) {
+                        // These destinations have their own Activity. Open them directly,
+                        // without starting ListHabitsActivity as a forwarding trampoline.
+                        "desktopWidgetSettings" -> Intent(context, org.isoron.uhabits.activities.settings.DesktopWidgetSettingsActivity::class.java)
+                        "timeRecords" -> Intent(context, org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java)
+                        "puzzleGames" -> Intent(context, org.isoron.uhabits.activities.games.PuzzleGamesActivity::class.java)
+                        "__feature_center" -> Intent(context, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
+                            .putExtra("open_feature_center", true)
+                        "__settings" -> Intent(context, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
+                        // SettingsFragment still handles the selected preference's existing
+                        // click action, but the main habit-list Activity is no longer launched.
+                        else -> Intent(context, org.isoron.uhabits.activities.settings.SettingsActivity::class.java)
+                            .putExtra("open_preference_key", key)
+                    }
                 }
                 else -> Intent(context, ListHabitsActivity::class.java)
             }
