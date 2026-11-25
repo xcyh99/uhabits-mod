@@ -283,9 +283,11 @@ object FeatureShortcutCatalog {
      */
     fun createIntent(context: Context, key: String): Intent? {
         val cached = getCachedEntries(context).firstOrNull { it.key == key }
-        val entry = cached?.takeIf { it.activityName != null }
-            ?: getEntries(context).firstOrNull { it.key == key && it.activityName != null }
-            ?: return null
+        val entry = when {
+            cached?.activityName != null -> cached
+            cached != null -> return null
+            else -> getEntries(context).firstOrNull { it.key == key && it.activityName != null } ?: return null
+        }
         val activityName = entry.activityName ?: return null
         return Intent().setClassName(context, activityName).apply {
             val name = entry.extraName
