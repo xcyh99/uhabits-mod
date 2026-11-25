@@ -40,7 +40,7 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
             prefs.edit().remove(id.toString() + "_image")
                 .remove(id.toString() + "_outline")
                 .remove(id.toString() + "_left").remove(id.toString() + "_right")
-                .remove(id.toString() + "_split").apply()
+                .remove(id.toString() + "_split").remove(id.toString() + "_imageMode").apply()
         }
     }
 
