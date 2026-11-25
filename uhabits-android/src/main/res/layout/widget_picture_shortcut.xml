@@ -31,12 +31,6 @@
         android:textColor="#FFFFFFFF"
         android:background="#FF30343B"
         android:textSize="14sp" />
-    <ImageView
-        android:id="@+id/picture_shortcut_outline"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@drawable/widget_picture_outline"
-        android:visibility="gone" />
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
