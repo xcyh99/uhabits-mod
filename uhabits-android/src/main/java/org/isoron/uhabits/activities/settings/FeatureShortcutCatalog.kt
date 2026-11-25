@@ -6,9 +6,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import android.os.Build
-import android.text.SpannableString
-import android.text.Spanned
-import android.text.style.ForegroundColorSpan
 import androidx.preference.Preference
 import androidx.preference.PreferenceGroup
 import androidx.preference.PreferenceManager
@@ -322,4 +319,5 @@ object FeatureShortcutCatalog {
     fun styledTitle(entry: Entry): CharSequence = styledTitle(entry.title)
 
     fun styledTitle(value: String): CharSequence =
-        value.replace(Regex("【[^】]+】\\s*"), "").trim()}
+        value.replace(Regex("【[^】]+】\\s*"), "").trim()
+}
