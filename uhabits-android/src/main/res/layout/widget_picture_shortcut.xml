@@ -6,7 +6,21 @@
         android:id="@+id/picture_shortcut_image"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:scaleType="fitCenter"
+        android:contentDescription="图片快捷组件" />
+    <ImageView
+        android:id="@+id/picture_shortcut_image_stretch"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:scaleType="fitXY"
+        android:visibility="gone"
+        android:contentDescription="图片快捷组件" />
+    <ImageView
+        android:id="@+id/picture_shortcut_image_crop"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:visibility="gone"
         android:contentDescription="图片快捷组件" />
     <TextView
         android:id="@+id/picture_shortcut_empty"
