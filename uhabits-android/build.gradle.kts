@@ -128,7 +128,6 @@ dependencies {
     implementation(libs.konfetti.xml)
     implementation(project(":uhabits-core"))
     // Compile against the platform-hidden RemoteViews annotation; never package the stub.
-    compileOnly(project(":remoteviews-stubs"))
     ksp(libs.kotlin.inject.compiler)
 
     androidTestImplementation(libs.annotation)
