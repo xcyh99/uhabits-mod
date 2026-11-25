@@ -195,7 +195,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     }
 
     private fun updateTargetLabels() {
-        val all = choices().associate { it.key to it.title }
+        val all = FeatureShortcutCatalog.getSelectableEntries(this).associate { it.widgetTarget to it.title }
         fun label(target: String): String = when {
             target == "pictureWidgetSettings:$widgetId" -> "打开本图片组件设置"
             else -> all[target] ?: "选择快捷程序"
