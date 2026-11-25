@@ -20,7 +20,7 @@ import java.io.File
 /** User-selected photo widget with ten tap segments for a draggable left/right split. */
 class PictureShortcutWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
-        ids.forEach { updateWidget(context, manager, it) }
+        ids.forEach { updateWidget(context, it) }
     }
 
     override fun onAppWidgetOptionsChanged(
@@ -29,7 +29,7 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
         appWidgetId: Int,
         newOptions: android.os.Bundle
     ) {
-        updateWidget(context, manager, appWidgetId)
+        updateWidget(context, appWidgetId)
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
