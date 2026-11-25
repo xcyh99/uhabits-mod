@@ -21,7 +21,7 @@ object FeatureShortcutCatalog {
     const val KEY_ALLOWED_ENTRIES = "shortcut_candidate_keys_v1"
     private const val KEY_CATALOG_CACHE = "shortcut_catalog_cache_v1"
     private const val KEY_CATALOG_CACHE_VERSION = "shortcut_catalog_cache_version"
-    private const val CATALOG_CACHE_VERSION = 3
+    private const val CATALOG_CACHE_VERSION = 4
     private const val META_KEY = "org.isoron.uhabits.shortcut.key"
     private const val META_TITLE = "org.isoron.uhabits.shortcut.title"
     private const val META_CATEGORY = "org.isoron.uhabits.shortcut.category"
