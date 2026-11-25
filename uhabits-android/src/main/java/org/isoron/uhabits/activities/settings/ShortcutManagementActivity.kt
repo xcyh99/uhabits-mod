@@ -82,6 +82,25 @@ class ShortcutEntryManagementActivity : AppCompatActivity() {
         })
         search = EditText(this).apply { hint = "搜索项目、功能或应用"; setSingleLine(true); textSize = 15f }
         root.addView(search, LinearLayout.LayoutParams(-1, -2))
+        root.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            val selectAll = android.widget.Button(this@ShortcutEntryManagementActivity).apply {
+                text = "全选"
+                setOnClickListener {
+                    selected.addAll(entries.map { it.key })
+                    render(search.text.toString())
+                }
+            }
+            val clearAll = android.widget.Button(this@ShortcutEntryManagementActivity).apply {
+                text = "全部取消"
+                setOnClickListener {
+                    selected.clear()
+                    render(search.text.toString())
+                }
+            }
+            addView(selectAll, LinearLayout.LayoutParams(0, dp(44), 1f).apply { rightMargin = dp(6) })
+            addView(clearAll, LinearLayout.LayoutParams(0, dp(44), 1f).apply { leftMargin = dp(6) })
+        }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(4); bottomMargin = dp(4) })
         val scroll = ScrollView(this)
         list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         scroll.addView(list)
@@ -108,33 +127,61 @@ class ShortcutEntryManagementActivity : AppCompatActivity() {
         list.removeAllViews()
         val density = resources.displayMetrics.density
         fun dp(v: Int) = (v * density).toInt()
-        val visible = entries.filter { query.isEmpty() || it.name.lowercase().contains(query) || it.source.lowercase().contains(query) || it.category.lowercase().contains(query) }
-        list.addView(TextView(this).apply { this.text = "已选 ${selected.size} 项"; textSize = 12f; setTextColor(secondaryText); setPadding(0, dp(8), 0, dp(8)) })
-        list.addView(TextView(this).apply { this.text = "内"; textSize = 21f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(Color.rgb(22,163,74)); setPadding(0, dp(12), 0, dp(4)) })
-        addGroup("内", "设置", visible, ::dp); addGroup("内", "功能", visible, ::dp); addGroup("内", "项目", visible, ::dp)
-        list.addView(TextView(this).apply { this.text = "外"; textSize = 21f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(Color.rgb(224,82,82)); setPadding(0, dp(16), 0, dp(4)) })
-        addGroup("外", "应用", visible, ::dp); addGroup("外", "设置", visible, ::dp)
+        val visible = entries.filter {
+            query.isEmpty() || it.name.lowercase().contains(query) ||
+                it.category.lowercase().contains(query)
+        }
+        list.addView(TextView(this).apply {
+            this.text = "已选 ${selected.size} 项 / 共 ${entries.size} 项"
+            textSize = 12f
+            setTextColor(secondaryText)
+            setPadding(0, dp(8), 0, dp(8))
+        })
+        val categories = listOf("功能", "设置", "习惯", "应用", "系统")
+        categories.forEach { category ->
+            val items = visible.filter { it.category == category }
+            if (items.isEmpty()) return@forEach
+            val color = categoryColor(category)
+            list.addView(TextView(this).apply {
+                text = category
+                textSize = 18f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setTextColor(color)
+                setPadding(0, dp(14), 0, dp(5))
+            })
+            items.forEach { entry ->
+                list.addView(CheckBox(this).apply {
+                    text = entry.name
+                    textSize = 14f
+                    setTextColor(primaryText)
+                    isChecked = entry.key in selected
+                    setPadding(dp(12), dp(5), dp(8), dp(5))
+                    setOnCheckedChangeListener { _, checked ->
+                        if (checked) selected.add(entry.key) else selected.remove(entry.key)
+                        (list.getChildAt(0) as? TextView)?.text =
+                            "已选 ${selected.size} 项 / 共 ${entries.size} 项"
+                    }
+                }, LinearLayout.LayoutParams(-1, -2))
+            }
+        }
+        if (visible.isEmpty()) {
+            list.addView(TextView(this).apply {
+                text = "没有找到匹配的入口"
+                textSize = 14f
+                setTextColor(secondaryText)
+                setPadding(0, dp(24), 0, dp(24))
+                gravity = android.view.Gravity.CENTER
+            })
+        }
     }
 
-    private fun addGroup(source: String, category: String, visible: List<FeatureShortcutCatalog.Entry>, dp: (Int) -> Int) {
-        val items = visible.filter { it.source == source && it.category == category }
-        if (items.isEmpty()) return
-        val color = when (category) {
-            "设置" -> Color.rgb(224,161,46)
-            "功能", "应用" -> Color.rgb(54,166,217)
-            "项目" -> Color.rgb(177,138,224)
-            else -> secondaryText
-        }
-        list.addView(TextView(this).apply { text = category; textSize = 16f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(color); setPadding(dp(12), dp(8), 0, dp(3)) })
-        items.forEach { entry ->
-            list.addView(CheckBox(this).apply {
-                text = entry.name; textSize = 14f; setTextColor(primaryText); isChecked = entry.key in selected
-                setPadding(dp(18), dp(5), dp(8), dp(5))
-                setOnCheckedChangeListener { _, checked ->
-                    if (checked) selected.add(entry.key) else selected.remove(entry.key)
-                    (list.getChildAt(0) as? TextView)?.text = "已选 ${selected.size} 项"
-                }
-            }, LinearLayout.LayoutParams(-1, -2))
-        }
+    private fun categoryColor(category: String): Int = when (category) {
+        "功能" -> Color.rgb(52, 120, 212)
+        "设置" -> Color.rgb(137, 86, 200)
+        "习惯" -> Color.rgb(38, 155, 101)
+        "应用" -> Color.rgb(229, 138, 50)
+        "系统" -> Color.rgb(113, 128, 150)
+        else -> secondaryText
     }
+
 }
