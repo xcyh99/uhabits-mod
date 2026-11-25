@@ -263,8 +263,12 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
 
     private fun updateTargetLabels() {
         val all = choices().associate { it.key to it.title }
-        leftButton.text = "左侧：${all[leftTarget] ?: "选择快捷程序"}"
-        rightButton.text = "右侧：${all[rightTarget] ?: "选择快捷程序"}"
+        fun label(target: String): String = when {
+            target == "pictureWidgetSettings:$widgetId" -> "打开本图片组件设置"
+            else -> all[target] ?: "选择快捷程序"
+        }
+        leftButton.text = "左侧：${label(leftTarget)}"
+        rightButton.text = "右侧：${label(rightTarget)}"
     }
 
     private fun updateSplitLabel() {

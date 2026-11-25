@@ -22,7 +22,7 @@ object FeatureShortcutCatalog {
     const val KEY_ALLOWED_ENTRIES = "shortcut_candidate_keys_v1"
     private const val KEY_CATALOG_CACHE = "shortcut_catalog_cache_v1"
     private const val KEY_CATALOG_CACHE_VERSION = "shortcut_catalog_cache_version"
-    private const val CATALOG_CACHE_VERSION = 6
+    private const val CATALOG_CACHE_VERSION = 7
     private const val META_KEY = "org.isoron.uhabits.shortcut.key"
     private const val META_TITLE = "org.isoron.uhabits.shortcut.title"
     private const val META_CATEGORY = "org.isoron.uhabits.shortcut.category"
@@ -88,7 +88,7 @@ object FeatureShortcutCatalog {
 
     private val recommended = builtIns.map { it.key }.toSet() + setOf("pictureShortcutWidgetSettings")
     private const val KEY_ALLOWED_MIGRATION_VERSION = "shortcut_candidate_migration_version"
-    private const val ALLOWED_MIGRATION_VERSION = 6
+    private const val ALLOWED_MIGRATION_VERSION = 7
 
     fun getEntries(context: Context): List<Entry> {
         val result = mutableListOf<Entry>()
@@ -255,7 +255,12 @@ object FeatureShortcutCatalog {
 
         // Version 6 starts with the current catalog only. Historical shortcut aliases are not imported.
         if (version < ALLOWED_MIGRATION_VERSION) {
-            val current = recommended.toMutableSet()
+            // v7 adds the direct clock-settings destination without discarding
+            // the user's existing v6 selections.
+            val current = if (version < 6) recommended.toMutableSet()
+                else store.getStringSet(KEY_ALLOWED_ENTRIES, recommended)?.toMutableSet()
+                    ?: recommended.toMutableSet()
+            current.add("desktopWidgetTimeSettings")
             val ownComponent = ComponentName(
                 context,
                 org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java
