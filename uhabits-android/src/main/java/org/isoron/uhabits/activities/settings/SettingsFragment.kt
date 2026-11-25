@@ -314,7 +314,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 return true
             }
             "widgetManager" -> {
-                showWidgetManager()
+                startActivity(Intent(requireContext(), ComponentAddActivity::class.java))
                 return true
             }
             "startupPage" -> {
