@@ -56,6 +56,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             val hourSize = prefs.getFloat("digital_clock_hour_size", 48f).coerceIn(1f, 300f)
             val minuteSize = prefs.getFloat("digital_clock_minute_size", 48f).coerceIn(1f, 300f)
             val dateSize = prefs.getFloat("digital_clock_date_size", 15f).coerceIn(1f, 300f)
+            val glyphScale = prefs.getFloat("digital_clock_glyph_scale", 1.00f).coerceIn(0.80f, 1.50f)
             views.setTextViewTextSize(R.id.digital_clock_time, android.util.TypedValue.COMPLEX_UNIT_SP, hourSize)
             views.setTextViewTextSize(R.id.digital_clock_minute, android.util.TypedValue.COMPLEX_UNIT_SP, minuteSize)
             views.setTextViewTextSize(R.id.digital_clock_date, android.util.TypedValue.COMPLEX_UNIT_SP, dateSize)
@@ -93,6 +94,9 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 views.setFloat(textId, "setLetterSpacing", letterSpacing)
                 // Horizontal adaptation never changes the fixed row height.
                 views.setFloat(textId, "setTextScaleX", horizontalScale)
+                // Uniform glyph scaling is independent of row height and font-size settings.
+                views.setFloat(textId, "setScaleX", glyphScale)
+                views.setFloat(textId, "setScaleY", glyphScale)
             }
             views.setTextColor(R.id.digital_clock_time, prefs.getInt("digital_clock_hour_color", prefs.getInt("digital_clock_time_color", Color.WHITE)))
             views.setTextColor(R.id.digital_clock_minute, prefs.getInt("digital_clock_minute_color", prefs.getInt("digital_clock_time_color", Color.WHITE)))
