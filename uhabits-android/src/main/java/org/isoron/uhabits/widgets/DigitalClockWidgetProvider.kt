@@ -167,7 +167,7 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     // margins make the wrap-content FrameLayout measure to rowHeight,
                     // while centering the oversized child. This works on API 28+ without
                     // RemoteViews.setViewLayoutHeight (API 31+ only).
-                    val expandedTextHeightPx = ((maxOf(rowHeight, naturalHeightsDp[index]) + 80f) * density).roundToInt()
+                    val expandedTextHeightPx = ((maxOf(rowHeight.toFloat(), naturalHeightsDp[index]) + 80f) * density).roundToInt()
                     views.setInt(textId, "setHeight", expandedTextHeightPx)
                     views.setViewPadding(textId, 0, offsetTopPadding, 0, offsetBottomPadding)
                 } else if (android.os.Build.VERSION.SDK_INT >= 31) {
