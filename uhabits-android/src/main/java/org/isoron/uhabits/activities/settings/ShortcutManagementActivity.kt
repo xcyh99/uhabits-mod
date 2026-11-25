@@ -22,7 +22,7 @@ class ShortcutManagementActivity : AppCompatActivity() {
         val component = (application as HabitsApplication).component
         AndroidThemeSwitcher(this, component.preferences).apply()
         super.onCreate(savedInstanceState)
-        title = "快捷管理"
+        title = "快捷中心"
         val density = resources.displayMetrics.density
         fun dp(v: Int) = (v * density).toInt()
         val background = StyledResources(this).getColor(R.attr.contrast0)
