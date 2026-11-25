@@ -111,9 +111,9 @@ class ShortcutEntryManagementActivity : AppCompatActivity() {
         val visible = entries.filter { query.isEmpty() || it.name.lowercase().contains(query) || it.source.lowercase().contains(query) || it.category.lowercase().contains(query) }
         list.addView(TextView(this).apply { text = "已选 ${selected.size} 项"; textSize = 12f; setTextColor(secondaryText); setPadding(0, dp(8), 0, dp(8)) })
         list.addView(TextView(this).apply { text = "内"; textSize = 21f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(Color.rgb(22,163,74)); setPadding(0, dp(12), 0, dp(4)) })
-        addGroup("内", "设置", visible, dp); addGroup("内", "功能", visible, dp); addGroup("内", "项目", visible, dp)
+        addGroup("内", "设置", visible, ::dp); addGroup("内", "功能", visible, ::dp); addGroup("内", "项目", visible, ::dp)
         list.addView(TextView(this).apply { text = "外"; textSize = 21f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(Color.rgb(224,82,82)); setPadding(0, dp(16), 0, dp(4)) })
-        addGroup("外", "应用", visible, dp); addGroup("外", "设置", visible, dp)
+        addGroup("外", "应用", visible, ::dp); addGroup("外", "设置", visible, ::dp)
     }
 
     private fun addGroup(source: String, category: String, visible: List<FeatureShortcutCatalog.Entry>, dp: (Int) -> Int) {
