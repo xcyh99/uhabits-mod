@@ -35,7 +35,7 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         appWidgetIds.forEach { id ->
-            File(context.filesDir, prefs.getString(key(id, "image"), "").orEmpty()).delete()
+            prefs.getString(key(id, "image"), null)?.takeIf { it.isNotBlank() }?.let { File(context.filesDir, it).delete() }
             prefs.edit().remove(id.toString() + "_image")
                 .remove(id.toString() + "_left").remove(id.toString() + "_right")
                 .remove(id.toString() + "_split").apply()
