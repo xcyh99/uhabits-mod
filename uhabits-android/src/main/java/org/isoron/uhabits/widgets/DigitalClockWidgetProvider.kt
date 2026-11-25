@@ -170,15 +170,41 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     // The inner TextClock is oversized and centered inside that window.
                     val rowHeightPx = (rowHeight * density).toInt()
                     val contentId = contentIds[index]
-                    val overscanPx = (160f * density).roundToInt()
-                    val contentHeightPx = rowHeightPx + overscanPx
-                    // Negative outer padding makes the wrap-content FrameLayout's
-                    // measured height equal the requested row height while its child
-                    // remains 160dp taller. clipChildren then supplies the fixed window.
+                    // The inner TextClock must be taller than the actual glyph line.
+                    // A fixed 160dp overscan is insufficient for large user font sizes
+                    // (for example 300sp): TextView clips its own drawing before the
+                    // outer FrameLayout gets a chance to reveal it.
+                    val fontSizeSp = when (index) {
+                        0 -> hourSize
+                        1 -> minuteSize
+                        else -> dateSize
+                    }
+                    val typefaceName = if (index == 2) "sans-serif-medium" else "sans-serif"
+                    val measurePaint = android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                        textSize = fontSizeSp * scaledDensity
+                        typeface = android.graphics.Typeface.create(typefaceName, android.graphics.Typeface.NORMAL)
+                    }
+                    val fontMetrics = measurePaint.fontMetrics
+                    val glyphHeightPx = (fontMetrics.descent - fontMetrics.ascent).roundToInt()
+                    val offsetReservePx = (40f * density).roundToInt()
+                    val safetyMarginPx = (16f * density).roundToInt()
+                    val minimumContentHeightPx = maxOf(
+                        rowHeightPx + (160f * density).roundToInt(),
+                        glyphHeightPx + offsetReservePx * 2 + safetyMarginPx
+                    )
+                    // Keep the overscan symmetric so the FrameLayout's measured
+                    // wrap-content height remains exactly the user-selected row height.
+                    val parityAdjustment = (minimumContentHeightPx - rowHeightPx) % 2
+                    val contentHeightPx = minimumContentHeightPx + parityAdjustment
+                    val overscanPx = contentHeightPx - rowHeightPx
                     val halfOverscanPx = overscanPx / 2
                     views.setViewPadding(viewId, 0, -halfOverscanPx, 0, -halfOverscanPx)
                     if (android.os.Build.VERSION.SDK_INT >= 31) {
-                        views.setViewLayoutHeight(contentId, rowHeight + 160f, android.util.TypedValue.COMPLEX_UNIT_DIP)
+                        views.setViewLayoutHeight(
+                            contentId,
+                            contentHeightPx / density,
+                            android.util.TypedValue.COMPLEX_UNIT_DIP
+                        )
                     } else {
                         views.setInt(contentId, "setHeight", contentHeightPx)
                     }
