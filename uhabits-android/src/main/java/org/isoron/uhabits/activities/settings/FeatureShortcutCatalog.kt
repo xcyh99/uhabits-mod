@@ -22,7 +22,7 @@ object FeatureShortcutCatalog {
         val widgetTarget: String get() = if (key.startsWith("app:") || key.startsWith("system:")) key else "feature:$key"
     }
     private val excludedKeys = setOf("featureShortcuts", "desktopShortcuts", "shortcutManagement", "reminderSound", "bugReport", "repairDB", "rateApp", "pref_developer", "pref_sync_base_url", "pref_sync_key", "pref_encryption_key")
-    private val recommended = setOf("__feature_center", "__settings", "parameterCenter", "startupPage", "floatingTimer", "desktopDoodle", "statusBarDays", "timeRecords", "puzzleGames", "desktopWidgetSettings", "widgetManager")
+    private val recommended = setOf("__feature_center", "__settings", "parameterCenter", "startupPage", "floatingTimer", "desktopDoodle", "statusBarDays", "timeRecords", "puzzleGames", "desktopWidgetSettings", "widgetManager", "historyWhiteWeight")
 
     fun getEntries(context: Context): List<Entry> {
         val manager = PreferenceManager(context)
