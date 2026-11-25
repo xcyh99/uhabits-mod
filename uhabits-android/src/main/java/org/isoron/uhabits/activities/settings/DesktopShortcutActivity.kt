@@ -87,7 +87,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
         title = "桌面快捷管理"
         val existingTargetKeys = readShortcuts().map { it.targetKey }.toSet()
         val allowedTargetKeys = FeatureShortcutCatalog.getAllowedKeys(this) + existingTargetKeys
-        targets.addAll(FeatureShortcutCatalog.getEntries(this).filter { it.key in allowedTargetKeys }.map { Target(it.key, it.title) })
+        targets.addAll(FeatureShortcutCatalog.getSelectedEntries(this).filter { it.key in allowedTargetKeys }.map { Target(it.key, it.title) })
 
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
