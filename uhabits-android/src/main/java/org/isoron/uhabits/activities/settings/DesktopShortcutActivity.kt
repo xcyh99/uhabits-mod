@@ -84,7 +84,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
         val themeSwitcher = AndroidThemeSwitcher(this, component.preferences)
         themeSwitcher.apply()
         super.onCreate(savedInstanceState)
-        title = "桌面快捷"
+        title = "桌面快捷管理"
         val existingTargetKeys = readShortcuts().map { it.targetKey }.toSet()
         val allowedTargetKeys = FeatureShortcutCatalog.getAllowedKeys(this) + existingTargetKeys
         targets.addAll(FeatureShortcutCatalog.getEntries(this).filter { it.key in allowedTargetKeys }.map { Target(it.key, it.title) })
