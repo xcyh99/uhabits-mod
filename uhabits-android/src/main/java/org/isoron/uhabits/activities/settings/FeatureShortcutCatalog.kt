@@ -63,7 +63,7 @@ object FeatureShortcutCatalog {
         BuiltIn("puzzleGames", "益智游戏", "功能"),
         BuiltIn("floatingTimer", "悬浮计时器", "功能"),
         BuiltIn("desktopDoodle", "桌面涂鸦", "功能"),
-        BuiltIn("widgetManager", "桌面组件管理", "功能"),
+        BuiltIn("widgetManager", "组件添加", "功能"),
         BuiltIn("createFullBackup", "创建完整备份", "功能"),
         BuiltIn("restoreFullBackup", "恢复完整备份", "功能"),
         BuiltIn("exportProgramApk", "单独导出本机 APK", "功能"),
@@ -75,12 +75,12 @@ object FeatureShortcutCatalog {
         BuiltIn("parameterCenter", "参数中心", "设置"),
         BuiltIn("startupPage", "启动首页设置", "设置"),
         BuiltIn("statusBarDays", "状态栏天数设置", "设置"),
-        BuiltIn("desktopWidgetSettings", "桌面组件设置", "设置"),
+        BuiltIn("desktopWidgetSettings", "组件中心", "设置"),
         BuiltIn("autoBackup", "自动备份设置", "设置"),
         BuiltIn("webDavSync", "WebDAV 云端管理", "设置"),
         BuiltIn("settingsBackupRestore", "设置备份与恢复", "设置"),
         BuiltIn("reminderCustomize", "提醒设置", "设置"),
-        BuiltIn("shortcutManagement", "快捷管理", "设置"),
+        BuiltIn("shortcutManagement", "快捷中心", "设置"),
         BuiltIn("desktopShortcuts", "桌面快捷管理", "设置"),
         BuiltIn("featureShortcuts", "快捷菜单设置", "设置")
     )
