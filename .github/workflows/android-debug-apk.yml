@@ -25,6 +25,9 @@ on:
       - test/shortcut-management-987
       - test/987-inline-border-font-controls
       - stable/987-white-border-shortcuts
+      - test/pad-b2-shortcuts-base
+      - test/pad-c1-shortcuts-base
+      - test/pad-d1-shortcuts-base
   pull_request:
     branches:
       - dev
