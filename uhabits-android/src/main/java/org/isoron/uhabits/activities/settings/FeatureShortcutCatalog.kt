@@ -289,11 +289,10 @@ object FeatureShortcutCatalog {
             cached != null -> null
             else -> null
         }
-        // Explicit fallbacks keep previously-created shortcuts working even when
-        // an upgraded installation has an older or empty catalog cache.
+        // Keep only direct routes that are part of the current catalog.
         val fallback = when (key) {
             "desktopWidgetSettings" -> Intent(context, ComponentCenterActivity::class.java)
-            "widgetManager", "componentAdd" -> Intent(context, ComponentAddActivity::class.java)
+            "widgetManager" -> Intent(context, ComponentAddActivity::class.java)
             "componentSettings" -> Intent(context, ComponentSettingsActivity::class.java)
             "desktopWidgetTimeSettings" -> Intent(context, DesktopWidgetSettingsActivity::class.java)
                 .putExtra("open_time_widget_control_page", true)
