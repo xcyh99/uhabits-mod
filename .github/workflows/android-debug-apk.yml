@@ -23,6 +23,7 @@ on:
       - fix/harmonyos-widget-remoteviews
       - stable/987-white-border
       - test/987-inline-border-font-controls
+      - test/pad-d1-white-border-improved
   pull_request:
     branches:
       - dev
