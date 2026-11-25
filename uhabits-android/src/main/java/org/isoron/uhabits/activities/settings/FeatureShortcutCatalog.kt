@@ -5,6 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
+import android.graphics.Color
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.os.Build
 import androidx.preference.Preference
 import androidx.preference.PreferenceGroup
@@ -316,8 +320,23 @@ object FeatureShortcutCatalog {
             .putStringSet(KEY_ALLOWED_ENTRIES, keys).apply()
     }
 
-    fun styledTitle(entry: Entry): CharSequence = styledTitle(entry.title)
+    fun styledTitle(entry: Entry): CharSequence =
+        styledTitle("【${entry.category}】 ${entry.title}")
 
-    fun styledTitle(value: String): CharSequence =
-        value.replace(Regex("【[^】]+】\\s*"), "").trim()
+    fun styledTitle(value: String): CharSequence {
+        val clean = value.replace(Regex("【(?:内|外)】\\s*"), "").trim()
+        val styled = SpannableString(clean)
+        val colors = mapOf(
+            "功能" to Color.rgb(52, 120, 212),
+            "设置" to Color.rgb(137, 86, 200),
+            "习惯" to Color.rgb(38, 155, 101),
+            "应用" to Color.rgb(229, 138, 50),
+            "系统" to Color.rgb(113, 128, 150)
+        )
+        Regex("【([^】]+)】").findAll(clean).forEach { match ->
+            val color = colors[match.groupValues[1]] ?: return@forEach
+            styled.setSpan(ForegroundColorSpan(color), match.range.first, match.range.last + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        return styled
+    }
 }
