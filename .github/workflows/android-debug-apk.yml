@@ -21,6 +21,7 @@ on:
       - feature/desktop-shortcuts
       - feature/digital-clock-auto-layout-preview
       - fix/harmonyos-widget-remoteviews
+      - experiment/android10-textclock-padding2
   pull_request:
     branches:
       - dev
