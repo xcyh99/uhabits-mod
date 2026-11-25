@@ -1105,12 +1105,20 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         val store = PreferenceManager.getDefaultSharedPreferences(context)
         val allEntries = FeatureShortcutCatalog.getCachedEntries(context)
         val allowed = FeatureShortcutCatalog.getAllowedKeys(context)
+        // The current catalog and current allow-list are the only source of entries.
+        // Do not re-import selections saved by older shortcut implementations.
         val savedOrder = store.getString("feature_shortcuts_order", null)?.split("|").orEmpty()
-        val legacySelection = store.getStringSet("feature_shortcuts", emptySet()).orEmpty()
-        val existingSelection = (savedOrder + legacySelection).toSet()
-        val entries = allEntries.filter { it.key in allowed || it.key in existingSelection }
-        val selected = (savedOrder.takeIf { it.isNotEmpty() } ?: legacySelection.toList())
-            .filter { key -> entries.any { it.key == key } }.distinct().toMutableList()
+        val categoryOrder = listOf("功能", "设置", "习惯", "应用", "系统")
+        val entries = allEntries
+            .filter { it.key in allowed }
+            .distinctBy { it.key }
+            .sortedWith(compareBy<FeatureShortcutCatalog.Entry> {
+                categoryOrder.indexOf(it.category).let { index -> if (index < 0) categoryOrder.size else index }
+            }.thenBy { it.name.lowercase(Locale.ROOT) })
+        val selected = savedOrder
+            .filter { key -> entries.any { it.key == key } }
+            .distinct()
+            .toMutableList()
         val filtered = entries.toMutableList()
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
