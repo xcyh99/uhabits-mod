@@ -53,6 +53,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
     private var editingShortcutId: String? = null
 
     private val targets = mutableListOf<Target>()
+    private val visibleTargets = mutableListOf<Target>()
     private val iconNames = listOf("十字", "设置", "日历", "图表", "计时", "打卡", "历史", "相册")
     private val iconResources = listOf(
         android.R.drawable.ic_menu_view,
@@ -88,6 +89,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
         val existingTargetKeys = readShortcuts().map { it.targetKey }.toSet()
         val allowedTargetKeys = FeatureShortcutCatalog.getAllowedKeys(this) + existingTargetKeys
         targets.addAll(FeatureShortcutCatalog.getSelectedEntries(this).filter { it.key in allowedTargetKeys }.map { Target(it.key, it.title) })
+        visibleTargets.addAll(targets)
 
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
@@ -144,7 +146,27 @@ class DesktopShortcutActivity : AppCompatActivity() {
             setSingleLine(true)
             textSize = 16f
         }
-        targetSpinner = spinner(targets.map { it.title })
+        targetSpinner = spinner(visibleTargets.map { it.title })
+        val targetSearch = EditText(this).apply {
+            hint = "搜索目标名称或分类"
+            setSingleLine(true)
+            textSize = 15f
+            setTextColor(primaryText)
+            setHintTextColor(secondaryText)
+            addTextChangedListener(object : android.text.TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                    val query = s?.toString()?.trim()?.lowercase().orEmpty()
+                    visibleTargets.clear()
+                    visibleTargets.addAll(targets.filter { target ->
+                        query.isEmpty() || target.title.lowercase().contains(query) || target.key.lowercase().contains(query)
+                    })
+                    targetSpinner.adapter = spinner(visibleTargets.map { it.title }).adapter
+                    if (visibleTargets.isNotEmpty()) targetSpinner.setSelection(0)
+                }
+                override fun afterTextChanged(s: android.text.Editable?) {}
+            })
+        }
         iconSpinner = spinner(iconNames)
         colorSpinner = spinner(colorNames)
         photoStatus = TextView(this).apply {
@@ -160,6 +182,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
         content.addView(label("快捷方式名称"))
         content.addView(nameInput)
         content.addView(label("打开目标"))
+        content.addView(targetSearch, LinearLayout.LayoutParams(-1, -2))
         content.addView(targetSpinner)
         content.addView(label("内置图标"))
         content.addView(iconSpinner)
@@ -240,7 +263,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
             nameInput.error = "请填写快捷方式名称"
             return
         }
-        val target = targets.getOrNull(targetSpinner.selectedItemPosition) ?: return
+        val target = visibleTargets.getOrNull(targetSpinner.selectedItemPosition) ?: return
         val manager = getSystemService(ShortcutManager::class.java)
         if (manager == null || !manager.isRequestPinShortcutSupported) {
             Toast.makeText(this, "当前手机桌面不支持应用内添加快捷方式，请尝试桌面长按添加。", Toast.LENGTH_LONG).show()
@@ -368,7 +391,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
     private fun editShortcut(entry: ShortcutEntry) {
         editingShortcutId = entry.id
         nameInput.setText(entry.name)
-        targetSpinner.setSelection(targets.indexOfFirst { it.key == entry.targetKey }.coerceAtLeast(0))
+        targetSpinner.setSelection(visibleTargets.indexOfFirst { it.key == entry.targetKey }.coerceAtLeast(0))
         iconSpinner.setSelection(entry.iconIndex.coerceIn(iconNames.indices))
         colorSpinner.setSelection(entry.colorIndex.coerceIn(colorNames.indices))
         photoFile = entry.photoPath?.let(::File)?.takeIf { it.exists() }
