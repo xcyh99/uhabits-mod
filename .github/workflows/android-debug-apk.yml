@@ -26,6 +26,7 @@ on:
     branches:
       - dev
 
+# Stable 987 white-border baseline build validation.
 # Keep only the newest validation run for a branch; rapid iterative pushes
 # should not queue many redundant Gradle builds.
 concurrency:
