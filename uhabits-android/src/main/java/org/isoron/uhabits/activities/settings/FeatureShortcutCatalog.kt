@@ -142,7 +142,7 @@ object FeatureShortcutCatalog {
                     val pageTitle = metadata.getString(titleMeta)?.trim().orEmpty()
                     val pageCategory = metadata.getString("$META_PAGE_PREFIX$pageKey.category")?.trim().orEmpty()
                     val extraName = metadata.getString("$META_PAGE_PREFIX$pageKey.extraName")?.trim()?.takeIf { it.isNotBlank() }
-                    val extraValue = metadata.getString("$META_PAGE_PREFIX$pageKey.extraValue")
+                    val extraValue = metadata.get("$META_PAGE_PREFIX$pageKey.extraValue")?.toString()
                     if (pageKey.isNotBlank() && pageTitle.isNotBlank() && pageCategory in categories &&
                         pageKey !in excludedKeys) {
                         result.add(Entry(
