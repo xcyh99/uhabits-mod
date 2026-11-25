@@ -174,11 +174,6 @@
                 android:summary="组件添加、批量添加，以及数字时钟和图片组件设置。"
                 app:iconSpaceReserved="false" />
 
-        <Preference
-                android:key="widgetManager"
-                android:title="组件添加"
-                android:summary="单个添加或批量添加已注册的桌面组件。"
-                app:iconSpaceReserved="false" />
 
         <Preference
                 android:key="shortcutManagement"
@@ -189,7 +184,7 @@
         <Preference
                 android:key="desktopShortcuts"
                 android:title="桌面快捷"
-                android:summary="创建桌面入口，直接打开功能中心、设置板块或具体功能；支持内置图标和相册图片。"
+                android:summary="创建桌面入口，直接打开功能板块、设置板块或具体功能；支持内置图标和相册图片。"
                 app:iconSpaceReserved="false" />
 
         <Preference
