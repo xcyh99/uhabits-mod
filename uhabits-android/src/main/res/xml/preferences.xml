@@ -181,6 +181,12 @@
                 app:iconSpaceReserved="false" />
 
         <Preference
+                android:key="shortcutManagement"
+                android:title="快捷管理"
+                android:summary="统一管理快捷入口候选内容、APP快捷弹出菜单和桌面快捷方式。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
                 android:key="desktopShortcuts"
                 android:title="桌面快捷"
                 android:summary="创建桌面入口，直接打开功能中心、设置板块或具体功能；支持内置图标和相册图片。"
