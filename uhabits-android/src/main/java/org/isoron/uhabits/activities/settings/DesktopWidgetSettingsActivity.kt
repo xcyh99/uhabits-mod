@@ -226,13 +226,6 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
     private fun chooseTarget(slot: Slot) {
         val options = mutableListOf<Pair<String, String>>()
         options += "none" to "【外】【设置】不执行操作"
-        val currentValue = store.getString(key(slot.key), null)
-            ?: if (slot.key == "hour" || slot.key == "minute") store.getString("digital_clock_target_time", null) else null
-        val currentKey = when {
-            currentValue?.startsWith("feature:") == true -> currentValue.removePrefix("feature:")
-            currentValue?.startsWith("app:") == true || currentValue?.startsWith("system:") == true -> currentValue
-            else -> null
-        }
         FeatureShortcutCatalog.getSelectedEntries(this).forEach { options += it.widgetTarget to it.title }
         val filtered = options.toMutableList()
         val search = android.widget.EditText(this).apply {
