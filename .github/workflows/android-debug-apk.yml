@@ -21,6 +21,7 @@ on:
       - feature/desktop-shortcuts
       - feature/digital-clock-auto-layout-preview
       - fix/harmonyos-widget-remoteviews
+      - test/pad-b2-white-border-root
       - stable/987-white-border
   pull_request:
     branches:
