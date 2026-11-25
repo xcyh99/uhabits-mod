@@ -85,7 +85,7 @@ object FeatureShortcutCatalog {
         BuiltIn("featureShortcuts", "快捷菜单设置", "设置")
     )
 
-    private val recommended = builtIns.map { it.key }.toSet() + setOf("desktopWidgetTimeSettings", "pictureShortcutWidgetSettings")
+    private val recommended = builtIns.map { it.key }.toSet() + setOf("pictureShortcutWidgetSettings")
     private const val KEY_ALLOWED_MIGRATION_VERSION = "shortcut_candidate_migration_version"
     private const val ALLOWED_MIGRATION_VERSION = 6
 
@@ -292,8 +292,6 @@ object FeatureShortcutCatalog {
         val fallback = when (key) {
             "desktopWidgetSettings" -> Intent(context, ComponentCenterActivity::class.java)
             "widgetManager" -> Intent(context, ComponentAddActivity::class.java)
-            "desktopWidgetTimeSettings" -> Intent(context, DesktopWidgetSettingsActivity::class.java)
-                .putExtra("open_time_widget_control_page", true)
             "pictureShortcutWidgetSettings" -> Intent(context, PictureShortcutWidgetSettingsActivity::class.java)
             else -> null
         }
