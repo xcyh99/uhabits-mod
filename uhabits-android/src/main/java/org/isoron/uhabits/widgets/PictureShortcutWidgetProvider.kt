@@ -106,7 +106,8 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
                     "fit" -> minOf(sx, sy)
                     "width" -> sx
                     "height" -> sy
-                    else -> maxOf(sx, sy)
+                    "crop" -> maxOf(sx, sy)
+                    else -> minOf(sx, sy)
                 }
                 val rect = if (mode == "stretch") RectF(0f, 0f, w.toFloat(), h.toFloat()) else {
                     val dw = bitmap.width * factor
