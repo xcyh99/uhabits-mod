@@ -287,13 +287,20 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             }
             "parameterEmergencyReset" -> {
                 AlertDialog.Builder(requireContext())
-                    .setTitle("参数紧急恢复")
-                    .setMessage("将参数中心全部恢复为安全默认值：两个白色数字权重恢复为 6.6，六类组件的白边阈值和宽度恢复为默认值。此操作不会删除或修改习惯、打卡记录和时间记录。")
+                    .setTitle("参数紧急恢复（第 1 次 / 共 2 次确认）")
+                    .setMessage("将参数中心全部恢复为安全默认值：两个白色数字权重恢复为 6.6，六类组件的白边阈值和宽度恢复为默认值。此操作不会删除或修改习惯、打卡记录和时间记录。\n\n这是第 1 次确认，继续后还需要最后 1 次确认。")
                     .setNegativeButton("取消", null)
-                    .setPositiveButton("确认恢复") { _, _ ->
-                        prefs.restoreParameterDefaults()
-                        widgetUpdater?.updateWidgets()
-                        Toast.makeText(requireContext(), "参数已恢复为安全默认值（权重和六类白边均已恢复）", Toast.LENGTH_LONG).show()
+                    .setPositiveButton("下一步") { _, _ ->
+                        AlertDialog.Builder(requireContext())
+                            .setTitle("参数紧急恢复（第 2 次 / 共 2 次确认）")
+                            .setMessage("请再次确认：现在将恢复参数中心的全部安全默认值。\n\n这是最后一次确认。")
+                            .setNegativeButton("取消", null)
+                            .setPositiveButton("确认恢复") { _, _ ->
+                                prefs.restoreParameterDefaults()
+                                widgetUpdater?.updateWidgets()
+                                Toast.makeText(requireContext(), "参数已恢复为安全默认值（权重和六类白边均已恢复）", Toast.LENGTH_LONG).show()
+                            }
+                            .show()
                     }
                     .show()
                 return true
@@ -1565,40 +1572,98 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
 
     private fun confirmClearLocalHabitData() {
         AlertDialog.Builder(requireContext())
-            .setTitle(R.string.clear_local_habit_data_first_title)
-            .setMessage(R.string.clear_local_habit_data_first_message)
-            .setNegativeButton(R.string.clear_label, null)
-            .setPositiveButton(R.string.next_step) { _, _ ->
+            .setTitle("清空本机习惯（第 1 次 / 共 3 次确认）")
+            .setMessage(getString(R.string.clear_local_habit_data_first_message) +
+                "\n\n这是第 1 次确认，继续后还需要 2 次确认。")
+            .setNegativeButton("取消", null)
+            .setPositiveButton("下一步") { _, _ ->
                 AlertDialog.Builder(requireContext())
-                    .setTitle(R.string.clear_local_habit_data_second_title)
-                    .setMessage(R.string.clear_local_habit_data_second_message)
-                    .setNegativeButton(R.string.clear_label, null)
-                    .setPositiveButton(R.string.confirm_clear) { _, _ ->
-                        val result = runCatching {
-                            val app = requireContext().applicationContext as HabitsApplication
-                            app.component.habitList.removeAll()
-                            widgetUpdater?.updateWidgets()
-                        }
-                        result.fold(
-                            {
-                                Toast.makeText(
-                                    requireContext(),
-                                    R.string.clear_local_habit_data_done,
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            },
-                            { error ->
-                                Toast.makeText(
-                                    requireContext(),
-                                    error.message ?: "清空失败，数据未确认清理完成",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            }
-                        )
+                    .setTitle("清空本机习惯（第 2 次 / 共 3 次确认）")
+                    .setMessage(getString(R.string.clear_local_habit_data_second_message) +
+                        "\n\n这是第 2 次确认，继续后还需要最后 1 次数字验证。")
+                    .setNegativeButton("取消", null)
+                    .setPositiveButton("下一步") { _, _ ->
+                        showClearLocalHabitDataCodeConfirmation()
                     }
                     .show()
             }
             .show()
+    }
+
+    private fun showClearLocalHabitDataCodeConfirmation() {
+        val context = requireContext()
+        val codeLength = (2..4).random()
+        val firstDigit = (1..9).random().toString()
+        val code = firstDigit + (1 until codeLength).joinToString("") {
+            (0..9).random().toString()
+        }
+        val input = EditText(context).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setSingleLine(true)
+            hint = "请输入上方显示的数字"
+        }
+        val content = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            val padding = (20 * resources.displayMetrics.density).toInt()
+            setPadding(padding, padding / 2, padding, 0)
+            addView(TextView(context).apply {
+                text = "请准确输入下面的随机数字："
+                textSize = 15f
+            })
+            addView(TextView(context).apply {
+                text = code
+                textSize = 30f
+                gravity = Gravity.CENTER
+                setPadding(0, padding / 2, 0, padding / 2)
+            })
+            addView(input)
+            addView(TextView(context).apply {
+                text = "第 3 次 / 共 3 次确认。输入正确后才会清空本机全部习惯数据。"
+                textSize = 13f
+                setPadding(0, padding / 3, 0, 0)
+            })
+        }
+        val dialog = AlertDialog.Builder(context)
+            .setTitle("清空本机习惯（第 3 次 / 共 3 次确认）")
+            .setView(content)
+            .setNegativeButton("取消", null)
+            .setPositiveButton("验证并清空", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                if (input.text.toString().trim() != code) {
+                    input.error = "数字不正确，请重新输入"
+                    return@setOnClickListener
+                }
+                dialog.dismiss()
+                clearLocalHabitDataNow()
+            }
+        }
+        dialog.show()
+    }
+
+    private fun clearLocalHabitDataNow() {
+        val result = runCatching {
+            val app = requireContext().applicationContext as HabitsApplication
+            app.component.habitList.removeAll()
+            widgetUpdater?.updateWidgets()
+        }
+        result.fold(
+            {
+                Toast.makeText(
+                    requireContext(),
+                    R.string.clear_local_habit_data_done,
+                    Toast.LENGTH_LONG
+                ).show()
+            },
+            { error ->
+                Toast.makeText(
+                    requireContext(),
+                    error.message ?: "清空失败，数据未确认清理完成",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        )
     }
 
     private fun showWebDavSettings() {
