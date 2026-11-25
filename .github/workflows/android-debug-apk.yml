@@ -24,6 +24,7 @@ on:
       - stable/987-white-border
       - test/shortcut-management-987
       - test/padding2-on-shortcut-baseline
+      - test/pad-b2-fixed-viewport
   pull_request:
     branches:
       - dev
