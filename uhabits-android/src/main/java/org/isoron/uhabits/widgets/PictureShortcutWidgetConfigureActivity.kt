@@ -76,7 +76,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         content.addView(rightButton)
         splitLabel = TextView(this).apply { textSize = 14f }
         content.addView(splitLabel)
-        content.addView(SeekBar(this).apply {
+        val splitSeekBar = SeekBar(this).apply {
             max = 8
             progress = 4
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -87,7 +87,8 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
                 override fun onStartTrackingTouch(seekBar: SeekBar?) {}
                 override fun onStopTrackingTouch(seekBar: SeekBar?) {}
             })
-        })
+        }
+        content.addView(splitSeekBar)
         content.addView(TextView(this).apply {
             text = "分界线每次移动 10%。桌面上可通过长按组件调整整体大小。"
             textSize = 12f
@@ -98,6 +99,21 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             setOnClickListener { saveWidget() }
         })
         setContentView(content)
+
+        // When opened from 图片组件设置, restore this widget's existing configuration.
+        val saved = getSharedPreferences(PictureShortcutWidgetProvider.PREFS, MODE_PRIVATE)
+        split = saved.getInt("${widgetId}_split", 5).coerceIn(1, 9)
+        splitSeekBar.progress = split - 1
+        leftTarget = saved.getString("${widgetId}_left", leftTarget) ?: leftTarget
+        rightTarget = saved.getString("${widgetId}_right", rightTarget) ?: rightTarget
+        saved.getString("${widgetId}_image", null)?.let { name ->
+            val existing = File(filesDir, name)
+            if (existing.isFile) {
+                imageFile = existing
+                BitmapFactory.decodeFile(existing.absolutePath)?.let { preview.setImageBitmap(it) }
+                imageStatus.text = "当前图片：${existing.name}"
+            }
+        }
         updateSplitLabel()
         updateTargetLabels()
     }
