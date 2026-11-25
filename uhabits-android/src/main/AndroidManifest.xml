@@ -135,6 +135,18 @@
             <meta-data
                 android:name="org.isoron.uhabits.shortcut.category"
                 android:value="设置" />
+            <meta-data
+                android:name="org.isoron.uhabits.shortcut.page.desktopWidgetTimeSettings.title"
+                android:value="时间组件设置" />
+            <meta-data
+                android:name="org.isoron.uhabits.shortcut.page.desktopWidgetTimeSettings.category"
+                android:value="设置" />
+            <meta-data
+                android:name="org.isoron.uhabits.shortcut.page.desktopWidgetTimeSettings.extraName"
+                android:value="open_time_widget_control_page" />
+            <meta-data
+                android:name="org.isoron.uhabits.shortcut.page.desktopWidgetTimeSettings.extraValue"
+                android:value="true" />
         </activity>
 
         <activity
