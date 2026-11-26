@@ -64,6 +64,7 @@ object FeatureShortcutCatalog {
         BuiltIn("floatingTimer", "悬浮计时器", "功能"),
         BuiltIn("desktopDoodle", "桌面涂鸦", "功能"),
         BuiltIn("widgetManager", "组件添加", "功能"),
+        BuiltIn("widgetRestore", "组件恢复向导", "功能"),
         BuiltIn("createFullBackup", "创建完整备份", "功能"),
         BuiltIn("restoreFullBackup", "恢复完整备份", "功能"),
         BuiltIn("exportProgramApk", "单独导出本机 APK", "功能"),
@@ -90,12 +91,15 @@ object FeatureShortcutCatalog {
     private const val KEY_ALLOWED_MIGRATION_VERSION = "shortcut_candidate_migration_version"
     private const val ALLOWED_MIGRATION_VERSION = 7
 
-    fun getEntries(context: Context): List<Entry> {
+    fun getEntries(context: Context, onProgress: ((String) -> Unit)? = null): List<Entry> {
         val result = mutableListOf<Entry>()
+        onProgress?.invoke("正在整理应用内置功能")
         builtIns.forEach { result.add(Entry(it.key, it.title, "", it.category)) }
+        onProgress?.invoke("内置功能整理完成，共 ${result.size} 项")
 
         // A nested PreferenceScreen is a page; ordinary Preference/PreferenceCategory leaves
         // are not pages and are intentionally ignored (they are usually individual parameters).
+        onProgress?.invoke("正在扫描设置页面")
         runCatching {
             val manager = PreferenceManager(context)
             val root: PreferenceScreen = manager.inflateFromResource(context, R.xml.preferences, null)
@@ -114,6 +118,7 @@ object FeatureShortcutCatalog {
             visit(root)
         }
 
+        onProgress?.invoke("设置页面扫描完成，正在扫描独立功能页面")
         // Activity authors can expose a new independent page by adding the three metadata
         // fields below to its manifest declaration. The catalog itself needs no code change.
         runCatching {
@@ -158,12 +163,14 @@ object FeatureShortcutCatalog {
             }
         }
 
+        onProgress?.invoke("独立功能页面扫描完成，正在登记本应用入口")
         // Include this app itself as a selectable launcher destination.
         runCatching {
             val ownComponent = ComponentName(context, org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java)
             result.add(Entry("app:${ownComponent.flattenToString()}", "十字习惯", "", "应用"))
         }
 
+        onProgress?.invoke("本应用入口登记完成，正在扫描习惯列表")
         // Habits are always collected individually and open their complete habit page.
         runCatching {
             val app = context.applicationContext as org.isoron.uhabits.HabitsApplication
@@ -172,19 +179,22 @@ object FeatureShortcutCatalog {
             }
         }
 
+        onProgress?.invoke("习惯列表扫描完成，正在扫描手机已安装应用")
         // Installed launcher apps are discovered from the system, not maintained manually.
         runCatching {
             val pm = context.packageManager
             val launch = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-            pm.queryIntentActivities(launch, PackageManager.MATCH_ALL)
+            val launchers = pm.queryIntentActivities(launch, PackageManager.MATCH_ALL)
                 .filter { it.activityInfo.packageName != context.packageName }
                 .distinctBy { it.activityInfo.packageName }
                 .sortedBy { it.loadLabel(pm).toString().lowercase() }
-                .forEach {
-                    val component = ComponentName(it.activityInfo.packageName, it.activityInfo.name)
-                    result.add(Entry("app:${component.flattenToString()}", it.loadLabel(pm).toString(), "", "应用", it.loadIcon(pm)))
-                }
+            launchers.forEachIndexed { index, item ->
+                val component = ComponentName(item.activityInfo.packageName, item.activityInfo.name)
+                result.add(Entry("app:${component.flattenToString()}", item.loadLabel(pm).toString(), "", "应用", item.loadIcon(pm)))
+                onProgress?.invoke("正在扫描已安装应用：${index + 1}/${launchers.size}")
+            }
         }
+        onProgress?.invoke("应用扫描完成，正在整理并保存入口目录")
         // Prefer the first current definition and collapse duplicate visible names
         // within the same category, even if an old alias used a different internal key.
         val entries = result.distinctBy { it.key }
@@ -301,6 +311,7 @@ object FeatureShortcutCatalog {
                 .putExtra("open_time_widget_control_page", true)
             "widgetManager" -> Intent(context, ComponentAddActivity::class.java)
             "pictureShortcutWidgetSettings" -> Intent(context, PictureShortcutWidgetSettingsActivity::class.java)
+            "widgetRestore" -> Intent(context, org.isoron.uhabits.widgets.PictureWidgetRestoreActivity::class.java)
             else -> null
         }
         if (entry == null) return fallback?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
