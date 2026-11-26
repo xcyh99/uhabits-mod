@@ -7,6 +7,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.net.Uri
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.provider.OpenableColumns
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
@@ -31,6 +35,7 @@ import java.io.FileOutputStream
 class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
     private var imageFile: File? = null
+    private var imageUri: Uri? = null
     private var topLeftTarget = ""
     private var topRightTarget = ""
     private var bottomLeftTarget = ""
@@ -44,6 +49,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     private lateinit var modeSpinner: Spinner
     private lateinit var preview: ImageView
     private lateinit var imageStatus: TextView
+    private lateinit var imageAddress: TextView
     private lateinit var editorView: PictureShortcutSplitEditorView
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
@@ -72,9 +78,46 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         }
         imageStatus = TextView(this).apply {
             text = "尚未选择图片"
-            textSize = 11f
-            maxLines = 1
+            textSize = 12f
+            setTextColor(Color.rgb(196, 196, 196))
+            maxLines = 2
             ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+        imageAddress = TextView(this).apply {
+            text = "尚未选择图片地址"
+            textSize = 11f
+            setTextColor(Color.rgb(196, 196, 196))
+            maxLines = 3
+            ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
+            isClickable = true
+            isLongClickable = true
+        }
+        imageAddress.setOnClickListener {
+            val uri = imageUri
+            if (uri == null) {
+                Toast.makeText(this, "当前图片没有可打开的原始地址", Toast.LENGTH_SHORT).show()
+            } else {
+                runCatching {
+                    startActivity(Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, "image/*")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    })
+                }.onFailure {
+                    Toast.makeText(this, "系统暂不支持直接打开这张图片", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        imageAddress.setOnLongClickListener {
+            val address = imageUri?.toString() ?: imageFile?.absolutePath
+            if (address.isNullOrBlank()) {
+                Toast.makeText(this, "暂无图片地址可复制", Toast.LENGTH_SHORT).show()
+            } else {
+                (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(
+                    ClipData.newPlainText("图片地址", address)
+                )
+                Toast.makeText(this, "已复制图片地址", Toast.LENGTH_SHORT).show()
+            }
+            true
         }
         val chooseImageButton = Button(this).apply {
             text = "选择图片"
@@ -83,9 +126,28 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             isAllCaps = false
             setOnClickListener { chooseImage() }
         }
+        val fileNameTitle = TextView(this).apply {
+            text = "文件名"
+            textSize = 13f
+            setTextColor(Color.WHITE)
+            setSingleLine(true)
+        }
+        val imageAddressTitle = TextView(this).apply {
+            text = "图片地址"
+            textSize = 13f
+            setTextColor(Color.WHITE)
+            setSingleLine(true)
+        }
+        val imageAddressHint = TextView(this).apply {
+            text = "点击打开原图 · 长按复制地址"
+            textSize = 10f
+            setTextColor(Color.rgb(136, 136, 136))
+            setSingleLine(true)
+        }
         val modeTitle = TextView(this).apply {
             text = "图片显示方式"
             textSize = 14f
+            setTextColor(Color.WHITE)
             maxLines = 1
             setSingleLine(true)
             setPadding(0, dp(6), 0, dp(2))
@@ -137,13 +199,17 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         val previewColumn = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(preview, LinearLayout.LayoutParams(-1, dp(280)))
-            addView(imageStatus, LinearLayout.LayoutParams(-1, dp(24)))
         }
         val settingsColumn = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = android.view.Gravity.TOP
             setPadding(dp(8), 0, 0, 0)
             addView(chooseImageButton, LinearLayout.LayoutParams(-1, dp(72)))
+            addView(fileNameTitle, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(5) })
+            addView(imageStatus, LinearLayout.LayoutParams(-1, -2))
+            addView(imageAddressTitle, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(5) })
+            addView(imageAddress, LinearLayout.LayoutParams(-1, -2))
+            addView(imageAddressHint, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(2) })
             addView(View(this@PictureShortcutWidgetConfigureActivity), LinearLayout.LayoutParams(1, 0, 1f))
             addView(modeTitle, LinearLayout.LayoutParams(-1, -2).apply {
                 topMargin = dp(4)
@@ -152,7 +218,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             addView(modeSpinner, LinearLayout.LayoutParams(-1, dp(60)))
         }
         imageSettingsRow.addView(previewColumn, LinearLayout.LayoutParams(0, -2, 2f))
-        imageSettingsRow.addView(settingsColumn, LinearLayout.LayoutParams(0, dp(304), 1f))
+        imageSettingsRow.addView(settingsColumn, LinearLayout.LayoutParams(0, dp(280), 1f))
         content.addView(imageSettingsRow, LinearLayout.LayoutParams(-1, -2))
         editorView = PictureShortcutSplitEditorView(this).apply {
             onZoneClick = { region -> chooseTarget(region) }
@@ -203,12 +269,14 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         modeSpinner.setSelection(when (imageMode) { "stretch" -> 1; "crop" -> 2; else -> 0 })
         editorView.splitX = splitX
         editorView.splitY = splitY
+        imageUri = saved.getString("${widgetId}_sourceUri", null)?.let { runCatching { Uri.parse(it) }.getOrNull() }
         saved.getString("${widgetId}_image", null)?.takeIf { it.isNotBlank() }?.let { name ->
             val existing = File(filesDir, name)
             if (existing.isFile) {
                 imageFile = existing
                 BitmapFactory.decodeFile(existing.absolutePath)?.let { preview.setImageBitmap(it) }
-                imageStatus.text = existing.name
+                imageStatus.text = imageUri?.let { queryImageDisplayName(it) } ?: existing.name
+                imageAddress.text = imageUri?.toString() ?: existing.absolutePath
             }
         }
         val explicitRestoreSourceId = intent.getIntExtra(
@@ -289,7 +357,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
             type = "image/*"
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
         }
         startActivityForResult(intent, REQUEST_IMAGE)
     }
@@ -300,6 +368,10 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         if (requestCode != REQUEST_IMAGE || resultCode != RESULT_OK) return
         val uri = data?.data ?: return
         try {
+            runCatching {
+                contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            imageUri = uri
             val bitmap = contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
                 ?: throw IllegalStateException("无法读取图片")
             val maxSide = 400
@@ -311,11 +383,20 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             FileOutputStream(file).use { saved.compress(Bitmap.CompressFormat.JPEG, 90, it) }
             imageFile = file
             preview.setImageBitmap(saved)
-            imageStatus.text = file.name
+            imageStatus.text = queryImageDisplayName(uri) ?: file.name
+            imageAddress.text = uri.toString()
             // Keep the preview bitmap alive until the ImageView releases it.
         } catch (error: Exception) {
             Toast.makeText(this, error.message ?: "图片读取失败", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun queryImageDisplayName(uri: Uri): String? {
+        return runCatching {
+            contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            }
+        }.getOrNull()
     }
 
     private fun chooseTarget(region: Int) {
@@ -586,6 +667,10 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             topLeftTarget, topRightTarget, bottomLeftTarget, bottomRightTarget,
             splitX, splitY, imageMode
         )
+        getSharedPreferences(PictureShortcutWidgetProvider.PREFS, MODE_PRIVATE).edit().apply {
+            if (imageUri != null) putString("${widgetId}_sourceUri", imageUri.toString())
+            else remove("${widgetId}_sourceUri")
+        }.apply()
         restoreSaved = true
         // Count only after the restored settings have been saved and the widget updated.
         PictureShortcutWidgetProvider.updateWidget(this, widgetId)
