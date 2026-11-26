@@ -133,6 +133,12 @@
                 app:iconSpaceReserved="false" />
 
         <Preference
+                android:key="timeRecords"
+                android:title="时间中心"
+                android:summary="@string/time_records_summary"
+                app:iconSpaceReserved="false" />
+
+        <Preference
                 android:key="parameterCenter"
                 android:title="参数中心"
                 android:summary="集中管理各项可调运行参数；点击后进入参数列表。"
@@ -160,12 +166,6 @@
                 android:key="statusBarDays"
                 android:title="状态栏天数"
                 android:summary="在状态栏显示一个纯数字；支持打卡间隔、倒计时和正计时。"
-                app:iconSpaceReserved="false" />
-
-        <Preference
-                android:key="timeRecords"
-                android:title="@string/time_records"
-                android:summary="@string/time_records_summary"
                 app:iconSpaceReserved="false" />
 
         <Preference
