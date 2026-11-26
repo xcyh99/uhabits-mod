@@ -24,7 +24,9 @@ internal object WidgetRestoreStore {
         val sourceWidgetId: Int,
         val providerClass: String,
         val habitIds: List<Long>,
-        val baselineWidgetIds: List<Int> = emptyList()
+        val baselineWidgetIds: List<Int> = emptyList(),
+        val type: String = "habit",
+        val recordId: String? = null
     )
 
     private fun preferences(context: Context) =
@@ -48,7 +50,9 @@ internal object WidgetRestoreStore {
                     (0 until ids.length()).map { ids.optLong(it, -1L) }.filter { it > 0L },
                     item.optJSONArray("baselineWidgetIds")?.let { values ->
                         (0 until values.length()).map { values.optInt(it, -1) }.filter { it >= 0 }
-                    } ?: emptyList()
+                    } ?: emptyList(),
+                    item.optString("type", "habit"),
+                    item.optString("recordId").takeIf { it.isNotBlank() }
                 )
             }
         }.getOrDefault(emptyList())
@@ -63,13 +67,21 @@ internal object WidgetRestoreStore {
                 .put("sourceWidgetId", item.sourceWidgetId)
                 .put("providerClass", item.providerClass)
                 .put("habitIds", ids)
-                .put("baselineWidgetIds", JSONArray(item.baselineWidgetIds)))
+                .put("baselineWidgetIds", JSONArray(item.baselineWidgetIds))
+                .put("type", item.type)
+                .put("recordId", item.recordId))
         }
         preferences(context).edit()
             .putString(PENDING, array.toString())
             .remove(SELECTED)
             .remove(SELECTED_AT)
             .commit()
+    }
+
+    fun mergePending(context: Context, configs: List<Config>) {
+        val merged = (pending(context) + configs)
+            .distinctBy { "${it.providerClass}#${it.sourceWidgetId}" }
+        replacePending(context, merged)
     }
 
     fun setBaselineWidgetIds(context: Context, sourceWidgetId: Int, providerClass: String, ids: IntArray) {
