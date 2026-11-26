@@ -229,7 +229,8 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             imageMode = restored.imageMode
             imageFile = null
             modeSpinner.setSelection(when (imageMode) { "stretch" -> 1; "crop" -> 2; else -> 0 })
-            splitSeekBar.progress = split - 1
+            splitXSeekBar.progress = splitX - 1
+            splitYSeekBar.progress = splitY - 1
             imageStatus.text = "设置已载入；轻量备份不含图片，请重新选择图片（也可先保存组件）"
         }
         updateSplitLabels()
