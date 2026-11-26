@@ -100,7 +100,7 @@ object FeatureShortcutCatalog {
         // A nested PreferenceScreen is a page; ordinary Preference/PreferenceCategory leaves
         // are not pages and are intentionally ignored (they are usually individual parameters).
         onProgress?.invoke("正在扫描设置页面")
-        runCatching {
+        run {
             val manager = PreferenceManager(context)
             val root: PreferenceScreen = manager.inflateFromResource(context, R.xml.preferences, null)
             fun visit(preference: Preference) {
@@ -121,7 +121,7 @@ object FeatureShortcutCatalog {
         onProgress?.invoke("设置页面扫描完成，正在扫描独立功能页面")
         // Activity authors can expose a new independent page by adding the three metadata
         // fields below to its manifest declaration. The catalog itself needs no code change.
-        runCatching {
+        run {
             val pm = context.packageManager
             val flags = PackageManager.GET_ACTIVITIES or PackageManager.GET_META_DATA
             val packageInfo = if (Build.VERSION.SDK_INT >= 33) {
@@ -165,14 +165,14 @@ object FeatureShortcutCatalog {
 
         onProgress?.invoke("独立功能页面扫描完成，正在登记本应用入口")
         // Include this app itself as a selectable launcher destination.
-        runCatching {
+        run {
             val ownComponent = ComponentName(context, org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java)
             result.add(Entry("app:${ownComponent.flattenToString()}", "十字习惯", "", "应用"))
         }
 
         onProgress?.invoke("本应用入口登记完成，正在扫描习惯列表")
         // Habits are always collected individually and open their complete habit page.
-        runCatching {
+        run {
             val app = context.applicationContext as org.isoron.uhabits.HabitsApplication
             app.component.habitList.filter { !it.isArchived && it.id != null }.forEach {
                 result.add(Entry("habit:${it.id}", it.name, "", "习惯"))
@@ -181,7 +181,7 @@ object FeatureShortcutCatalog {
 
         onProgress?.invoke("习惯列表扫描完成，正在扫描手机已安装应用")
         // Installed launcher apps are discovered from the system, not maintained manually.
-        runCatching {
+        run {
             val pm = context.packageManager
             val launch = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
             val launchers = pm.queryIntentActivities(launch, PackageManager.MATCH_ALL)
