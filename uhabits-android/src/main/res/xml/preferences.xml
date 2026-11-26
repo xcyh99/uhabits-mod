@@ -142,13 +142,13 @@
         <Preference
                 android:key="statusBarDays"
                 android:title="状态栏天数"
-                android:visible="false"
+                app:isPreferenceVisible="false"
                 app:iconSpaceReserved="false" />
 
         <Preference
                 android:key="floatingTimer"
                 android:title="悬浮计时器"
-                android:visible="false"
+                app:isPreferenceVisible="false"
                 app:iconSpaceReserved="false" />
 
         <Preference
