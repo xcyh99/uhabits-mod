@@ -182,6 +182,16 @@ internal object FullBackupModuleRegistry {
                     .put("left", item.left).put("right", item.right)
                     .put("split", item.split).put("imageMode", item.imageMode)
             }
+            org.isoron.uhabits.widgets.WidgetRestoreStore.pending(context)
+                .filter { it.type == "picture" }
+                .forEach { item ->
+                    configs[item.sourceWidgetId] = JSONObject()
+                        .put("sourceWidgetId", item.sourceWidgetId)
+                        .put("left", item.pictureLeft ?: "feature:__feature_center")
+                        .put("right", item.pictureRight ?: "feature:__settings")
+                        .put("split", item.pictureSplit)
+                        .put("imageMode", item.pictureImageMode)
+                }
             val array = JSONArray()
             configs.values.forEach { array.put(it) }
             writePayload(stagingRoot, ENTRY, JSONObject()
@@ -209,14 +219,21 @@ internal object FullBackupModuleRegistry {
 
         override fun restore(context: Context, restoreRoot: File) {
             val array = JSONObject(readPayload(restoreRoot, ENTRY)).getJSONArray("configs")
+            val providerClass = org.isoron.uhabits.widgets.PictureShortcutWidgetProvider::class.java.name
             val restored = (0 until array.length()).map { index ->
                 val item = array.getJSONObject(index)
-                org.isoron.uhabits.widgets.PictureWidgetRestoreStore.Config(
-                    item.getInt("sourceWidgetId"), item.getString("left"), item.getString("right"),
-                    item.getInt("split"), item.getString("imageMode")
+                org.isoron.uhabits.widgets.WidgetRestoreStore.Config(
+                    sourceWidgetId = item.getInt("sourceWidgetId"),
+                    providerClass = providerClass,
+                    habitIds = emptyList(),
+                    type = "picture",
+                    pictureLeft = item.getString("left"),
+                    pictureRight = item.getString("right"),
+                    pictureSplit = item.getInt("split"),
+                    pictureImageMode = item.getString("imageMode")
                 )
             }
-            org.isoron.uhabits.widgets.PictureWidgetRestoreStore.replacePending(context, restored)
+            org.isoron.uhabits.widgets.WidgetRestoreStore.mergePending(context, restored)
         }
 
         override fun rollback(context: Context, safetyRoot: File) = restore(context, safetyRoot)
