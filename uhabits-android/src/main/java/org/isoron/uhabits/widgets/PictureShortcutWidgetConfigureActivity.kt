@@ -113,11 +113,25 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             textSize = 12f
             setPadding(0, dp(4), 0, dp(8))
         })
-        content.addView(Button(this).apply {
-            text = "保存并添加组件"
+        val saveButton = Button(this).apply {
+            text = if (intent.getBooleanExtra(EXTRA_EDIT_EXISTING_WIDGET, false)) {
+                "保存设置"
+            } else {
+                "保存并添加组件"
+            }
             setOnClickListener { saveWidget() }
+        }
+        val page = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        page.addView(ScrollView(this).apply {
+            isFillViewport = false
+            addView(content)
+        }, LinearLayout.LayoutParams(-1, 0, 1f))
+        page.addView(saveButton, LinearLayout.LayoutParams(-1, dp(52)).apply {
+            setMargins(dp(16), dp(8), dp(16), dp(12))
         })
-        setContentView(content)
+        setContentView(page)
 
         // When opened from 图片组件设置, restore this widget's existing configuration.
         val saved = getSharedPreferences(PictureShortcutWidgetProvider.PREFS, MODE_PRIVATE)
@@ -458,5 +472,8 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         finish()
     }
 
-    companion object { private const val REQUEST_IMAGE = 7102 }
+    companion object {
+        const val EXTRA_EDIT_EXISTING_WIDGET = "org.isoron.uhabits.extra.EDIT_EXISTING_PICTURE_WIDGET"
+        private const val REQUEST_IMAGE = 7102
+    }
 }
