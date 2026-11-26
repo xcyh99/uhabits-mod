@@ -110,18 +110,23 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         }
         val previewColumn = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            addView(preview, LinearLayout.LayoutParams(-1, dp(148)))
+            addView(preview, LinearLayout.LayoutParams(-1, dp(246)))
             addView(imageStatus, LinearLayout.LayoutParams(-1, dp(24)))
         }
         val settingsColumn = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            gravity = android.view.Gravity.TOP
             setPadding(dp(8), 0, 0, 0)
-            addView(chooseImageButton, LinearLayout.LayoutParams(-1, dp(44)))
-            addView(modeTitle)
-            addView(modeSpinner, LinearLayout.LayoutParams(-1, dp(48)))
+            addView(chooseImageButton, LinearLayout.LayoutParams(-1, dp(60)))
+            addView(View(this@PictureShortcutWidgetConfigureActivity), LinearLayout.LayoutParams(1, 0, 1f))
+            addView(modeTitle, LinearLayout.LayoutParams(-1, -2).apply {
+                topMargin = dp(4)
+                bottomMargin = dp(4)
+            })
+            addView(modeSpinner, LinearLayout.LayoutParams(-1, dp(60)))
         }
         imageSettingsRow.addView(previewColumn, LinearLayout.LayoutParams(0, -2, 2f))
-        imageSettingsRow.addView(settingsColumn, LinearLayout.LayoutParams(0, -2, 1f))
+        imageSettingsRow.addView(settingsColumn, LinearLayout.LayoutParams(0, dp(270), 1f))
         content.addView(imageSettingsRow, LinearLayout.LayoutParams(-1, -2))
         editorView = PictureShortcutSplitEditorView(this).apply {
             onZoneClick = { region -> chooseTarget(region) }
