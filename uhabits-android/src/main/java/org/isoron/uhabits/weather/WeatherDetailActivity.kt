@@ -12,6 +12,8 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import org.isoron.uhabits.HabitsApplication
 import org.isoron.uhabits.activities.AndroidThemeSwitcher
+import org.isoron.uhabits.R
+import org.isoron.uhabits.utils.StyledResources
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -20,18 +22,28 @@ class WeatherDetailActivity : AppCompatActivity() {
     private var snapshot: WeatherSnapshot? = null
     private var selectedDate: String? = null
     private lateinit var content: LinearLayout
+    private var darkTheme = false
+    private val primaryText: Int get() = if (darkTheme) Color.rgb(240, 242, 246) else Color.rgb(35, 43, 54)
+    private val secondaryText: Int get() = if (darkTheme) Color.rgb(184, 191, 202) else Color.DKGRAY
+    private val cardColor: Int get() = if (darkTheme) Color.rgb(38, 42, 50) else Color.WHITE
+    private val cardStroke: Int get() = if (darkTheme) Color.rgb(66, 72, 83) else Color.rgb(230, 233, 238)
+    private val selectedCardColor: Int get() = if (darkTheme) Color.rgb(39, 57, 78) else Color.rgb(231, 241, 255)
+    private val highTemperatureColor: Int get() = if (darkTheme) Color.rgb(255, 177, 112) else highTemperatureColor
+    private val lowTemperatureColor: Int get() = if (darkTheme) Color.rgb(128, 184, 255) else lowTemperatureColor
     private val density by lazy { resources.displayMetrics.density }
     private fun dp(value: Int) = (value * density).toInt()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         (application as HabitsApplication).component.preferences.let { AndroidThemeSwitcher(this, it).apply() }
         super.onCreate(savedInstanceState)
+        val pageBackground = StyledResources(this).getColor(R.attr.contrast0)
+        darkTheme = androidx.core.graphics.ColorUtils.calculateLuminance(pageBackground) < 0.5
         title = "天气"
         selectedDate = intent.getStringExtra(EXTRA_DATE)
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(12), dp(16), dp(24))
-            setBackgroundColor(Color.rgb(246, 247, 249))
+            setBackgroundColor(pageBackground)
         }
         val scroll = ScrollView(this).apply { isFillViewport = true; addView(content) }
         setContentView(scroll)
@@ -45,7 +57,7 @@ class WeatherDetailActivity : AppCompatActivity() {
         }
     }
 
-    private fun label(text: String, size: Float = 14f, bold: Boolean = false, color: Int = Color.rgb(35, 43, 54)): TextView =
+    private fun label(text: String, size: Float = 14f, bold: Boolean = false, color: Int = primaryText): TextView =
         TextView(this).apply {
             this.text = text
             textSize = size
@@ -63,9 +75,9 @@ class WeatherDetailActivity : AppCompatActivity() {
         orientation = LinearLayout.VERTICAL
         setPadding(dp(13), dp(11), dp(13), dp(11))
         background = android.graphics.drawable.GradientDrawable().apply {
-            setColor(Color.WHITE)
+            setColor(cardColor)
             cornerRadius = dp(13).toFloat()
-            setStroke(dp(1), Color.rgb(230, 233, 238))
+            setStroke(dp(1), cardStroke)
         }
     }
 
@@ -90,14 +102,14 @@ class WeatherDetailActivity : AppCompatActivity() {
         content.addView(top)
         if (data == null) {
             content.addView(label("正在获取天气预报…", 14f).apply { setPadding(0, dp(20), 0, dp(20)) })
-            content.addView(label("请检查网络连接后点击刷新。", 12f, color = Color.DKGRAY))
+            content.addView(label("请检查网络连接后点击刷新。", 12f, color = secondaryText))
             return
         }
         content.addView(label(
             "${data.currentTemperature}°  ${WeatherRepository.weatherText(data.currentCode)}",
             30f, true
         ).apply { setPadding(0, dp(8), 0, dp(2)) })
-        content.addView(label("湿度 ${data.humidity}%    风速 ${data.wind} km/h", 13f, color = Color.DKGRAY))
+        content.addView(label("湿度 ${data.humidity}%    风速 ${data.wind} km/h", 13f, color = secondaryText))
         section("未来 7 天")
         val dayStrip = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         data.days.take(7).forEachIndexed { index, day ->
@@ -109,7 +121,7 @@ class WeatherDetailActivity : AppCompatActivity() {
                 addView(label("${day.low}°", 12f, false, Color.rgb(56, 126, 205)))
                 if (day.date == selectedDate) {
                     background = android.graphics.drawable.GradientDrawable().apply {
-                        setColor(Color.rgb(231, 241, 255)); cornerRadius = dp(13).toFloat()
+                        setColor(selectedCardColor); cornerRadius = dp(13).toFloat()
                         setStroke(dp(2), Color.rgb(75, 139, 218))
                     }
                 }
@@ -156,7 +168,7 @@ class WeatherDetailActivity : AppCompatActivity() {
         }
         content.addView(label(
             "天气数据来源：Open-Meteo（CC BY 4.0）",
-            10f, color = Color.GRAY
+            10f, color = secondaryText
         ).apply { setPadding(0, dp(22), 0, 0) })
     }
 
