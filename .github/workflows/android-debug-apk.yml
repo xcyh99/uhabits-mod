@@ -34,6 +34,7 @@ on:
       - test/990B3
       - test/990B4
       - test/990B5
+      - test/100B1
   pull_request:
     branches:
       - dev
