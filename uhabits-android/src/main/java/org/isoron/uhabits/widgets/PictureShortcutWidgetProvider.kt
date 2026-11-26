@@ -18,7 +18,7 @@ import org.isoron.uhabits.activities.settings.FeatureShortcutCatalog
 import org.isoron.uhabits.activities.timerecords.TimeRecordsActivity
 import java.io.File
 
-/** User-selected photo widget with ten tap segments for a draggable left/right split. */
+/** User-selected photo widget with four independently configurable tap zones. */
 class PictureShortcutWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         ids.forEach { updateWidget(context, it) }
@@ -39,26 +39,44 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
             prefs.getString(key(id, "image"), null)?.takeIf { it.isNotBlank() }?.let { File(context.filesDir, it).delete() }
             prefs.edit().remove(id.toString() + "_image")
                 .remove(id.toString() + "_left").remove(id.toString() + "_right")
-                .remove(id.toString() + "_split").remove(id.toString() + "_imageMode").apply()
+                .remove(id.toString() + "_split").remove(id.toString() + "_imageMode")
+                .remove(id.toString() + "_splitY")
+                .remove(id.toString() + "_topLeft").remove(id.toString() + "_topRight")
+                .remove(id.toString() + "_bottomLeft").remove(id.toString() + "_bottomRight").apply()
         }
     }
 
     companion object {
         const val PREFS = "picture_shortcut_widget_links"
         private fun key(id: Int, name: String) = "${id}_${name}"
-        private val segmentIds = intArrayOf(
-            R.id.picture_zone_0, R.id.picture_zone_1, R.id.picture_zone_2,
-            R.id.picture_zone_3, R.id.picture_zone_4, R.id.picture_zone_5,
-            R.id.picture_zone_6, R.id.picture_zone_7, R.id.picture_zone_8,
-            R.id.picture_zone_9
+        private val zoneIds = intArrayOf(
+            R.id.picture_zone_top_left, R.id.picture_zone_top_right,
+            R.id.picture_zone_bottom_left, R.id.picture_zone_bottom_right
         )
 
-        fun save(context: Context, id: Int, imageName: String, left: String, right: String, split: Int, imageMode: String = "fit") {
+        fun save(
+            context: Context,
+            id: Int,
+            imageName: String,
+            topLeft: String,
+            topRight: String,
+            bottomLeft: String,
+            bottomRight: String,
+            splitX: Int,
+            splitY: Int,
+            imageMode: String = "fit"
+        ) {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .putString(key(id, "image"), imageName)
-                .putString(key(id, "left"), left)
-                .putString(key(id, "right"), right)
-                .putInt(key(id, "split"), split.coerceIn(1, 9))
+                // Keep legacy keys for compatibility with older app versions.
+                .putString(key(id, "left"), topLeft)
+                .putString(key(id, "right"), topRight)
+                .putString(key(id, "topLeft"), topLeft)
+                .putString(key(id, "topRight"), topRight)
+                .putString(key(id, "bottomLeft"), bottomLeft)
+                .putString(key(id, "bottomRight"), bottomRight)
+                .putInt(key(id, "split"), splitX.coerceIn(1, 9))
+                .putInt(key(id, "splitY"), splitY.coerceIn(1, 9))
                 .putString(key(id, "imageMode"), imageMode)
                 .apply()
         }
@@ -95,19 +113,29 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
             }
 
 
-            val split = prefs.getInt(key(id, "split"), 5).coerceIn(1, 9)
-            val left = prefs.getString(key(id, "left"), "feature:__feature_center")
-            val right = prefs.getString(key(id, "right"), "feature:__settings")
-            val leftIntent = targetIntent(context, left)
-            val rightIntent = targetIntent(context, right)
-            segmentIds.forEachIndexed { index, viewId ->
-                val pending = PendingIntent.getActivity(
-                    context, id * 100 + index,
-                    if (index < split) leftIntent else rightIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or
-                        (if (android.os.Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
-                )
-                views.setOnClickPendingIntent(viewId, pending)
+            val splitX = prefs.getInt(key(id, "split"), 5).coerceIn(1, 9)
+            val splitY = prefs.getInt(key(id, "splitY"), 5).coerceIn(1, 9)
+            val legacyLeft = prefs.getString(key(id, "left"), "feature:__feature_center")
+            val legacyRight = prefs.getString(key(id, "right"), "feature:__settings")
+            val targets = arrayOf(
+                prefs.getString(key(id, "topLeft"), null) ?: legacyLeft,
+                prefs.getString(key(id, "topRight"), null) ?: legacyRight,
+                prefs.getString(key(id, "bottomLeft"), null) ?: legacyLeft,
+                prefs.getString(key(id, "bottomRight"), null) ?: legacyRight
+            )
+            zoneIds.forEachIndexed { index, viewId ->
+                val target = targets[index].orEmpty()
+                if (target.isBlank()) {
+                    // An unconfigured quadrant is intentionally inert.
+                    views.setOnClickPendingIntent(viewId, null)
+                } else {
+                    val pending = PendingIntent.getActivity(
+                        context, id * 100 + index, targetIntent(context, target),
+                        PendingIntent.FLAG_UPDATE_CURRENT or
+                            (if (android.os.Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
+                    )
+                    views.setOnClickPendingIntent(viewId, pending)
+                }
             }
             manager.updateAppWidget(id, views)
         }
