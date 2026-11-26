@@ -97,16 +97,22 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         val modeAdapter = object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, modeLabels) {
             override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
                 return (super.getView(position, convertView, parent) as TextView).apply {
-                    textSize = 14f
+                    textSize = 12f
                     maxLines = 1
                     setSingleLine(true)
+                    ellipsize = null
+                    includeFontPadding = false
+                    setPadding(0, 0, 0, 0)
                 }
             }
             override fun getDropDownView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
                 return (super.getDropDownView(position, convertView, parent) as TextView).apply {
-                    textSize = 14f
+                    textSize = 12f
                     maxLines = 1
                     setSingleLine(true)
+                    ellipsize = null
+                    includeFontPadding = false
+                    setPadding(0, 0, 0, 0)
                 }
             }
         }
