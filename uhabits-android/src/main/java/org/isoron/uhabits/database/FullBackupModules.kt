@@ -41,6 +41,7 @@ internal object FullBackupModuleRegistry {
         TimeRecordWidgetLinksModule,
         PictureWidgetConfigurationsModule,
         HabitWidgetConfigurationsModule,
+        SimpleWidgetInstancesModule,
         AppPreferencesModule,
         FloatingTimerModule
     )
@@ -346,6 +347,99 @@ internal object FullBackupModuleRegistry {
 
         override fun rollback(context: Context, safetyRoot: File) {
             org.isoron.uhabits.widgets.WidgetRestoreStore.replaceType(context, "habit", emptyList())
+            restore(context, safetyRoot)
+        }
+    }
+
+
+    /**
+     * Clock and batch-add widgets have no per-instance settings. Their global
+     * display preferences are backed up separately; this module preserves the
+     * number and provider type of their desktop instances.
+     */
+    private object SimpleWidgetInstancesModule : FullBackupModule {
+        private const val ENTRY = "widgets/simple_widget_instances.json"
+        override val id = "simple_widget_instances"
+        override val entries = setOf(ENTRY)
+        override val requiredEntries = emptySet<String>()
+
+        private val providerClasses = setOf(
+            org.isoron.uhabits.widgets.DigitalClockWidgetProvider::class.java.name,
+            org.isoron.uhabits.widgets.BatchAddWidgetProvider::class.java.name
+        )
+
+        override fun export(context: Context, stagingRoot: File) {
+            val manager = android.appwidget.AppWidgetManager.getInstance(context)
+            val configs = JSONArray()
+            manager.installedProviders
+                .mapNotNull { it.provider }
+                .filter { it.packageName == context.packageName && it.className in providerClasses }
+                .distinct()
+                .forEach { provider ->
+                    manager.getAppWidgetIds(provider).forEach { widgetId ->
+                        configs.put(JSONObject()
+                            .put("sourceWidgetId", widgetId)
+                            .put("providerClass", provider.className)
+                            .put("type", "simple"))
+                    }
+                }
+            org.isoron.uhabits.widgets.WidgetRestoreStore.pending(context)
+                .filter { it.type == "simple" && it.providerClass in providerClasses }
+                .forEach { item ->
+                    if ((0 until configs.length()).none { index ->
+                        val existing = configs.getJSONObject(index)
+                        existing.optInt("sourceWidgetId") == item.sourceWidgetId &&
+                            existing.optString("providerClass") == item.providerClass
+                    }) {
+                        configs.put(JSONObject()
+                            .put("sourceWidgetId", item.sourceWidgetId)
+                            .put("providerClass", item.providerClass)
+                            .put("type", "simple"))
+                    }
+                }
+            writePayload(stagingRoot, ENTRY, JSONObject()
+                .put("format", "SHIZI_SIMPLE_WIDGET_INSTANCES")
+                .put("version", 1)
+                .put("configs", configs)
+                .toString())
+        }
+
+        override fun validate(payloads: Map<String, ByteArray>) {
+            val root = jsonPayload(payloads, ENTRY)
+            val configs = root.optJSONArray("configs")
+            if (root.optString("format") != "SHIZI_SIMPLE_WIDGET_INSTANCES" ||
+                root.optInt("version", -1) != 1 || configs == null
+            ) throw IOException("其他组件实例备份格式不受支持")
+            val seen = mutableSetOf<String>()
+            for (index in 0 until configs.length()) {
+                val item = configs.optJSONObject(index) ?: throw IOException("组件实例配置项无效")
+                val sourceId = item.optInt("sourceWidgetId", -1)
+                val provider = item.optString("providerClass")
+                if (sourceId < 0 || provider !in providerClasses ||
+                    item.optString("type") != "simple" ||
+                    !seen.add("$provider#$sourceId")
+                ) throw IOException("组件实例配置字段无效")
+            }
+        }
+
+        override fun snapshot(context: Context, safetyRoot: File) = export(context, safetyRoot)
+
+        override fun restore(context: Context, restoreRoot: File) {
+            val array = JSONObject(readPayload(restoreRoot, ENTRY)).getJSONArray("configs")
+            val restored = (0 until array.length()).map { index ->
+                val item = array.getJSONObject(index)
+                org.isoron.uhabits.widgets.WidgetRestoreStore.Config(
+                    sourceWidgetId = item.getInt("sourceWidgetId"),
+                    providerClass = item.getString("providerClass"),
+                    habitIds = emptyList(),
+                    type = "simple"
+                )
+            }
+            org.isoron.uhabits.widgets.WidgetRestoreStore.mergePending(context, restored)
+        }
+
+        override fun rollback(context: Context, safetyRoot: File) {
+            org.isoron.uhabits.widgets.WidgetRestoreStore.replaceType(context, "simple", emptyList())
             restore(context, safetyRoot)
         }
     }
