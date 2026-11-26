@@ -61,165 +61,89 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
             })
             PictureWidgetRestoreStore.replacePending(this, emptyList())
         }
-        val configs = PictureWidgetRestoreStore.pending(this)
-        if (configs.isEmpty() && WidgetRestoreStore.pending(this).none { it.type == "picture" }) {
+        val pending = WidgetRestoreStore.pending(this)
+        if (pending.isEmpty()) {
             root.addView(TextView(this).apply {
-                text = "没有待恢复的图片组件配置。请先导入包含组件设置的完全备份。"
+                text = "没有待恢复的桌面组件配置。请先导入包含组件设置的完全备份。"
                 textSize = 15f
                 setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
                 setPadding(dp(12), dp(18), dp(12), dp(18))
             })
         } else {
-            configs.forEachIndexed { index, config ->
-                val card = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    setPadding(dp(14), dp(12), dp(14), dp(12))
-                    background = android.graphics.drawable.GradientDrawable().apply {
-                        setColor(if (dark) 0xFF2D3037.toInt() else android.graphics.Color.WHITE)
-                        cornerRadius = dp(12).toFloat()
-                    }
-                }
-                card.addView(TextView(this).apply {
-                    text = "图片组件 ${index + 1}（原组件编号 ${config.sourceWidgetId}）"
-                    textSize = 15f
+            fun addSection(
+                sectionTitle: String,
+                items: List<WidgetRestoreStore.Config>,
+                detail: (WidgetRestoreStore.Config) -> String
+            ) {
+                if (items.isEmpty()) return
+                root.addView(TextView(this).apply {
+                    text = sectionTitle
+                    textSize = 17f
                     setTypeface(typeface, android.graphics.Typeface.BOLD)
                     setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+                    setPadding(0, dp(14), 0, dp(8))
                 })
-                card.addView(TextView(this).apply {
-                    text = "点击目标、分界比例和显示方式已保存；轻量备份不含图片文件，需要重新选择图片。"
-                    textSize = 12f
-                    setPadding(0, dp(5), 0, dp(9))
-                    setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
-                })
-                val restoreButton = Button(this).apply {
-                    text = "添加并恢复此组件"
-                    setOnClickListener { requestRestore(config.sourceWidgetId) }
+                items.forEachIndexed { index, config ->
+                    val title = when (config.type) {
+                        "picture" -> "图片组件"
+                        "habit" -> WidgetCatalog.discover(this)
+                            .firstOrNull { it.provider.className == config.providerClass }?.title
+                            ?: config.providerClass.substringAfterLast('.')
+                        "time_record" -> "时间记录组件"
+                        "simple" -> when (config.providerClass) {
+                            DigitalClockWidgetProvider::class.java.name -> "数字时钟组件"
+                            BatchAddWidgetProvider::class.java.name -> "批量添加组件"
+                            else -> config.providerClass.substringAfterLast('.')
+                        }
+                        else -> config.providerClass.substringAfterLast('.')
+                    }
+                    val card = LinearLayout(this).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setPadding(dp(14), dp(12), dp(14), dp(12))
+                        background = android.graphics.drawable.GradientDrawable().apply {
+                            setColor(if (dark) 0xFF2D3037.toInt() else android.graphics.Color.WHITE)
+                            cornerRadius = dp(12).toFloat()
+                        }
+                    }
+                    card.addView(TextView(this).apply {
+                        text = "$title ${index + 1}（原组件编号 ${config.sourceWidgetId}）"
+                        textSize = 15f
+                        setTypeface(typeface, android.graphics.Typeface.BOLD)
+                        setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+                    })
+                    card.addView(TextView(this).apply {
+                        text = detail(config)
+                        textSize = 12f
+                        setPadding(0, dp(5), 0, dp(9))
+                        setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
+                    })
+                    val button = Button(this).apply {
+                        text = "添加并恢复此组件"
+                        setOnClickListener { requestHabitRestore(config) }
+                    }
+                    restoreButtons += button
+                    card.addView(button)
+                    root.addView(card, LinearLayout.LayoutParams(-1, -2).apply {
+                        bottomMargin = dp(10)
+                    })
                 }
-                restoreButtons += restoreButton
-                card.addView(restoreButton)
-                root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
             }
-        }
 
-
-        val pictureConfigs = WidgetRestoreStore.pending(this).filter { it.type == "picture" }
-        if (pictureConfigs.isNotEmpty()) {
-            root.addView(TextView(this).apply {
-                text = "图片组件"
-                textSize = 17f
-                setTypeface(typeface, android.graphics.Typeface.BOLD)
-                setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
-                setPadding(0, dp(14), 0, dp(8))
-            })
-            pictureConfigs.forEachIndexed { index, config ->
-                val card = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    setPadding(dp(14), dp(12), dp(14), dp(12))
-                    background = android.graphics.drawable.GradientDrawable().apply {
-                        setColor(if (dark) 0xFF2D3037.toInt() else android.graphics.Color.WHITE)
-                        cornerRadius = dp(12).toFloat()
-                    }
-                }
-                card.addView(TextView(this).apply {
-                    text = "图片组件 ${index + 1}（原组件编号 ${config.sourceWidgetId}）"
-                    textSize = 15f
-                    setTypeface(typeface, android.graphics.Typeface.BOLD)
-                    setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
-                })
-                card.addView(TextView(this).apply {
-                    text = "点击目标、分界比例和显示方式已保存；轻量备份不含图片文件，需要重新选择图片。"
-                    textSize = 12f
-                    setPadding(0, dp(5), 0, dp(9))
-                    setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
-                })
-                card.addView(Button(this).apply {
-                    text = "添加并恢复此组件"
-                    setOnClickListener { requestHabitRestore(config) }
-                })
-                root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
+            addSection("图片组件", pending.filter { it.type == "picture" }) {
+                "点击目标、分界比例和显示方式已保存；轻量备份不含图片文件，恢复时需要重新选择图片。"
             }
-        }
-
-        val habitConfigs = WidgetRestoreStore.pending(this).filter { it.type == "habit" }
-        if (habitConfigs.isNotEmpty()) {
-            root.addView(TextView(this).apply {
-                text = "习惯类组件"
-                textSize = 17f
-                setTypeface(typeface, android.graphics.Typeface.BOLD)
-                setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
-                setPadding(0, dp(14), 0, dp(8))
-            })
-            val catalog = WidgetCatalog.discover(this).associateBy { it.provider.className }
-            habitConfigs.forEachIndexed { index, config ->
-                val title = catalog[config.providerClass]?.title
-                    ?: config.providerClass.substringAfterLast('.')
-                val card = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    setPadding(dp(14), dp(12), dp(14), dp(12))
-                    background = android.graphics.drawable.GradientDrawable().apply {
-                        setColor(if (dark) 0xFF2D3037.toInt() else android.graphics.Color.WHITE)
-                        cornerRadius = dp(12).toFloat()
-                    }
-                }
-                card.addView(TextView(this).apply {
-                    text = "${title} ${index + 1}（原组件编号 ${config.sourceWidgetId}）"
-                    textSize = 15f
-                    setTypeface(typeface, android.graphics.Typeface.BOLD)
-                    setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
-                })
-                card.addView(TextView(this).apply {
-                    text = "已保存原来选择的 ${config.habitIds.size} 个习惯。添加到桌面后会自动绑定到新组件。"
-                    textSize = 12f
-                    setPadding(0, dp(5), 0, dp(9))
-                    setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
-                })
-                card.addView(Button(this).apply {
-                    text = "添加并恢复此组件"
-                    setOnClickListener { requestHabitRestore(config) }
-                })
-                root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
+            addSection("习惯类组件", pending.filter { it.type == "habit" }) {
+                "已保存原来选择的 ${it.habitIds.size} 个习惯，添加后会自动绑定到新组件。"
             }
-        }
-
-
-        val timeRecordConfigs = WidgetRestoreStore.pending(this).filter { it.type == "time_record" }
-        if (timeRecordConfigs.isNotEmpty()) {
-            root.addView(TextView(this).apply {
-                text = "时间记录组件"
-                textSize = 17f
-                setTypeface(typeface, android.graphics.Typeface.BOLD)
-                setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
-                setPadding(0, dp(14), 0, dp(8))
-            })
-            timeRecordConfigs.forEachIndexed { index, config ->
-                val record = config.recordId?.let {
-                    org.isoron.uhabits.activities.timerecords.TimeRecordStore.get(this@PictureWidgetRestoreActivity, it)
+            addSection("时间记录组件", pending.filter { it.type == "time_record" }) {
+                val record = it.recordId?.let { id ->
+                    org.isoron.uhabits.activities.timerecords.TimeRecordStore.get(this@PictureWidgetRestoreActivity, id)
                 }
-                val card = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    setPadding(dp(14), dp(12), dp(14), dp(12))
-                    background = android.graphics.drawable.GradientDrawable().apply {
-                        setColor(if (dark) 0xFF2D3037.toInt() else android.graphics.Color.WHITE)
-                        cornerRadius = dp(12).toFloat()
-                    }
-                }
-                card.addView(TextView(this).apply {
-                    text = "时间记录组件 ${index + 1}（原组件编号 ${config.sourceWidgetId}）"
-                    textSize = 15f
-                    setTypeface(typeface, android.graphics.Typeface.BOLD)
-                    setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
-                })
-                card.addView(TextView(this).apply {
-                    text = if (record != null) "将重新绑定时间记录：${record.title}" else "原时间记录编号：${config.recordId}（请先确认记录数据已恢复）"
-                    textSize = 12f
-                    setPadding(0, dp(5), 0, dp(9))
-                    setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
-                })
-                card.addView(Button(this).apply {
-                    text = "添加并恢复此组件"
-                    setOnClickListener { requestHabitRestore(config) }
-                })
-                root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
+                if (record != null) "将重新绑定时间记录：${record.title}"
+                else "原时间记录编号：${it.recordId ?: "未知"}（请确认记录数据已恢复）"
+            }
+            addSection("其他组件", pending.filter { it.type == "simple" }) {
+                "组件实例数量和类型已保存；数字时钟样式等应用级设置会随完全备份恢复。"
             }
         }
 
@@ -266,41 +190,4 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
         }
     }
 
-    private fun requestRestore(sourceWidgetId: Int) {
-        val manager = AppWidgetManager.getInstance(this)
-        if (!manager.isRequestPinAppWidgetSupported) {
-            PictureWidgetRestoreStore.select(this, sourceWidgetId)
-            Toast.makeText(this, "当前桌面不支持应用内添加。请到桌面手动添加“图片快捷组件”，配置窗口会自动载入这项恢复设置。", Toast.LENGTH_LONG).show()
-            return
-        }
-
-        // requestPinAppWidget does NOT launch the provider's configure activity.
-        // Its success callback must open the configuration screen and carry the
-        // newly allocated widget ID together with this source configuration ID.
-        val callbackIntent = Intent(this, PictureShortcutWidgetConfigureActivity::class.java)
-            .putExtra(PictureWidgetRestoreStore.EXTRA_RESTORE_SOURCE_WIDGET_ID, sourceWidgetId)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        val callback = PendingIntent.getActivity(
-            this,
-            sourceWidgetId,
-            callbackIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val accepted = runCatching {
-            manager.requestPinAppWidget(
-                ComponentName(this, PictureShortcutWidgetProvider::class.java),
-                null,
-                callback
-            )
-        }.getOrDefault(false)
-
-        if (accepted) {
-            restoreButtons.forEach { it.isEnabled = false }
-            Toast.makeText(this, "已请求桌面添加；确认后会自动打开配置页。请逐个恢复组件。", Toast.LENGTH_LONG).show()
-            window.decorView.post { moveTaskToBack(true) }
-        } else {
-            PictureWidgetRestoreStore.select(this, sourceWidgetId)
-            Toast.makeText(this, "桌面未接受应用内添加请求。请手动添加图片快捷组件，配置窗口会载入这项恢复设置。", Toast.LENGTH_LONG).show()
-        }
-    }
 }
