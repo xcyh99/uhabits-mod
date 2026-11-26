@@ -7,8 +7,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import org.isoron.uhabits.HabitsApplication
 import org.isoron.uhabits.activities.AndroidThemeSwitcher
-import org.isoron.uhabits.preferences.SharedPreferencesStorage
-import org.isoron.uhabits.core.preferences.WidgetPreferences
 
 /**
  * Receives the launcher's pin-success callback, finds the newly allocated ID,
@@ -46,11 +44,21 @@ class WidgetRestoreCallbackActivity : AppCompatActivity() {
 
         val newWidgetId = newIds.first()
         try {
-            val widgetPreferences = (application as HabitsApplication).component.widgetPreferences
-            widgetPreferences.addWidget(newWidgetId, config.habitIds.toLongArray())
-            val provider = Class.forName(providerClass)
-                .getDeclaredConstructor().newInstance() as android.appwidget.AppWidgetProvider
-            provider.onUpdate(this, manager, intArrayOf(newWidgetId))
+            when (config.type) {
+                "habit" -> {
+                    val widgetPreferences = (application as HabitsApplication).component.widgetPreferences
+                    widgetPreferences.addWidget(newWidgetId, config.habitIds.toLongArray())
+                    val provider = Class.forName(providerClass)
+                        .getDeclaredConstructor().newInstance() as android.appwidget.AppWidgetProvider
+                    provider.onUpdate(this, manager, intArrayOf(newWidgetId))
+                }
+                "time_record" -> {
+                    val recordId = config.recordId ?: throw IllegalStateException("缺少时间记录编号")
+                    TimeRecordWidgetProvider.setRecord(this, newWidgetId, recordId)
+                    TimeRecordWidgetProvider.updateWidget(this, newWidgetId)
+                }
+                else -> throw IllegalStateException("暂不支持此组件的恢复类型：${config.type}")
+            }
             WidgetRestoreStore.consume(this, sourceId, providerClass)
             WidgetRestoreStore.clearSelection(this, sourceId)
             Toast.makeText(this, "习惯组件配置已恢复。", Toast.LENGTH_SHORT).show()
