@@ -224,7 +224,7 @@ class ShortcutEntryManagementActivity : AppCompatActivity() {
 
         if (entries.isEmpty()) {
             list.addView(TextView(this).apply {
-                text = "当前没有已保存的入口目录。请点击上方「开始扫描」。"
+                this.text = "当前没有已保存的入口目录。请点击上方「开始扫描」。"
                 textSize = 14f
                 setTextColor(secondaryText)
                 gravity = Gravity.CENTER
@@ -290,7 +290,7 @@ class ShortcutEntryManagementActivity : AppCompatActivity() {
 
         if (visible.isEmpty()) {
             list.addView(TextView(this).apply {
-                text = "没有找到匹配的入口"
+                this.text = "没有找到匹配的入口"
                 textSize = 14f
                 setTextColor(secondaryText)
                 setPadding(0, dp(24), 0, dp(24))
