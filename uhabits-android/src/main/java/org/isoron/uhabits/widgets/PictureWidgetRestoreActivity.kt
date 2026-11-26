@@ -353,8 +353,8 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
                         setOnClickListener { requestHabitRestore(config) }
                     }
                     restoreButtons += button
-                    button.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.rgb(46, 160, 90))
-                    button.setTextColor(Color.WHITE)
+                    button.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.rgb(46, 160, 90))
+                    button.setTextColor(android.graphics.Color.WHITE)
                     actionRow.addView(button, LinearLayout.LayoutParams(dp(142), dp(38)))
                     card.addView(actionRow)
 
