@@ -87,7 +87,7 @@ object FeatureShortcutCatalog {
         BuiltIn("featureShortcuts", "快捷菜单设置", "设置")
     )
 
-    private val recommended = builtIns.map { it.key }.toSet() + setOf("pictureShortcutWidgetSettings")
+    private val recommended = builtIns.filterNot { it.key == "widgetRestore" }.map { it.key }.toSet() + setOf("pictureShortcutWidgetSettings")
     private const val KEY_ALLOWED_MIGRATION_VERSION = "shortcut_candidate_migration_version"
     private const val ALLOWED_MIGRATION_VERSION = 7
 
