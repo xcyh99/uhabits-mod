@@ -50,6 +50,8 @@ import android.widget.TextView
 import android.widget.BaseAdapter
 import android.widget.Toast
 import android.text.InputType
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
@@ -417,8 +419,14 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         updatePublicBackupFolderSummary()
         updateAutoBackupStatusSummary()
 
-        findPreference("webDavSync").title =
-            "☆ " + getString(R.string.webdav_sync)
+        val webDavTitle = SpannableString("★ " + getString(R.string.webdav_sync))
+        webDavTitle.setSpan(
+            ForegroundColorSpan(Color.rgb(76, 175, 80)),
+            0,
+            1,
+            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        findPreference("webDavSync").title = webDavTitle
         findPreference("reminderSound").isVisible = false
         findPreference("featureShortcuts").isVisible = false
         findPreference("desktopShortcuts").isVisible = false
@@ -1754,8 +1762,8 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             "#2E7D32"
         )
 
-        val fullUploadButton = actionButton("完整备份上传", "#6A1B9A")
-        val fullDownloadButton = actionButton("完整备份下载", "#00838F")
+        val fullUploadButton = actionButton("上传完整备份", "#6A1B9A")
+        val fullDownloadButton = actionButton("下载完整备份", "#00838F")
         val fullBackupRow = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.HORIZONTAL
             addView(fullUploadButton, LinearLayout.LayoutParams(0, dp(52), 1f).apply {
@@ -1767,7 +1775,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         }
 
         val previewButton = actionButton(
-            "双向同步",
+            "数据双向同步",
             "#1565C0"
         )
 
