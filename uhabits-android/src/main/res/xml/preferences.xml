@@ -133,9 +133,9 @@
                 app:iconSpaceReserved="false" />
 
         <Preference
-                android:key="timeRecords"
+                android:key="timeCenter"
                 android:title="时间中心"
-                android:summary="@string/time_records_summary"
+                android:summary="集中管理时间记录、状态栏天数和悬浮计时器。"
                 app:iconSpaceReserved="false" />
 
         <Preference
@@ -150,11 +150,6 @@
                 android:summary="设置每次打开十字习惯 APP 时首先显示的页面。"
                 app:iconSpaceReserved="false" />
 
-        <Preference
-                android:key="floatingTimer"
-                android:title="悬浮计时器"
-                android:summary="在其他应用上方显示小时、分钟、秒计时窗口。单击暂停或继续，长按打开设置。"
-                app:iconSpaceReserved="false" />
 
         <Preference
                 android:key="desktopDoodle"
@@ -162,11 +157,6 @@
                 android:summary="在当前屏幕上方自由绘画；可切换画笔、橡皮擦、颜色、撤销和清屏，点击关闭退出。"
                 app:iconSpaceReserved="false" />
 
-        <Preference
-                android:key="statusBarDays"
-                android:title="状态栏天数"
-                android:summary="在状态栏显示一个纯数字；支持打卡间隔、倒计时和正计时。"
-                app:iconSpaceReserved="false" />
 
         <Preference
                 android:key="puzzleGames"
