@@ -441,7 +441,7 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
                         textSize = 12f
                         setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
                     }, LinearLayout.LayoutParams(0, dp(38), 1f))
-                    card.addView(Button(this).apply {
+                    actionRow.addView(Button(this).apply {
                         text = "清零"
                         textSize = 11f
                         isAllCaps = false
@@ -456,6 +456,7 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
                             recreate()
                         }
                     }, LinearLayout.LayoutParams(dp(62), dp(38)))
+                    card.addView(actionRow)
                     root.addView(card, LinearLayout.LayoutParams(-1, -2).apply {
                         bottomMargin = dp(7)
                     })
