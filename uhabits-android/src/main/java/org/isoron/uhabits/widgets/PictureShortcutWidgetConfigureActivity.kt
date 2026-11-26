@@ -78,20 +78,40 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         }
         val chooseImageButton = Button(this).apply {
             text = "选择图片"
-            textSize = 13f
+            textSize = 14f
+            minHeight = dp(72)
             isAllCaps = false
             setOnClickListener { chooseImage() }
         }
         val modeTitle = TextView(this).apply {
             text = "图片显示方式"
-            textSize = 12f
+            textSize = 14f
+            maxLines = 1
+            setSingleLine(true)
             setPadding(0, dp(6), 0, dp(2))
         }
         modeSpinner = Spinner(this).apply {
             textAlignment = View.TEXT_ALIGNMENT_VIEW_START
         }
         val modeLabels = listOf("完全适应", "拉伸填满", "居中裁剪")
-        modeSpinner.adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, modeLabels) {\n            override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {\n                return (super.getView(position, convertView, parent) as TextView).apply {\n                    textSize = 14f\n                    maxLines = 1\n                    setSingleLine(true)\n                }\n            }\n            override fun getDropDownView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {\n                return (super.getDropDownView(position, convertView, parent) as TextView).apply {\n                    textSize = 14f\n                    maxLines = 1\n                    setSingleLine(true)\n                }\n            }\n        }\n        modeSpinner.adapter.let { (it as ArrayAdapter<*>).setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val modeAdapter = object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, modeLabels) {
+            override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
+                return (super.getView(position, convertView, parent) as TextView).apply {
+                    textSize = 14f
+                    maxLines = 1
+                    setSingleLine(true)
+                }
+            }
+            override fun getDropDownView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
+                return (super.getDropDownView(position, convertView, parent) as TextView).apply {
+                    textSize = 14f
+                    maxLines = 1
+                    setSingleLine(true)
+                }
+            }
+        }
+        modeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        modeSpinner.adapter = modeAdapter
         modeSpinner.setSelection(0)
         modeSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
