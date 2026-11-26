@@ -65,6 +65,7 @@ object FeatureShortcutPicker {
             list.visibility = if (filtered.isEmpty()) View.GONE else View.VISIBLE
             empty.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
         }
+        lateinit var dialog: AlertDialog
         val content = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(4), dp(16), dp(4))
             if (extraActions.isNotEmpty()) {
@@ -77,7 +78,7 @@ object FeatureShortcutPicker {
                         text = label
                         textSize = 13f
                         isAllCaps = false
-                        setOnClickListener { action() }
+                        setOnClickListener { dialog.dismiss(); action() }
                     }, LinearLayout.LayoutParams(0, dp(44), 1f).apply {
                         if (extraActions.size > 1) marginEnd = dp(6)
                     })
@@ -89,7 +90,7 @@ object FeatureShortcutPicker {
             addView(list, LinearLayout.LayoutParams(-1, listHeight))
             addView(empty, LinearLayout.LayoutParams(-1, listHeight))
         }
-        val dialog = AlertDialog.Builder(context).setTitle(title).setView(content).setNegativeButton("取消", null).create()
+        dialog = AlertDialog.Builder(context).setTitle(title).setView(content).setNegativeButton("取消", null).create()
         list.setOnItemClickListener { _, _, position, _ -> onSelected(filtered[position].key); dialog.dismiss() }
         search.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
