@@ -59,7 +59,7 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
             setBackgroundColor(if (dark) 0xFF191B1F.toInt() else 0xFFF6F7F9.toInt())
         }
         root.addView(TextView(this).apply {
-            text = "这里列出完全备份中保存的桌面组件配置。选择一项后，应用会将原来的设置和关联关系恢复到新添加的组件；图片组件需要重新选择图片。"
+            text = "这里列出完全备份中保存的桌面组件配置。选择一项后，应用会将原来的设置和关联关系恢复到新添加的组件；图片组件需要重新选择图片。历史恢复次数仅保存在本机，不进入备份。"
             textSize = 13f
             setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
             setPadding(0, 0, 0, dp(12))
@@ -159,16 +159,15 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
                         setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
                         setPadding(0, 0, 0, dp(5))
                     })
-                    if (count > 0) {
-                        card.addView(Button(this).apply {
-                            text = "清零"
-                            setOnClickListener {
-                                WidgetRestoreStore.clearHistory(this@PictureWidgetRestoreActivity,
-                                    config.sourceWidgetId, config.providerClass)
-                                recreate()
-                            }
-                        })
-                    }
+                    card.addView(Button(this).apply {
+                        text = "清零"
+                        isEnabled = count > 0
+                        setOnClickListener {
+                            WidgetRestoreStore.clearHistory(this@PictureWidgetRestoreActivity,
+                                config.sourceWidgetId, config.providerClass)
+                            recreate()
+                        }
+                    })
                     val button = Button(this).apply {
                         text = "添加并恢复此组件"
                         setOnClickListener { requestHabitRestore(config) }
