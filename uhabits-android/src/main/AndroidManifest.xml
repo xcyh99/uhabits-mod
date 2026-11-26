@@ -161,6 +161,11 @@
             android:exported="false" />
 
         <activity
+            android:name="org.isoron.uhabits.weather.WeatherDetailActivity"
+            android:exported="false"
+            android:label="天气" />
+
+        <activity
             android:name="org.isoron.uhabits.activities.settings.ComponentCenterActivity"
             android:exported="false"
             android:label="组件中心" />
@@ -224,6 +229,18 @@
             android:launchMode="singleInstance"
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <receiver
+            android:name="org.isoron.uhabits.weather.WeatherWidgetProvider"
+            android:exported="true"
+            android:label="天气组件">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_weather_info" />
+        </receiver>
 
         <receiver
             android:name="org.isoron.uhabits.widgets.CheckmarkWidgetProvider"
