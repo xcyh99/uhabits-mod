@@ -128,8 +128,16 @@ class PictureShortcutSplitEditorView @JvmOverloads constructor(
         }
 
         val occupied = ArrayList<RectF>()
-        fun drawPercent(text: String, zone: Int, candidates: List<Triple<Float, Float, Paint.Align>>) {
-            val p = Paint(percentPaint).apply { textAlign = Paint.Align.LEFT }
+        fun drawPercent(
+            text: String,
+            zone: Int,
+            color: Int,
+            candidates: List<Triple<Float, Float, Paint.Align>>
+        ) {
+            val p = Paint(percentPaint).apply {
+                textAlign = Paint.Align.LEFT
+                this.color = color
+            }
             val textWidth = p.measureText(text)
             val textHeight = p.textSize
             val area = RectF(
@@ -153,31 +161,42 @@ class PictureShortcutSplitEditorView @JvmOverloads constructor(
                     return
                 }
             }
-            // If no free place exists, hide this low-priority annotation rather than cover a shortcut name.
+            // Hide only when every safe position is occupied; never cover shortcut names or another percentage.
         }
 
         val xLine = x
         val yLine = y
         val inset = 9f * density
-        drawPercent("${splitX * 10}%", 0, listOf(
+        val xPercentColor = xDashPaint.color
+        val yPercentColor = yDashPaint.color
+        drawPercent("${splitX * 10}%", 0, xPercentColor, listOf(
             Triple(xLine - inset, square.top + 20f * density, Paint.Align.RIGHT),
             Triple(square.left + inset, square.top + 20f * density, Paint.Align.LEFT),
-            Triple(square.left + half / 2f, square.top + 38f * density, Paint.Align.CENTER)
+            Triple(square.left + half / 2f, square.top + 38f * density, Paint.Align.CENTER),
+            Triple(square.left + inset, square.centerY() - 8f * density, Paint.Align.LEFT)
         ))
-        drawPercent("${(10 - splitX) * 10}%", 1, listOf(
+        drawPercent("${(10 - splitX) * 10}%", 1, xPercentColor, listOf(
             Triple(xLine + inset, square.top + 20f * density, Paint.Align.LEFT),
             Triple(square.right - inset, square.top + 20f * density, Paint.Align.RIGHT),
+            Triple(square.left + half + half / 2f, square.top + 38f * density, Paint.Align.CENTER),
+            Triple(square.right - inset, square.centerY() - 8f * density, Paint.Align.RIGHT)
+        ))
+        // The upper-right quadrant contains both the right-side X label and the upper Y label.
+        // Give the Y label several alternate positions so it moves instead of disappearing on collision.
+        drawPercent("${splitY * 10}%", 1, yPercentColor, listOf(
+            Triple(square.right - inset, yLine - 8f * density, Paint.Align.RIGHT),
+            Triple(square.left + half + inset, yLine - 8f * density, Paint.Align.LEFT),
+            Triple(square.right - inset, square.top + 20f * density, Paint.Align.RIGHT),
+            Triple(square.left + half + inset, square.top + 20f * density, Paint.Align.LEFT),
+            Triple(square.left + half + half / 2f, square.centerY() - 8f * density, Paint.Align.CENTER),
             Triple(square.left + half + half / 2f, square.top + 38f * density, Paint.Align.CENTER)
         ))
-        drawPercent("${splitY * 10}%", 1, listOf(
-            Triple(square.right - inset, yLine - 8f * density, Paint.Align.RIGHT),
-            Triple(square.right - inset, square.top + 20f * density, Paint.Align.RIGHT),
-            Triple(square.left + half / 2f, yLine - 8f * density, Paint.Align.CENTER)
-        ))
-        drawPercent("${(10 - splitY) * 10}%", 3, listOf(
+        drawPercent("${(10 - splitY) * 10}%", 3, yPercentColor, listOf(
             Triple(square.right - inset, yLine + 20f * density, Paint.Align.RIGHT),
+            Triple(square.left + half + inset, yLine + 20f * density, Paint.Align.LEFT),
             Triple(square.right - inset, square.bottom - 8f * density, Paint.Align.RIGHT),
-            Triple(square.left + half / 2f, yLine + 20f * density, Paint.Align.CENTER)
+            Triple(square.left + half + inset, square.bottom - 8f * density, Paint.Align.LEFT),
+            Triple(square.left + half + half / 2f, yLine + 20f * density, Paint.Align.CENTER)
         ))
 
         // Slider handles live on the fixed center axes; dashed lines track their values.
