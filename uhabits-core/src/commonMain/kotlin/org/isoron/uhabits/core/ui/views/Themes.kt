@@ -37,7 +37,7 @@ abstract class Theme {
     open val toolbarColor = Color(0xffffff)
 
     fun color(paletteColor: PaletteColor): Color {
-        return color(paletteColor.paletteIndex)
+        return if (paletteColor.isCustom) Color(paletteColor.argb and 0x00FFFFFF) else color(paletteColor.paletteIndex)
     }
 
     open fun color(paletteIndex: Int): Color {

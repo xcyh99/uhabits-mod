@@ -1,27 +1,10 @@
-/*
- * Copyright (C) 2016-2025 Álinson Santos Xavier <git@axavier.org>
- *
- * This file is part of Loop Habit Tracker.
- *
- * Loop Habit Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by the
- * Free Software Foundation, either version 3 of the License, or (at your
- * option) any later version.
- *
- * Loop Habit Tracker is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 package org.isoron.uhabits.tasks
 
 import android.util.Log
 import org.isoron.platform.io.UserFile
 import org.isoron.platform.io.begin
 import org.isoron.platform.io.commit
+import org.isoron.platform.io.run
 import org.isoron.uhabits.core.io.GenericImporter
 import org.isoron.uhabits.core.models.ModelFactory
 import org.isoron.uhabits.core.models.sqlite.SQLModelFactory
@@ -34,32 +17,63 @@ class ImportDataTask(
     private val listener: Listener
 ) : Task {
     private var result = 0
+    private var diagnostic: String? = null
     private val modelFactory: SQLModelFactory = modelFactory as SQLModelFactory
+
     override suspend fun doInBackground() {
-        modelFactory.database.begin()
+        var transactionStarted = false
+        var stage = "开始数据库事务"
         try {
-            if (importer.canHandle(file)) {
+            modelFactory.database.begin()
+            transactionStarted = true
+
+            stage = "识别备份文件"
+            if (!importer.canHandle(file)) {
+                result = NOT_RECOGNIZED
+            } else {
+                stage = "读取备份、迁移数据库并写入习惯数据"
                 importer.importHabitsFromFile(file)
                 result = SUCCESS
-                modelFactory.database.commit()
-            } else {
-                result = NOT_RECOGNIZED
-                modelFactory.database.commit()
             }
-        } catch (e: Exception) {
+
+            stage = "提交导入数据"
+            modelFactory.database.commit()
+            transactionStarted = false
+        } catch (e: Throwable) {
             result = FAILED
-            Log.e("ImportDataTask", "Import failed", e)
-            // On failure, commit anyway to close the transaction
-            try { modelFactory.database.commit() } catch (_: Exception) {}
+            val causes = generateSequence(e) { it.cause }
+                .take(8)
+                .joinToString("\n") { cause ->
+                    "${cause.javaClass.simpleName}: ${cause.message ?: "没有提供错误详情"}"
+                }
+            diagnostic = "${stage}\n导入器内部阶段：${importer.lastImportStage}\n${causes}"
+            Log.e("ImportDataTask", "Import failed at: ${stage}", e)
+            if (transactionStarted) {
+                try {
+                    modelFactory.database.run("ROLLBACK")
+                } catch (rollbackError: Throwable) {
+                    Log.e("ImportDataTask", "Rollback failed", rollbackError)
+                    diagnostic = "${diagnostic}；回滚也失败：${rollbackError.javaClass.simpleName}"
+                }
+            }
+
+            // The in-memory HabitList is not part of the SQLite transaction.
+            // Reload it after rollback so the UI cannot keep showing uncommitted habits.
+            try {
+                importer.reloadHabitListCache()
+            } catch (reloadError: Throwable) {
+                Log.e("ImportDataTask", "Failed to reload habit cache after import failure", reloadError)
+                diagnostic = "${diagnostic}；刷新缓存失败：${reloadError.javaClass.simpleName}"
+            }
         }
     }
 
     override fun onPostExecute() {
-        listener.onImportDataFinished(result)
+        listener.onImportDataFinished(result, diagnostic)
     }
 
     fun interface Listener {
-        fun onImportDataFinished(result: Int)
+        fun onImportDataFinished(result: Int, diagnostic: String?)
     }
 
     companion object {
