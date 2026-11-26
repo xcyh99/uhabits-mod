@@ -64,6 +64,22 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
             setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
             setPadding(0, 0, 0, dp(12))
         })
+        val readStatus = TextView(this).apply {
+            text = "显示上次导入完全备份后保存的恢复记录；进入本页不会重新扫描备份文件。"
+            textSize = 12f
+            setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
+            setPadding(0, 0, 0, dp(6))
+        }
+        root.addView(readStatus)
+        root.addView(Button(this).apply {
+            text = "读取待恢复组件"
+            setOnClickListener {
+                val count = WidgetRestoreStore.pending(this@PictureWidgetRestoreActivity).size +
+                    PictureWidgetRestoreStore.pending(this@PictureWidgetRestoreActivity).size
+                readStatus.text = "读取完成：本机存档中有 $count 项待恢复组件配置。"
+                recreate()
+            }
+        })
         // Migrate any pending picture-only queue created by an earlier 990B3 build
         // into the shared restore queue before rendering the unified wizard.
         val legacyPictureConfigs = PictureWidgetRestoreStore.pending(this)
@@ -94,9 +110,8 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
         val history = WidgetRestoreStore.historyRecords(this)
         fun restoreTitle(type: String, providerClass: String): String = when (type) {
             "picture" -> "图片组件"
-            "habit" -> WidgetCatalog.discover(this)
-                .firstOrNull { it.provider.className == providerClass }?.title
-                ?: providerClass.substringAfterLast('.')
+            "habit" -> providerClass.substringAfterLast('.')
+                .removeSuffix("WidgetProvider").replace(Regex("([a-z])([A-Z])"), "$1 $2") + "组件"
             "time_record" -> "时间记录组件"
             "simple" -> when (providerClass) {
                 DigitalClockWidgetProvider::class.java.name -> "数字时钟组件"
@@ -116,6 +131,7 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
         } else {
             fun addSection(
                 sectionTitle: String,
+                titleColor: Int,
                 items: List<WidgetRestoreStore.Config>,
                 detail: (WidgetRestoreStore.Config) -> String
             ) {
@@ -124,7 +140,7 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
                     text = sectionTitle
                     textSize = 17f
                     setTypeface(typeface, android.graphics.Typeface.BOLD)
-                    setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+                    setTextColor(titleColor)
                     setPadding(0, dp(14), 0, dp(8))
                 })
                 items.forEachIndexed { index, config ->
@@ -180,20 +196,20 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
                 }
             }
 
-            addSection("图片组件", pending.filter { it.type == "picture" }) {
+            addSection("图片组件", android.graphics.Color.rgb(33, 150, 243), pending.filter { it.type == "picture" }) {
                 "点击目标、分界比例和显示方式已保存；轻量备份不含图片文件，恢复时需要重新选择图片。"
             }
-            addSection("习惯类组件", pending.filter { it.type == "habit" }) {
+            addSection("习惯类组件", android.graphics.Color.rgb(76, 175, 80), pending.filter { it.type == "habit" }) {
                 "已保存原来选择的 ${it.habitIds.size} 个习惯，添加后会自动绑定到新组件。"
             }
-            addSection("时间记录组件", pending.filter { it.type == "time_record" }) {
+            addSection("时间记录组件", android.graphics.Color.rgb(255, 152, 0), pending.filter { it.type == "time_record" }) {
                 val record = it.recordId?.let { id ->
                     org.isoron.uhabits.activities.timerecords.TimeRecordStore.get(this@PictureWidgetRestoreActivity, id)
                 }
                 if (record != null) "将重新绑定时间记录：${record.title}"
                 else "原时间记录编号：${it.recordId ?: "未知"}（请确认记录数据已恢复）"
             }
-            addSection("其他组件", pending.filter { it.type == "simple" }) {
+            addSection("其他组件", android.graphics.Color.rgb(171, 71, 188), pending.filter { it.type == "simple" }) {
                 "组件实例数量和类型已保存；数字时钟样式等应用级设置会随完全备份恢复。"
             }
 
