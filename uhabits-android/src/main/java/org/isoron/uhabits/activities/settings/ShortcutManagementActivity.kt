@@ -15,10 +15,10 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import org.isoron.habits.HabitsApplication
-import org.isoron.habits.R
+import org.isoron.uhabits.HabitsApplication
+import org.isoron.uhabits.R
 import org.isoron.habits.activities.AndroidThemeSwitcher
-import org.isoron.habits.utils.StyledResources
+import org.isoron.uhabits.utils.StyledResources
 
 class ShortcutManagementActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
