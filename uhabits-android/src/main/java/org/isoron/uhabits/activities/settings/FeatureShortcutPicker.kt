@@ -19,6 +19,7 @@ object FeatureShortcutPicker {
         entries: List<FeatureShortcutCatalog.Entry>,
         targetKey: (FeatureShortcutCatalog.Entry) -> String = { it.widgetTarget },
         includeNone: Boolean = false,
+        extraActions: List<Pair<String, () -> Unit>> = emptyList(),
         onSelected: (String) -> Unit
     ) {
         data class Choice(val key: String, val title: String, val category: String)
@@ -66,9 +67,27 @@ object FeatureShortcutPicker {
         }
         val content = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(4), dp(16), dp(4))
+            if (extraActions.isNotEmpty()) {
+                val actions = LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                }
+                extraActions.forEach { (label, action) ->
+                    actions.addView(android.widget.Button(context).apply {
+                        text = label
+                        textSize = 13f
+                        isAllCaps = false
+                        setOnClickListener { action() }
+                    }, LinearLayout.LayoutParams(0, dp(44), 1f).apply {
+                        if (extraActions.size > 1) marginEnd = dp(6)
+                    })
+                }
+                addView(actions, LinearLayout.LayoutParams(-1, dp(48)))
+            }
             addView(search, LinearLayout.LayoutParams(-1, -2))
-            addView(list, LinearLayout.LayoutParams(-1, dp(360)))
-            addView(empty, LinearLayout.LayoutParams(-1, dp(360)))
+            val listHeight = if (extraActions.isNotEmpty()) dp(300) else dp(360)
+            addView(list, LinearLayout.LayoutParams(-1, listHeight))
+            addView(empty, LinearLayout.LayoutParams(-1, listHeight))
         }
         val dialog = AlertDialog.Builder(context).setTitle(title).setView(content).setNegativeButton("取消", null).create()
         list.setOnItemClickListener { _, _, position, _ -> onSelected(filtered[position].key); dialog.dismiss() }
