@@ -33,6 +33,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     private var imageMode = "fit"
     private var restoreSourceWidgetId: Int? = null
     private var restoreSaved = false
+    private var restoreFromGenericQueue = false
     private lateinit var modeSpinner: Spinner
     private lateinit var preview: ImageView
     private lateinit var imageStatus: TextView
@@ -152,19 +153,43 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         val explicitRestoreSourceId = intent.getIntExtra(
             PictureWidgetRestoreStore.EXTRA_RESTORE_SOURCE_WIDGET_ID, -1
         )
+        val explicitGenericSourceId = intent.getIntExtra(
+            WidgetRestoreStore.EXTRA_RESTORE_SOURCE_WIDGET_ID, -1
+        )
         val hasExistingWidgetConfig = saved.contains("${widgetId}_left") ||
             saved.contains("${widgetId}_right") || saved.contains("${widgetId}_split") ||
             saved.contains("${widgetId}_imageMode")
-        val restoredConfig = if (explicitRestoreSourceId >= 0) {
-            PictureWidgetRestoreStore.find(this, explicitRestoreSourceId)
-        } else if (!hasExistingWidgetConfig) {
-            // Manual-add fallback is only eligible for a fresh widget ID; never
-            // let a stale restore selection overwrite an existing widget's settings.
-            PictureWidgetRestoreStore.selected(this)
-        } else {
-            null
+        val providerClass = PictureShortcutWidgetProvider::class.java.name
+        val genericRestoredConfig = when {
+            explicitGenericSourceId >= 0 ->
+                WidgetRestoreStore.find(this, explicitGenericSourceId, providerClass)
+            !hasExistingWidgetConfig ->
+                WidgetRestoreStore.selected(this)?.takeIf {
+                    it.type == "picture" && it.providerClass == providerClass
+                }
+            else -> null
         }
-        restoredConfig?.let { restored ->
+        val legacyRestoredConfig = if (genericRestoredConfig == null) {
+            if (explicitRestoreSourceId >= 0) {
+                PictureWidgetRestoreStore.find(this, explicitRestoreSourceId)
+            } else if (!hasExistingWidgetConfig) {
+                PictureWidgetRestoreStore.selected(this)
+            } else null
+        } else null
+
+        genericRestoredConfig?.let { restored ->
+            restoreSourceWidgetId = restored.sourceWidgetId
+            restoreFromGenericQueue = true
+            leftTarget = restored.pictureLeft ?: "feature:__feature_center"
+            rightTarget = restored.pictureRight ?: "feature:__settings"
+            split = restored.pictureSplit
+            imageMode = restored.pictureImageMode
+            imageFile = null
+            modeSpinner.setSelection(when (imageMode) { "stretch" -> 1; "crop" -> 2; else -> 0 })
+            splitSeekBar.progress = split - 1
+            imageStatus.text = "设置已载入；轻量备份不含图片，请重新选择图片（也可先保存组件）"
+        }
+        legacyRestoredConfig?.let { restored ->
             restoreSourceWidgetId = restored.sourceWidgetId
             leftTarget = restored.left
             rightTarget = restored.right
@@ -181,7 +206,10 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         if (isFinishing && !restoreSaved) {
-            restoreSourceWidgetId?.let { PictureWidgetRestoreStore.clearSelection(this, it) }
+            restoreSourceWidgetId?.let {
+                if (restoreFromGenericQueue) WidgetRestoreStore.clearSelection(this, it)
+                else PictureWidgetRestoreStore.clearSelection(this, it)
+            }
         }
         super.onDestroy()
     }
@@ -270,7 +298,12 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         PictureShortcutWidgetProvider.save(this, widgetId, file?.takeIf { it.isFile }?.name.orEmpty(),
             leftTarget, rightTarget, split, imageMode)
         restoreSourceWidgetId?.let { sourceId ->
-            PictureWidgetRestoreStore.consume(this, sourceId)
+            if (restoreFromGenericQueue) {
+                WidgetRestoreStore.consume(this, sourceId, PictureShortcutWidgetProvider::class.java.name)
+                WidgetRestoreStore.clearSelection(this, sourceId)
+            } else {
+                PictureWidgetRestoreStore.consume(this, sourceId)
+            }
             restoreSourceWidgetId = null
         }
         restoreSaved = true
