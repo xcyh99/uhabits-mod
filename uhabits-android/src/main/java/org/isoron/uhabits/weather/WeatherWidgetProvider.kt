@@ -53,7 +53,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(R.id.weather_current_desc, snapshot?.let { WeatherRepository.weatherText(it.currentCode) } ?: "正在获取天气")
         views.setTextViewText(R.id.weather_updated, snapshot?.let { "更新于 ${java.text.SimpleDateFormat("HH:mm", java.util.Locale.CHINA).format(java.util.Date(it.fetchedAt))}" } ?: "等待天气数据")
         views.setViewVisibility(R.id.weather_bottom_info, if (showExtra) View.VISIBLE else View.GONE)
-        views.setViewVisibility(R.id.weather_day_desc_row, if (compact) View.GONE else View.VISIBLE)
+        views.setTextViewTextSize(R.id.weather_current_temp, android.util.TypedValue.COMPLEX_UNIT_SP, if (compact) 24f else 30f)
 
         if (snapshot != null && snapshot.days.isNotEmpty()) {
             val dayViews = intArrayOf(
@@ -75,7 +75,12 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             snapshot.days.take(7).forEachIndexed { index, day ->
                 views.setTextViewText(dayViews[index], WeatherRepository.dayLabel(day.date, index))
                 views.setTextViewText(iconViews[index], WeatherRepository.weatherIcon(day.code))
-                views.setTextViewText(descViews[index], "${day.high}° / ${day.low}°")
+                views.setTextViewText(descViews[index], "${day.high}°/${day.low}°")
+                if (compact) {
+                    views.setTextViewTextSize(dayViews[index], android.util.TypedValue.COMPLEX_UNIT_SP, 8f)
+                    views.setTextViewTextSize(iconViews[index], android.util.TypedValue.COMPLEX_UNIT_SP, 14f)
+                    views.setTextViewTextSize(descViews[index], android.util.TypedValue.COMPLEX_UNIT_SP, 7f)
+                }
                 val intent = Intent(context, WeatherDetailActivity::class.java)
                     .putExtra(WeatherDetailActivity.EXTRA_DATE, day.date)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
