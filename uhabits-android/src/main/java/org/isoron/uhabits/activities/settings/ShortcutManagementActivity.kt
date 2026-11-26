@@ -99,11 +99,32 @@ class ShortcutEntryManagementActivity : AppCompatActivity() {
             setPadding(0, 0, 0, dp(8))
         })
 
-        scanButton = Button(this).apply {
-            text = "开始扫描"
-            setOnClickListener { scanCatalog() }
-        }
-        root.addView(scanButton, LinearLayout.LayoutParams(-1, dp(46)))
+        root.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            scanButton = Button(this@ShortcutEntryManagementActivity).apply {
+                text = "开始扫描"
+                setOnClickListener { scanCatalog() }
+            }
+            addView(scanButton, LinearLayout.LayoutParams(0, dp(46), 1f).apply { rightMargin = dp(5) })
+            addView(Button(this@ShortcutEntryManagementActivity).apply {
+                text = "清空目录"
+                setOnClickListener {
+                    if (scanning) return@setOnClickListener
+                    androidx.appcompat.app.AlertDialog.Builder(this@ShortcutEntryManagementActivity)
+                        .setTitle("清空快捷入口目录？")
+                        .setMessage("将清除本机保存的扫描目录和已勾选的候选项目。不会删除已经创建在手机桌面上的快捷方式。清空后可点击「开始扫描」，只重新收录这台手机当前可用的入口。")
+                        .setNegativeButton("取消", null)
+                        .setPositiveButton("清空") { _, _ ->
+                            FeatureShortcutCatalog.clearCatalogAndSelections(this@ShortcutEntryManagementActivity)
+                            entries.clear()
+                            selected.clear()
+                            status.text = "目录已清空。点击「开始扫描」重新建立本机入口目录。"
+                            render(search.text.toString())
+                        }
+                        .show()
+                }
+            }, LinearLayout.LayoutParams(0, dp(46), 1f).apply { leftMargin = dp(5) })
+        }, LinearLayout.LayoutParams(-1, dp(46)))
         status = TextView(this).apply {
             text = if (entries.isEmpty()) "尚未扫描。点击「开始扫描」发现可用入口。" else "已读取上次保存的入口目录；如需发现新入口，请手动扫描。"
             textSize = 12f
