@@ -223,6 +223,15 @@ object FeatureShortcutCatalog {
             .apply()
     }
 
+    /** Clears the saved discovery snapshot and shortcut selections; does not affect shortcuts already placed on the launcher. */
+    fun clearCatalogAndSelections(context: Context) {
+        PreferenceManager.getDefaultSharedPreferences(context).edit()
+            .remove(KEY_CATALOG_CACHE)
+            .remove(KEY_CATALOG_CACHE_VERSION)
+            .putStringSet(KEY_ALLOWED_ENTRIES, emptySet())
+            .apply()
+    }
+
     /** Reads the last full catalog snapshot without performing discovery. */
     fun getCachedEntries(context: Context): List<Entry> {
         val store = PreferenceManager.getDefaultSharedPreferences(context)
