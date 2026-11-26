@@ -17,7 +17,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import org.isoron.uhabits.HabitsApplication
 import org.isoron.uhabits.R
-import org.isoron.habits.activities.AndroidThemeSwitcher
+import org.isoron.uhabits.activities.AndroidThemeSwitcher
 import org.isoron.uhabits.utils.StyledResources
 
 class ShortcutManagementActivity : AppCompatActivity() {
