@@ -157,6 +157,10 @@
             android:label="组件恢复向导" />
 
         <activity
+            android:name="org.isoron.uhabits.widgets.WidgetRestoreCallbackActivity"
+            android:exported="false" />
+
+        <activity
             android:name="org.isoron.uhabits.activities.settings.ComponentCenterActivity"
             android:exported="false"
             android:label="组件中心" />
