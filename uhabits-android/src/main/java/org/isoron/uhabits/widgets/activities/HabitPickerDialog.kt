@@ -20,6 +20,7 @@
 package org.isoron.uhabits.widgets.activities
 
 import android.app.Activity
+import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_ID
 import android.appwidget.AppWidgetManager.INVALID_APPWIDGET_ID
 import android.content.Intent
@@ -62,6 +63,24 @@ open class HabitPickerDialog : Activity() {
         widgetPreferences = component.widgetPreferences
         widgetUpdater = component.widgetUpdater
         widgetId = intent.extras?.getInt(EXTRA_APPWIDGET_ID, INVALID_APPWIDGET_ID) ?: 0
+
+        // Manual-add fallback for launchers that do not support requestPinAppWidget.
+        // Only bind a queued restore to a fresh, still-unconfigured widget ID.
+        val pendingRestore = WidgetRestoreStore.selected(this)
+        val providerClass = AppWidgetManager.getInstance(this)
+            .getAppWidgetInfo(widgetId)?.provider?.className
+        if (pendingRestore != null &&
+            pendingRestore.providerClass == providerClass &&
+            widgetPreferences.getHabitIdsFromWidgetId(widgetId).isEmpty()
+        ) {
+            widgetPreferences.addWidget(widgetId, pendingRestore.habitIds.toLongArray())
+            widgetUpdater.updateWidgets()
+            WidgetRestoreStore.consume(this, pendingRestore.sourceWidgetId, pendingRestore.providerClass)
+            WidgetRestoreStore.clearSelection(this, pendingRestore.sourceWidgetId)
+            setResult(RESULT_OK, Intent().putExtra(EXTRA_APPWIDGET_ID, widgetId))
+            finish()
+            return
+        }
 
         val habitIds = ArrayList<Long>()
         val habitNames = ArrayList<String>()
