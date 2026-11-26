@@ -65,6 +65,7 @@ object FeatureShortcutCatalog {
         BuiltIn("desktopDoodle", "桌面涂鸦", "功能"),
         BuiltIn("widgetManager", "组件添加", "功能"),
         BuiltIn("widgetRestore", "组件恢复向导", "功能"),
+        BuiltIn("weatherForecast", "天气预报", "功能"),
         BuiltIn("createFullBackup", "创建完整备份", "功能"),
         BuiltIn("restoreFullBackup", "恢复完整备份", "功能"),
         BuiltIn("exportProgramApk", "单独导出本机 APK", "功能"),
@@ -89,7 +90,7 @@ object FeatureShortcutCatalog {
 
     private val recommended = builtIns.filterNot { it.key == "widgetRestore" }.map { it.key }.toSet() + setOf("pictureShortcutWidgetSettings")
     private const val KEY_ALLOWED_MIGRATION_VERSION = "shortcut_candidate_migration_version"
-    private const val ALLOWED_MIGRATION_VERSION = 7
+    private const val ALLOWED_MIGRATION_VERSION = 8
 
     fun getEntries(context: Context, onProgress: ((String) -> Unit)? = null): List<Entry> {
         val result = mutableListOf<Entry>()
@@ -252,6 +253,8 @@ object FeatureShortcutCatalog {
                         extraValue = item.optString("extraValue").takeIf { it.isNotBlank() }
                     )
                 }
+                    .plus(builtIns.filter { it.key == "weatherForecast" }.map { Entry(it.key, it.title, "", it.category) })
+                    .distinctBy { it.key }
             }.getOrDefault(emptyList())
         }
         // Ordinary consumers never trigger discovery. Only shortcut-entry management scans.
@@ -280,6 +283,7 @@ object FeatureShortcutCatalog {
                 else store.getStringSet(KEY_ALLOWED_ENTRIES, recommended)?.toMutableSet()
                     ?: recommended.toMutableSet()
             current.add("desktopWidgetTimeSettings")
+            current.add("weatherForecast")
             val ownComponent = ComponentName(
                 context,
                 org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java
@@ -319,6 +323,7 @@ object FeatureShortcutCatalog {
             "widgetManager" -> Intent(context, ComponentAddActivity::class.java)
             "pictureShortcutWidgetSettings" -> Intent(context, PictureShortcutWidgetSettingsActivity::class.java)
             "widgetRestore" -> Intent(context, org.isoron.uhabits.widgets.PictureWidgetRestoreActivity::class.java)
+            "weatherForecast" -> Intent(context, org.isoron.uhabits.weather.WeatherDetailActivity::class.java)
             else -> null
         }
         if (entry == null) return fallback?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
