@@ -64,13 +64,12 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
             setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
             setPadding(0, 0, 0, dp(12))
         })
-        val readStatus = TextView(this).apply {
+        root.addView(TextView(this).apply {
             text = "显示上次导入完全备份后保存的恢复记录；进入本页不会重新扫描备份文件。"
             textSize = 12f
             setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
             setPadding(0, 0, 0, dp(6))
-        }
-        root.addView(readStatus)
+        })
         root.addView(Button(this).apply {
             text = "读取待恢复组件"
             setOnClickListener {
@@ -115,7 +114,7 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
         fun restoreTitle(type: String, providerClass: String): String = when (type) {
             "picture" -> "图片组件"
             "habit" -> providerClass.substringAfterLast('.')
-                .removeSuffix("WidgetProvider").replace(Regex("([a-z])([A-Z])"), "$1 $2") + "组件"
+                .removeSuffix("WidgetProvider").replace(Regex("([a-z])([A-Z])"), "\$1 \$2") + "组件"
             "time_record" -> "时间记录组件"
             "simple" -> when (providerClass) {
                 DigitalClockWidgetProvider::class.java.name -> "数字时钟组件"
