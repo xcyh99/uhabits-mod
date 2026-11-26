@@ -23,15 +23,15 @@ class TimeCenterActivity : AppCompatActivity() {
 
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
-        val background = StyledResources(this).getColor(R.attr.contrast0)
-        val dark = androidx.core.graphics.ColorUtils.calculateLuminance(background) < 0.5
+        val pageBackground = StyledResources(this).getColor(R.attr.contrast0)
+        val dark = androidx.core.graphics.ColorUtils.calculateLuminance(pageBackground) < 0.5
         val primary = if (dark) Color.WHITE else Color.BLACK
         val secondary = if (dark) Color.LTGRAY else Color.DKGRAY
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(12), dp(16), dp(24))
-            setBackgroundColor(background)
+            setBackgroundColor(pageBackground)
         }
         root.addView(TextView(this).apply {
             text = "时间中心"
