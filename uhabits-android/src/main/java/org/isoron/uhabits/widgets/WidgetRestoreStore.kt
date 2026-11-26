@@ -23,7 +23,8 @@ internal object WidgetRestoreStore {
     data class Config(
         val sourceWidgetId: Int,
         val providerClass: String,
-        val habitIds: List<Long>
+        val habitIds: List<Long>,
+        val baselineWidgetIds: List<Int> = emptyList()
     )
 
     private fun preferences(context: Context) =
@@ -44,7 +45,10 @@ internal object WidgetRestoreStore {
                 Config(
                     sourceId,
                     provider,
-                    (0 until ids.length()).map { ids.optLong(it, -1L) }.filter { it > 0L }
+                    (0 until ids.length()).map { ids.optLong(it, -1L) }.filter { it > 0L },
+                    item.optJSONArray("baselineWidgetIds")?.let { values ->
+                        (0 until values.length()).map { values.optInt(it, -1) }.filter { it >= 0 }
+                    } ?: emptyList()
                 )
             }
         }.getOrDefault(emptyList())
@@ -58,13 +62,23 @@ internal object WidgetRestoreStore {
             array.put(JSONObject()
                 .put("sourceWidgetId", item.sourceWidgetId)
                 .put("providerClass", item.providerClass)
-                .put("habitIds", ids))
+                .put("habitIds", ids)
+                .put("baselineWidgetIds", JSONArray(item.baselineWidgetIds)))
         }
         preferences(context).edit()
             .putString(PENDING, array.toString())
             .remove(SELECTED)
             .remove(SELECTED_AT)
             .commit()
+    }
+
+    fun setBaselineWidgetIds(context: Context, sourceWidgetId: Int, providerClass: String, ids: IntArray) {
+        val updated = pending(context).map { item ->
+            if (item.sourceWidgetId == sourceWidgetId && item.providerClass == providerClass) {
+                item.copy(baselineWidgetIds = ids.toList())
+            } else item
+        }
+        replacePending(context, updated)
     }
 
     fun find(context: Context, sourceWidgetId: Int, providerClass: String? = null): Config? =
