@@ -27,9 +27,12 @@ import java.io.FileOutputStream
 class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
     private var imageFile: File? = null
-    private var leftTarget = "feature:__feature_center"
-    private var rightTarget = "feature:__settings"
-    private var split = 5
+    private var topLeftTarget = ""
+    private var topRightTarget = ""
+    private var bottomLeftTarget = ""
+    private var bottomRightTarget = ""
+    private var splitX = 5
+    private var splitY = 5
     private var imageMode = "fit"
     private var restoreSourceWidgetId: Int? = null
     private var restoreSaved = false
@@ -37,9 +40,9 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     private lateinit var modeSpinner: Spinner
     private lateinit var preview: ImageView
     private lateinit var imageStatus: TextView
-    private lateinit var leftButton: Button
-    private lateinit var rightButton: Button
-    private lateinit var splitLabel: TextView
+    private lateinit var zoneButtons: List<Button>
+    private lateinit var splitXLabel: TextView
+    private lateinit var splitYLabel: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         (application as HabitsApplication).component.preferences.let { AndroidThemeSwitcher(this, it).apply() }
@@ -50,8 +53,10 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) { finish(); return }
         // New widgets default both tap regions to this widget's own settings page.
         val ownSettingsTarget = "pictureWidgetSettings:$widgetId"
-        leftTarget = ownSettingsTarget
-        rightTarget = ownSettingsTarget
+        topLeftTarget = ownSettingsTarget
+        topRightTarget = ownSettingsTarget
+        bottomLeftTarget = ownSettingsTarget
+        bottomRightTarget = ownSettingsTarget
 
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
@@ -75,31 +80,43 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             text = "从手机相册选择图片"
             setOnClickListener { chooseImage() }
         })
-        leftButton = Button(this).apply {
-            text = "左侧：选择快捷程序"
-            setOnClickListener { chooseTarget(true) }
-        }
-        rightButton = Button(this).apply {
-            text = "右侧：选择快捷程序"
-            setOnClickListener { chooseTarget(false) }
-        }
-        content.addView(leftButton)
-        content.addView(rightButton)
-        splitLabel = TextView(this).apply { textSize = 14f }
-        content.addView(splitLabel)
-        val splitSeekBar = SeekBar(this).apply {
+        zoneButtons = listOf(
+            Button(this).apply { text = "左上：选择快捷方式"; setOnClickListener { chooseTarget(0) } },
+            Button(this).apply { text = "右上：选择快捷方式"; setOnClickListener { chooseTarget(1) } },
+            Button(this).apply { text = "左下：选择快捷方式"; setOnClickListener { chooseTarget(2) } },
+            Button(this).apply { text = "右下：选择快捷方式"; setOnClickListener { chooseTarget(3) } }
+        )
+        zoneButtons.forEach { content.addView(it) }
+        splitXLabel = TextView(this).apply { textSize = 14f }
+        content.addView(splitXLabel)
+        val splitXSeekBar = SeekBar(this).apply {
             max = 8
             progress = 4
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                    split = progress + 1
-                    updateSplitLabel()
+                    splitX = progress + 1
+                    updateSplitLabels()
                 }
                 override fun onStartTrackingTouch(seekBar: SeekBar?) {}
                 override fun onStopTrackingTouch(seekBar: SeekBar?) {}
             })
         }
-        content.addView(splitSeekBar)
+        content.addView(splitXSeekBar)
+        splitYLabel = TextView(this).apply { textSize = 14f; setPadding(0, dp(8), 0, 0) }
+        content.addView(splitYLabel)
+        val splitYSeekBar = SeekBar(this).apply {
+            max = 8
+            progress = 4
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    splitY = progress + 1
+                    updateSplitLabels()
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+        content.addView(splitYSeekBar)
         content.addView(TextView(this).apply {
             text = "图片显示方式"
             textSize = 14f
@@ -122,7 +139,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         }
         content.addView(modeSpinner)
         content.addView(TextView(this).apply {
-            text = "新建图片组件默认尺寸为 1×1。添加到桌面后，仍可长按并拖动边框自由调整大小。图片显示由 Android 根据组件实际区域自动适配。分界线每次移动 10%。"
+            text = "两条分界线按 10% 调整。未设置快捷方式的区域点击无反应。图片显示方式与触控区域互不影响。"
             textSize = 12f
             setPadding(0, dp(4), 0, dp(8))
         })
@@ -134,14 +151,20 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
 
         // When opened from 图片组件设置, restore this widget's existing configuration.
         val saved = getSharedPreferences(PictureShortcutWidgetProvider.PREFS, MODE_PRIVATE)
-        split = saved.getInt("${widgetId}_split", 5).coerceIn(1, 9)
+        splitX = saved.getInt("${widgetId}_split", 5).coerceIn(1, 9)
+        splitY = saved.getInt("${widgetId}_splitY", 5).coerceIn(1, 9)
+        val legacyLeft = saved.getString("${widgetId}_left", ownSettingsTarget) ?: ownSettingsTarget
+        val legacyRight = saved.getString("${widgetId}_right", ownSettingsTarget) ?: ownSettingsTarget
+        topLeftTarget = saved.getString("${widgetId}_topLeft", legacyLeft) ?: ""
+        topRightTarget = saved.getString("${widgetId}_topRight", legacyRight) ?: ""
+        bottomLeftTarget = saved.getString("${widgetId}_bottomLeft", legacyLeft) ?: ""
+        bottomRightTarget = saved.getString("${widgetId}_bottomRight", legacyRight) ?: ""
         imageMode = saved.getString("${widgetId}_imageMode", "fit") ?: "fit"
         // Migrate unsupported legacy modes to the default native FIT_CENTER mode.
         if (imageMode == "width" || imageMode == "height") imageMode = "fit"
         modeSpinner.setSelection(when (imageMode) { "stretch" -> 1; "crop" -> 2; else -> 0 })
-        splitSeekBar.progress = split - 1
-        leftTarget = saved.getString("${widgetId}_left", leftTarget) ?: leftTarget
-        rightTarget = saved.getString("${widgetId}_right", rightTarget) ?: rightTarget
+        splitXSeekBar.progress = splitX - 1
+        splitYSeekBar.progress = splitY - 1
         saved.getString("${widgetId}_image", null)?.takeIf { it.isNotBlank() }?.let { name ->
             val existing = File(filesDir, name)
             if (existing.isFile) {
@@ -180,27 +203,36 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         genericRestoredConfig?.let { restored ->
             restoreSourceWidgetId = restored.sourceWidgetId
             restoreFromGenericQueue = true
-            leftTarget = restored.pictureLeft ?: "feature:__feature_center"
-            rightTarget = restored.pictureRight ?: "feature:__settings"
-            split = restored.pictureSplit
+            val legacyLeft = restored.pictureLeft ?: "feature:__feature_center"
+            val legacyRight = restored.pictureRight ?: "feature:__settings"
+            topLeftTarget = restored.pictureTopLeft ?: legacyLeft
+            topRightTarget = restored.pictureTopRight ?: legacyRight
+            bottomLeftTarget = restored.pictureBottomLeft ?: legacyLeft
+            bottomRightTarget = restored.pictureBottomRight ?: legacyRight
+            splitX = restored.pictureSplit
+            splitY = restored.pictureSplitY
             imageMode = restored.pictureImageMode
             imageFile = null
             modeSpinner.setSelection(when (imageMode) { "stretch" -> 1; "crop" -> 2; else -> 0 })
-            splitSeekBar.progress = split - 1
+            splitXSeekBar.progress = splitX - 1
+            splitYSeekBar.progress = splitY - 1
             imageStatus.text = "设置已载入；轻量备份不含图片，请重新选择原图片后保存"
         }
         legacyRestoredConfig?.let { restored ->
             restoreSourceWidgetId = restored.sourceWidgetId
-            leftTarget = restored.left
-            rightTarget = restored.right
-            split = restored.split
+            topLeftTarget = restored.left
+            bottomLeftTarget = restored.left
+            topRightTarget = restored.right
+            bottomRightTarget = restored.right
+            splitX = restored.split
+            splitY = 5
             imageMode = restored.imageMode
             imageFile = null
             modeSpinner.setSelection(when (imageMode) { "stretch" -> 1; "crop" -> 2; else -> 0 })
             splitSeekBar.progress = split - 1
             imageStatus.text = "设置已载入；轻量备份不含图片，请重新选择图片（也可先保存组件）"
         }
-        updateSplitLabel()
+        updateSplitLabels()
         updateTargetLabels()
     }
 
@@ -247,30 +279,32 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         }
     }
 
-    private fun chooseTarget(isLeft: Boolean) {
+    private fun chooseTarget(region: Int) {
         // This is a contextual shortcut: when selected for this widget, bind this
         // widget's own ID so its tap region always opens its own configuration.
         val ownSettingsKey = "__current_picture_widget_settings"
         val entries = FeatureShortcutCatalog.getSelectableEntries(this).toMutableList().apply {
-            add(
-                FeatureShortcutCatalog.Entry(
-                    key = ownSettingsKey,
-                    name = "打开本图片组件设置",
-                    source = "图片组件",
-                    category = "设置"
-                )
-            )
+            add(FeatureShortcutCatalog.Entry(key = ownSettingsKey, name = "打开本图片组件设置", source = "图片组件", category = "设置"))
+            add(FeatureShortcutCatalog.Entry(key = "__no_picture_zone_action", name = "不设置（点击无反应）", source = "图片组件", category = "其他"))
         }
         FeatureShortcutPicker.show(
             context = this,
-            title = if (isLeft) "选择左侧点击目标" else "选择右侧点击目标",
+            title = "选择${listOf("左上", "右上", "左下", "右下")[region]}区域点击目标",
             entries = entries,
             targetKey = { entry ->
-                if (entry.key == ownSettingsKey) "pictureWidgetSettings:$widgetId"
-                else entry.widgetTarget
+                when (entry.key) {
+                    ownSettingsKey -> "pictureWidgetSettings:$widgetId"
+                    "__no_picture_zone_action" -> ""
+                    else -> entry.widgetTarget
+                }
             }
         ) { selectedKey ->
-            if (isLeft) leftTarget = selectedKey else rightTarget = selectedKey
+            when (region) {
+                0 -> topLeftTarget = selectedKey
+                1 -> topRightTarget = selectedKey
+                2 -> bottomLeftTarget = selectedKey
+                3 -> bottomRightTarget = selectedKey
+            }
             updateTargetLabels()
         }
     }
@@ -278,15 +312,18 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     private fun updateTargetLabels() {
         val all = FeatureShortcutCatalog.getSelectableEntries(this).associate { it.widgetTarget to it.title }
         fun label(target: String): String = when {
+            target.isBlank() -> "未设置（点击无反应）"
             target == "pictureWidgetSettings:$widgetId" -> "打开本图片组件设置"
-            else -> all[target] ?: "选择快捷程序"
+            else -> all[target] ?: "选择快捷方式"
         }
-        leftButton.text = "左侧：${label(leftTarget)}"
-        rightButton.text = "右侧：${label(rightTarget)}"
+        val targets = listOf(topLeftTarget, topRightTarget, bottomLeftTarget, bottomRightTarget)
+        val names = listOf("左上", "右上", "左下", "右下")
+        zoneButtons.forEachIndexed { index, button -> button.text = "${names[index]}：${label(targets[index])}" }
     }
 
-    private fun updateSplitLabel() {
-        splitLabel.text = "左侧 ${split * 10}%　|　右侧 ${(10 - split) * 10}%"
+    private fun updateSplitLabels() {
+        splitXLabel.text = "X 轴左右分界：左侧 ${splitX * 10}%　|　右侧 ${(10 - splitX) * 10}%"
+        splitYLabel.text = "Y 轴上下分界：上方 ${splitY * 10}%　|　下方 ${(10 - splitY) * 10}%"
     }
 
     private fun saveWidget() {
@@ -302,8 +339,11 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         val restoredConfig = restoreSourceWidgetId?.takeIf { restoreFromGenericQueue }?.let { sourceId ->
             WidgetRestoreStore.find(this, sourceId, PictureShortcutWidgetProvider::class.java.name)
         }
-        PictureShortcutWidgetProvider.save(this, widgetId, file?.takeIf { it.isFile }?.name.orEmpty(),
-            leftTarget, rightTarget, split, imageMode)
+        PictureShortcutWidgetProvider.save(
+            this, widgetId, file.name,
+            topLeftTarget, topRightTarget, bottomLeftTarget, bottomRightTarget,
+            splitX, splitY, imageMode
+        )
         restoreSaved = true
         // Count only after the restored settings have been saved and the widget updated.
         PictureShortcutWidgetProvider.updateWidget(this, widgetId)
