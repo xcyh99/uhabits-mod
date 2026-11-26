@@ -237,8 +237,10 @@ object FeatureShortcutCatalog {
     fun getCachedEntries(context: Context): List<Entry> {
         val store = PreferenceManager.getDefaultSharedPreferences(context)
         val raw = store.getString(KEY_CATALOG_CACHE, null)
-        if (!raw.isNullOrBlank() && store.getInt(KEY_CATALOG_CACHE_VERSION, 0) >= CATALOG_CACHE_VERSION) {
-            return runCatching {
+        val cached = if (!raw.isNullOrBlank() &&
+            store.getInt(KEY_CATALOG_CACHE_VERSION, 0) >= CATALOG_CACHE_VERSION
+        ) {
+            runCatching {
                 val array = org.json.JSONArray(raw)
                 (0 until array.length()).mapNotNull { index ->
                     val item = array.optJSONObject(index) ?: return@mapNotNull null
@@ -253,12 +255,16 @@ object FeatureShortcutCatalog {
                         extraValue = item.optString("extraValue").takeIf { it.isNotBlank() }
                     )
                 }
-                    .plus(builtIns.filter { it.key == "weatherForecast" }.map { Entry(it.key, it.title, "", it.category) })
-                    .distinctBy { it.key }
             }.getOrDefault(emptyList())
+        } else {
+            emptyList()
         }
-        // Ordinary consumers never trigger discovery. Only shortcut-entry management scans.
-        return emptyList()
+
+        // The weather page is a built-in destination, not a discovered third-party entry.
+        // Keep it available even before the user has scanned or cached the shortcut catalog.
+        val weather = builtIns.first { it.key == "weatherForecast" }
+        return (cached + Entry(weather.key, weather.title, "", weather.category))
+            .distinctBy { it.key }
     }
 
     /** Lightweight list for ordinary selection menus. */
