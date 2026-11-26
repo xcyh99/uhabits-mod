@@ -263,6 +263,7 @@ internal object FullBackupModuleRegistry {
                 org.isoron.uhabits.preferences.SharedPreferencesStorage(context)
             )
             val configs = JSONArray()
+            val seenKeys = mutableSetOf<String>()
             manager.installedProviders
                 .mapNotNull { it.provider }
                 .filter { it.packageName == context.packageName }
@@ -277,6 +278,7 @@ internal object FullBackupModuleRegistry {
                     manager.getAppWidgetIds(provider).forEach { widgetId ->
                         val habitIds = widgetPreferences.getHabitIdsFromWidgetId(widgetId)
                         if (habitIds.isNotEmpty()) {
+                            seenKeys.add("${provider.className}#${widgetId}")
                             val ids = JSONArray()
                             habitIds.forEach { ids.put(it) }
                             configs.put(JSONObject()
@@ -287,7 +289,7 @@ internal object FullBackupModuleRegistry {
                     }
                 }
             org.isoron.uhabits.widgets.WidgetRestoreStore.pending(context)
-                .filter { it.type == "habit" }
+                .filter { it.type == "habit" && seenKeys.add("${it.providerClass}#${it.sourceWidgetId}") }
                 .forEach { item ->
                     val ids = JSONArray()
                     item.habitIds.forEach { ids.put(it) }
