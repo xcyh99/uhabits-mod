@@ -28,8 +28,8 @@ class WeatherDetailActivity : AppCompatActivity() {
     private val cardColor: Int get() = if (darkTheme) Color.rgb(38, 42, 50) else Color.WHITE
     private val cardStroke: Int get() = if (darkTheme) Color.rgb(66, 72, 83) else Color.rgb(230, 233, 238)
     private val selectedCardColor: Int get() = if (darkTheme) Color.rgb(39, 57, 78) else Color.rgb(231, 241, 255)
-    private val highTemperatureColor: Int get() = if (darkTheme) Color.rgb(255, 177, 112) else highTemperatureColor
-    private val lowTemperatureColor: Int get() = if (darkTheme) Color.rgb(128, 184, 255) else lowTemperatureColor
+    private val highTemperatureColor: Int get() = if (darkTheme) Color.rgb(255, 177, 112) else Color.rgb(215, 112, 42)
+    private val lowTemperatureColor: Int get() = if (darkTheme) Color.rgb(128, 184, 255) else Color.rgb(56, 126, 205)
     private val density by lazy { resources.displayMetrics.density }
     private fun dp(value: Int) = (value * density).toInt()
 
