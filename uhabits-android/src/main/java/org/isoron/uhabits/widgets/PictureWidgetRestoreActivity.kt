@@ -1,7 +1,9 @@
 package org.isoron.uhabits.widgets
 
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.LinearLayout
@@ -14,6 +16,13 @@ import org.isoron.uhabits.activities.AndroidThemeSwitcher
 
 /** Re-creates Android widget instances from portable configuration records. */
 class PictureWidgetRestoreActivity : AppCompatActivity() {
+    private val restoreButtons = mutableListOf<Button>()
+
+    override fun onResume() {
+        super.onResume()
+        restoreButtons.forEach { it.isEnabled = true }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         (application as HabitsApplication).component.preferences.let { AndroidThemeSwitcher(this, it).apply() }
         super.onCreate(savedInstanceState)
@@ -63,10 +72,12 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
                     setPadding(0, dp(5), 0, dp(9))
                     setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
                 })
-                card.addView(Button(this).apply {
+                val restoreButton = Button(this).apply {
                     text = "添加并恢复此组件"
                     setOnClickListener { requestRestore(config.sourceWidgetId) }
-                })
+                }
+                restoreButtons += restoreButton
+                card.addView(restoreButton)
                 root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
             }
         }
@@ -74,18 +85,40 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
     }
 
     private fun requestRestore(sourceWidgetId: Int) {
-        PictureWidgetRestoreStore.select(this, sourceWidgetId)
         val manager = AppWidgetManager.getInstance(this)
         if (!manager.isRequestPinAppWidgetSupported) {
+            PictureWidgetRestoreStore.select(this, sourceWidgetId)
             Toast.makeText(this, "当前桌面不支持应用内添加。请到桌面手动添加“图片快捷组件”，配置窗口会自动载入这项恢复设置。", Toast.LENGTH_LONG).show()
             return
         }
+
+        // requestPinAppWidget does NOT launch the provider's configure activity.
+        // Its success callback must open the configuration screen and carry the
+        // newly allocated widget ID together with this source configuration ID.
+        val callbackIntent = Intent(this, PictureShortcutWidgetConfigureActivity::class.java)
+            .putExtra(PictureWidgetRestoreStore.EXTRA_RESTORE_SOURCE_WIDGET_ID, sourceWidgetId)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        val callback = PendingIntent.getActivity(
+            this,
+            sourceWidgetId,
+            callbackIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
         val accepted = runCatching {
-            manager.requestPinAppWidget(ComponentName(this, PictureShortcutWidgetProvider::class.java), null, null)
+            manager.requestPinAppWidget(
+                ComponentName(this, PictureShortcutWidgetProvider::class.java),
+                null,
+                callback
+            )
         }.getOrDefault(false)
-        Toast.makeText(this,
-            if (accepted) "已请求桌面添加，请在桌面确认；配置窗口会载入原设置。" else "桌面未接受添加请求，请手动添加图片快捷组件。",
-            Toast.LENGTH_LONG).show()
-        if (accepted) window.decorView.post { moveTaskToBack(true) }
+
+        if (accepted) {
+            restoreButtons.forEach { it.isEnabled = false }
+            Toast.makeText(this, "已请求桌面添加；确认后会自动打开配置页。请逐个恢复组件。", Toast.LENGTH_LONG).show()
+            window.decorView.post { moveTaskToBack(true) }
+        } else {
+            PictureWidgetRestoreStore.select(this, sourceWidgetId)
+            Toast.makeText(this, "桌面未接受应用内添加请求。请手动添加图片快捷组件，配置窗口会载入这项恢复设置。", Toast.LENGTH_LONG).show()
+        }
     }
 }
