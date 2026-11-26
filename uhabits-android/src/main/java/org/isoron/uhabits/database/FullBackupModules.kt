@@ -264,10 +264,10 @@ internal object FullBackupModuleRegistry {
                     pictureSplit = item.getInt("split"),
                     pictureImageMode = item.getString("imageMode"),
                     pictureSplitY = item.optInt("splitY", 5).coerceIn(1, 9),
-                    pictureTopLeft = item.optString("topLeft").takeIf { it.isNotBlank() } ?: left,
-                    pictureTopRight = item.optString("topRight").takeIf { it.isNotBlank() } ?: right,
-                    pictureBottomLeft = item.optString("bottomLeft").takeIf { it.isNotBlank() } ?: left,
-                    pictureBottomRight = item.optString("bottomRight").takeIf { it.isNotBlank() } ?: right
+                    pictureTopLeft = if (item.has("topLeft")) item.optString("topLeft") else left,
+                    pictureTopRight = if (item.has("topRight")) item.optString("topRight") else right,
+                    pictureBottomLeft = if (item.has("bottomLeft")) item.optString("bottomLeft") else left,
+                    pictureBottomRight = if (item.has("bottomRight")) item.optString("bottomRight") else right
                 )
             }
             org.isoron.uhabits.widgets.WidgetRestoreStore.replaceType(context, "picture", restored)
