@@ -127,6 +127,18 @@
             android:title="@string/feature_center">
 
         <Preference
+                android:key="desktopWidgetSettings"
+                android:title="组件中心"
+                android:summary="组件添加、批量添加，以及数字时钟和图片组件设置。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
+                android:key="shortcutManagement"
+                android:title="快捷中心"
+                android:summary="统一管理功能、设置、习惯、应用和系统快捷入口。"
+                app:iconSpaceReserved="false" />
+
+        <Preference
                 android:key="parameterCenter"
                 android:title="参数中心"
                 android:summary="集中管理各项可调运行参数；点击后进入参数列表。"
@@ -168,18 +180,10 @@
                 android:summary="扫雷、2048、数独、推箱子和飞鸟穿越；离线运行，可关闭音效。"
                 app:iconSpaceReserved="false" />
 
-        <Preference
-                android:key="desktopWidgetSettings"
-                android:title="组件中心"
-                android:summary="组件添加、批量添加，以及数字时钟和图片组件设置。"
-                app:iconSpaceReserved="false" />
 
 
-        <Preference
-                android:key="shortcutManagement"
-                android:title="快捷中心"
-                android:summary="统一管理功能、设置、习惯、应用和系统快捷入口。"
-                app:iconSpaceReserved="false" />
+
+
 
         <Preference
                 android:key="desktopShortcuts"
