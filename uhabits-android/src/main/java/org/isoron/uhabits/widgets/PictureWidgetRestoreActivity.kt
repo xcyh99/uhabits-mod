@@ -216,7 +216,12 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
             Toast.makeText(this, "已请求桌面添加习惯组件；确认后会自动恢复原来的习惯选择。", Toast.LENGTH_LONG).show()
             window.decorView.post { moveTaskToBack(true) }
         } else {
-            Toast.makeText(this, "桌面未接受添加请求，原恢复记录仍保留。", Toast.LENGTH_LONG).show()
+            WidgetRestoreStore.select(this, config.sourceWidgetId)
+            Toast.makeText(
+                this,
+                "桌面未接受应用内添加请求。可手动添加对应组件，再返回本应用完成恢复。",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
