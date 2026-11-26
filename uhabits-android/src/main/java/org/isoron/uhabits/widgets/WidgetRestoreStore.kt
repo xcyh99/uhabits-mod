@@ -69,10 +69,10 @@ internal object WidgetRestoreStore {
                         if (it in setOf("fit", "stretch", "crop")) it else "fit"
                     },
                     item.optInt("pictureSplitY", 5).coerceIn(1, 9),
-                    item.optString("pictureTopLeft").takeIf { it.isNotBlank() },
-                    item.optString("pictureTopRight").takeIf { it.isNotBlank() },
-                    item.optString("pictureBottomLeft").takeIf { it.isNotBlank() },
-                    item.optString("pictureBottomRight").takeIf { it.isNotBlank() }
+                    if (item.has("pictureTopLeft")) item.optString("pictureTopLeft") else null,
+                    if (item.has("pictureTopRight")) item.optString("pictureTopRight") else null,
+                    if (item.has("pictureBottomLeft")) item.optString("pictureBottomLeft") else null,
+                    if (item.has("pictureBottomRight")) item.optString("pictureBottomRight") else null
                 )
             }
         }.getOrDefault(emptyList())
