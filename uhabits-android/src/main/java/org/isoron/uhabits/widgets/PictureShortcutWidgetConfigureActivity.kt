@@ -187,7 +187,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             imageFile = null
             modeSpinner.setSelection(when (imageMode) { "stretch" -> 1; "crop" -> 2; else -> 0 })
             splitSeekBar.progress = split - 1
-            imageStatus.text = "设置已载入；轻量备份不含图片，请重新选择图片（也可先保存组件）"
+            imageStatus.text = "设置已载入；轻量备份不含图片，请重新选择原图片后保存"
         }
         legacyRestoredConfig?.let { restored ->
             restoreSourceWidgetId = restored.sourceWidgetId
@@ -291,8 +291,12 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
 
     private fun saveWidget() {
         val file = imageFile
-        if ((file == null || !file.isFile) && restoreSourceWidgetId == null) {
-            Toast.makeText(this, "请先选择一张图片", Toast.LENGTH_LONG).show()
+        if (file == null || !file.isFile) {
+            Toast.makeText(
+                this,
+                if (restoreSourceWidgetId != null) "恢复图片组件需要重新选择原图片" else "请先选择一张图片",
+                Toast.LENGTH_LONG
+            ).show()
             return
         }
         val restoredConfig = restoreSourceWidgetId?.takeIf { restoreFromGenericQueue }?.let { sourceId ->
