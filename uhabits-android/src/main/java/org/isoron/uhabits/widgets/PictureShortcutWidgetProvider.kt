@@ -237,8 +237,8 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
                     column < splitX -> 2 // bottom-left
                     else -> 3 // bottom-right
                 }
-                // A null PendingIntent leaves this cell completely inert.
-                views.setOnClickPendingIntent(viewId, quadrantPending[quadrant])
+                // Blank target: leave this new RemoteViews cell without a click action.
+                quadrantPending[quadrant]?.let { views.setOnClickPendingIntent(viewId, it) }
             }
             manager.updateAppWidget(id, views)
         }
