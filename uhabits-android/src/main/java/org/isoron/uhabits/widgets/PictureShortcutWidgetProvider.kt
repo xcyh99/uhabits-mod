@@ -49,9 +49,107 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
     companion object {
         const val PREFS = "picture_shortcut_widget_links"
         private fun key(id: Int, name: String) = "${id}_${name}"
-        private val zoneIds = intArrayOf(
-            R.id.picture_zone_top_left, R.id.picture_zone_top_right,
-            R.id.picture_zone_bottom_left, R.id.picture_zone_bottom_right
+        private val cellIds = intArrayOf(
+            R.id.picture_cell_0,
+            R.id.picture_cell_1,
+            R.id.picture_cell_2,
+            R.id.picture_cell_3,
+            R.id.picture_cell_4,
+            R.id.picture_cell_5,
+            R.id.picture_cell_6,
+            R.id.picture_cell_7,
+            R.id.picture_cell_8,
+            R.id.picture_cell_9,
+            R.id.picture_cell_10,
+            R.id.picture_cell_11,
+            R.id.picture_cell_12,
+            R.id.picture_cell_13,
+            R.id.picture_cell_14,
+            R.id.picture_cell_15,
+            R.id.picture_cell_16,
+            R.id.picture_cell_17,
+            R.id.picture_cell_18,
+            R.id.picture_cell_19,
+            R.id.picture_cell_20,
+            R.id.picture_cell_21,
+            R.id.picture_cell_22,
+            R.id.picture_cell_23,
+            R.id.picture_cell_24,
+            R.id.picture_cell_25,
+            R.id.picture_cell_26,
+            R.id.picture_cell_27,
+            R.id.picture_cell_28,
+            R.id.picture_cell_29,
+            R.id.picture_cell_30,
+            R.id.picture_cell_31,
+            R.id.picture_cell_32,
+            R.id.picture_cell_33,
+            R.id.picture_cell_34,
+            R.id.picture_cell_35,
+            R.id.picture_cell_36,
+            R.id.picture_cell_37,
+            R.id.picture_cell_38,
+            R.id.picture_cell_39,
+            R.id.picture_cell_40,
+            R.id.picture_cell_41,
+            R.id.picture_cell_42,
+            R.id.picture_cell_43,
+            R.id.picture_cell_44,
+            R.id.picture_cell_45,
+            R.id.picture_cell_46,
+            R.id.picture_cell_47,
+            R.id.picture_cell_48,
+            R.id.picture_cell_49,
+            R.id.picture_cell_50,
+            R.id.picture_cell_51,
+            R.id.picture_cell_52,
+            R.id.picture_cell_53,
+            R.id.picture_cell_54,
+            R.id.picture_cell_55,
+            R.id.picture_cell_56,
+            R.id.picture_cell_57,
+            R.id.picture_cell_58,
+            R.id.picture_cell_59,
+            R.id.picture_cell_60,
+            R.id.picture_cell_61,
+            R.id.picture_cell_62,
+            R.id.picture_cell_63,
+            R.id.picture_cell_64,
+            R.id.picture_cell_65,
+            R.id.picture_cell_66,
+            R.id.picture_cell_67,
+            R.id.picture_cell_68,
+            R.id.picture_cell_69,
+            R.id.picture_cell_70,
+            R.id.picture_cell_71,
+            R.id.picture_cell_72,
+            R.id.picture_cell_73,
+            R.id.picture_cell_74,
+            R.id.picture_cell_75,
+            R.id.picture_cell_76,
+            R.id.picture_cell_77,
+            R.id.picture_cell_78,
+            R.id.picture_cell_79,
+            R.id.picture_cell_80,
+            R.id.picture_cell_81,
+            R.id.picture_cell_82,
+            R.id.picture_cell_83,
+            R.id.picture_cell_84,
+            R.id.picture_cell_85,
+            R.id.picture_cell_86,
+            R.id.picture_cell_87,
+            R.id.picture_cell_88,
+            R.id.picture_cell_89,
+            R.id.picture_cell_90,
+            R.id.picture_cell_91,
+            R.id.picture_cell_92,
+            R.id.picture_cell_93,
+            R.id.picture_cell_94,
+            R.id.picture_cell_95,
+            R.id.picture_cell_96,
+            R.id.picture_cell_97,
+            R.id.picture_cell_98,
+            R.id.picture_cell_99
         )
 
         fun save(
@@ -123,19 +221,24 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
                 prefs.getString(key(id, "bottomLeft"), null) ?: legacyLeft,
                 prefs.getString(key(id, "bottomRight"), null) ?: legacyRight
             )
-            zoneIds.forEachIndexed { index, viewId ->
-                val target = targets[index].orEmpty()
-                if (target.isBlank()) {
-                    // An unconfigured quadrant is intentionally inert.
-                    views.setOnClickPendingIntent(viewId, null)
-                } else {
-                    val pending = PendingIntent.getActivity(
-                        context, id * 100 + index, targetIntent(context, target),
-                        PendingIntent.FLAG_UPDATE_CURRENT or
-                            (if (android.os.Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
-                    )
-                    views.setOnClickPendingIntent(viewId, pending)
+            val quadrantPending = targets.mapIndexed { quadrant, target ->
+                if (target.isNullOrBlank()) null else PendingIntent.getActivity(
+                    context, id * 10 + quadrant, targetIntent(context, target),
+                    PendingIntent.FLAG_UPDATE_CURRENT or
+                        (if (android.os.Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
+                )
+            }
+            cellIds.forEachIndexed { index, viewId ->
+                val row = index / 10
+                val column = index % 10
+                val quadrant = when {
+                    row < splitY && column < splitX -> 0 // top-left
+                    row < splitY -> 1 // top-right
+                    column < splitX -> 2 // bottom-left
+                    else -> 3 // bottom-right
                 }
+                // A null PendingIntent leaves this cell completely inert.
+                views.setOnClickPendingIntent(viewId, quadrantPending[quadrant])
             }
             manager.updateAppWidget(id, views)
         }
