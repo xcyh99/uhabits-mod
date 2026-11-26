@@ -136,7 +136,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         }
         val previewColumn = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            addView(preview, LinearLayout.LayoutParams(-1, dp(250)))
+            addView(preview, LinearLayout.LayoutParams(-1, dp(280)))
             addView(imageStatus, LinearLayout.LayoutParams(-1, dp(24)))
         }
         val settingsColumn = LinearLayout(this).apply {
@@ -152,7 +152,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             addView(modeSpinner, LinearLayout.LayoutParams(-1, dp(60)))
         }
         imageSettingsRow.addView(previewColumn, LinearLayout.LayoutParams(0, -2, 2f))
-        imageSettingsRow.addView(settingsColumn, LinearLayout.LayoutParams(0, dp(274), 1f))
+        imageSettingsRow.addView(settingsColumn, LinearLayout.LayoutParams(0, dp(304), 1f))
         content.addView(imageSettingsRow, LinearLayout.LayoutParams(-1, -2))
         editorView = PictureShortcutSplitEditorView(this).apply {
             onZoneClick = { region -> chooseTarget(region) }
