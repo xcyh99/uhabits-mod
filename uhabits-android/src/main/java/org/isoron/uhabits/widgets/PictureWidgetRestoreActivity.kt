@@ -21,6 +21,27 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         restoreButtons.forEach { it.isEnabled = true }
+        restoreManuallyAddedSimpleWidget()
+    }
+
+    private fun restoreManuallyAddedSimpleWidget() {
+        val config = WidgetRestoreStore.selected(this)?.takeIf { it.type == "simple" } ?: return
+        val manager = AppWidgetManager.getInstance(this)
+        val component = ComponentName(packageName, config.providerClass)
+        val newIds = manager.getAppWidgetIds(component).toSet() - config.baselineWidgetIds.toSet()
+        if (newIds.size != 1) return
+        val widgetId = newIds.first()
+        runCatching {
+            val provider = Class.forName(config.providerClass)
+                .getDeclaredConstructor().newInstance() as android.appwidget.AppWidgetProvider
+            provider.onUpdate(this, manager, intArrayOf(widgetId))
+        }.onSuccess {
+            WidgetRestoreStore.consume(this, config.sourceWidgetId, config.providerClass)
+            WidgetRestoreStore.clearSelection(this, config.sourceWidgetId)
+            Toast.makeText(this, "组件已识别，恢复完成。", Toast.LENGTH_LONG).show()
+        }.onFailure {
+            Toast.makeText(this, "已识别新组件，但初始化失败；恢复记录仍保留。", Toast.LENGTH_LONG).show()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -154,20 +175,22 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
     private fun requestHabitRestore(config: WidgetRestoreStore.Config) {
         val manager = AppWidgetManager.getInstance(this)
         val component = ComponentName(packageName, config.providerClass)
-        if (!manager.isRequestPinAppWidgetSupported) {
-            WidgetRestoreStore.select(this, config.sourceWidgetId)
-            Toast.makeText(
-                this,
-                "当前桌面不支持应用内添加。请手动添加对应的习惯组件，配置窗口会自动载入恢复设置。",
-                Toast.LENGTH_LONG
-            ).show()
-            return
-        }
-
         WidgetRestoreStore.setBaselineWidgetIds(
             this, config.sourceWidgetId, config.providerClass,
             manager.getAppWidgetIds(component)
         )
+        if (!manager.isRequestPinAppWidgetSupported) {
+            WidgetRestoreStore.select(this, config.sourceWidgetId)
+            val instruction = if (config.type == "simple") {
+                "当前桌面不支持应用内添加。请手动添加对应组件，再返回本应用，系统会识别新组件并恢复。"
+            } else {
+                "当前桌面不支持应用内添加。请手动添加对应组件，配置窗口会自动载入恢复设置。"
+            }
+            Toast.makeText(this, instruction, Toast.LENGTH_LONG).show()
+            window.decorView.post { moveTaskToBack(true) }
+            return
+        }
+
         val callbackIntent = Intent(this, WidgetRestoreCallbackActivity::class.java)
             .putExtra(WidgetRestoreStore.EXTRA_RESTORE_SOURCE_WIDGET_ID, config.sourceWidgetId)
             .putExtra(WidgetRestoreCallbackActivity.EXTRA_PROVIDER_CLASS, config.providerClass)
