@@ -9,6 +9,7 @@ internal object PictureWidgetRestoreStore {
     private const val PREFS = "picture_widget_restore_queue"
     private const val PENDING = "pending_configs"
     private const val SELECTED = "selected_source_widget_id"
+    const val EXTRA_RESTORE_SOURCE_WIDGET_ID = "org.isoron.uhabits.extra.PICTURE_RESTORE_SOURCE_WIDGET_ID"
     data class Config(val sourceWidgetId: Int, val left: String, val right: String, val split: Int, val imageMode: String)
     private fun preferences(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -41,8 +42,18 @@ internal object PictureWidgetRestoreStore {
     }
     fun selected(context: Context): Config? {
         val id = preferences(context).getInt(SELECTED, -1)
-        return pending(context).firstOrNull { it.sourceWidgetId == id }
+        return find(context, id)
     }
+    fun find(context: Context, sourceWidgetId: Int): Config? =
+        pending(context).firstOrNull { it.sourceWidgetId == sourceWidgetId }
+
+    fun clearSelection(context: Context, sourceWidgetId: Int? = null) {
+        val prefs = preferences(context)
+        if (sourceWidgetId == null || prefs.getInt(SELECTED, -1) == sourceWidgetId) {
+            prefs.edit().remove(SELECTED).commit()
+        }
+    }
+
     fun consume(context: Context, sourceWidgetId: Int) {
         replacePending(context, pending(context).filterNot { it.sourceWidgetId == sourceWidgetId })
     }
