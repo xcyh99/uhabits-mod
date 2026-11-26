@@ -1754,11 +1754,11 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             "#7E57C2"
         )
         val uploadButton = actionButton(
-            "数据备份上传",
+            "数据上传",
             "#D32F2F"
         )
         val downloadButton = actionButton(
-            "数据备份下载",
+            "数据下载",
             "#2E7D32"
         )
 
