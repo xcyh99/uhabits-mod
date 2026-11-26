@@ -1754,16 +1754,16 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             "#7E57C2"
         )
         val uploadButton = actionButton(
-            "上传数据备份",
+            "数据备份上传",
             "#D32F2F"
         )
         val downloadButton = actionButton(
-            "下载数据备份",
+            "数据备份下载",
             "#2E7D32"
         )
 
-        val fullUploadButton = actionButton("上传完整备份", "#6A1B9A")
-        val fullDownloadButton = actionButton("下载完整备份", "#00838F")
+        val fullUploadButton = actionButton("完整备份上传", "#6A1B9A")
+        val fullDownloadButton = actionButton("完整备份下载", "#00838F")
         val fullBackupRow = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.HORIZONTAL
             addView(fullUploadButton, LinearLayout.LayoutParams(0, dp(52), 1f).apply {
