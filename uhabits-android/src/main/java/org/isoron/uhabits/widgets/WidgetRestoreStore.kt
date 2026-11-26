@@ -79,8 +79,9 @@ internal object WidgetRestoreStore {
     }
 
     fun mergePending(context: Context, configs: List<Config>) {
-        val merged = (pending(context) + configs)
-            .distinctBy { "${it.providerClass}#${it.sourceWidgetId}" }
+        val incomingKeys = configs.map { "${it.providerClass}#${it.sourceWidgetId}" }.toSet()
+        val merged = pending(context)
+            .filterNot { "${it.providerClass}#${it.sourceWidgetId}" in incomingKeys } + configs
         replacePending(context, merged)
     }
 
