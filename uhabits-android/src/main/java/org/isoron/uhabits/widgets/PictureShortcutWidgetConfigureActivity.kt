@@ -117,7 +117,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             gravity = android.view.Gravity.TOP
             setPadding(dp(8), 0, 0, 0)
-            addView(chooseImageButton, LinearLayout.LayoutParams(-1, dp(60)))
+            addView(chooseImageButton, LinearLayout.LayoutParams(-1, dp(72)))
             addView(View(this@PictureShortcutWidgetConfigureActivity), LinearLayout.LayoutParams(1, 0, 1f))
             addView(modeTitle, LinearLayout.LayoutParams(-1, -2).apply {
                 topMargin = dp(4)
