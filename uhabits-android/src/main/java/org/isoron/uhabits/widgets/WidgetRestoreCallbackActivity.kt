@@ -30,20 +30,40 @@ class WidgetRestoreCallbackActivity : AppCompatActivity() {
 
         val component = ComponentName(packageName, providerClass)
         val manager = AppWidgetManager.getInstance(this)
-        val currentIds = manager.getAppWidgetIds(component).toSet()
-        val newIds = currentIds - config.baselineWidgetIds.toSet()
-        if (newIds.size != 1) {
-            Toast.makeText(
-                this,
-                if (newIds.isEmpty()) "桌面已确认添加，但暂时无法识别新组件编号；恢复配置仍保留。"
-                else "检测到多个新组件，暂时无法安全匹配；恢复配置仍保留。",
-                Toast.LENGTH_LONG
-            ).show()
-            finish()
-            return
-        }
 
-        val newWidgetId = newIds.first()
+        // The pin-success PendingIntent is delivered with the exact ID allocated
+        // by the launcher. Prefer that ID; only use the baseline diff as a
+        // compatibility fallback for launchers that omit the extra.
+        val callbackWidgetId = intent.getIntExtra(
+            AppWidgetManager.EXTRA_APPWIDGET_ID,
+            AppWidgetManager.INVALID_APPWIDGET_ID
+        )
+        val callbackProvider = if (callbackWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+            manager.getAppWidgetInfo(callbackWidgetId)?.provider
+        } else null
+        val newWidgetId = when {
+            callbackProvider == component -> callbackWidgetId
+            callbackWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID -> {
+                Toast.makeText(this, "桌面返回的组件编号与请求类型不匹配；恢复记录已保留。", Toast.LENGTH_LONG).show()
+                finish()
+                return
+            }
+            else -> {
+                val currentIds = manager.getAppWidgetIds(component).toSet()
+                val newIds = currentIds - config.baselineWidgetIds.toSet()
+                if (newIds.size != 1) {
+                    Toast.makeText(
+                        this,
+                        if (newIds.isEmpty()) "桌面已确认添加，但暂时无法识别新组件编号；恢复配置仍保留。"
+                        else "检测到多个新组件，暂时无法安全匹配；恢复配置仍保留。",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    finish()
+                    return
+                }
+                newIds.first()
+            }
+        }
         try {
             when (config.type) {
                 "habit" -> {
