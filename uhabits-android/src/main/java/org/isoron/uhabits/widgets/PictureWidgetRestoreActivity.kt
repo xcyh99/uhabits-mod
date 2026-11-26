@@ -81,7 +81,89 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
                 root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
             }
         }
+
+        val habitConfigs = WidgetRestoreStore.pending(this)
+        if (habitConfigs.isNotEmpty()) {
+            root.addView(TextView(this).apply {
+                text = "习惯类组件"
+                textSize = 17f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+                setPadding(0, dp(14), 0, dp(8))
+            })
+            val catalog = WidgetCatalog.discover(this).associateBy { it.provider.className }
+            habitConfigs.forEachIndexed { index, config ->
+                val title = catalog[config.providerClass]?.title
+                    ?: config.providerClass.substringAfterLast('.')
+                val card = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(14), dp(12), dp(14), dp(12))
+                    background = android.graphics.drawable.GradientDrawable().apply {
+                        setColor(if (dark) 0xFF2D3037.toInt() else android.graphics.Color.WHITE)
+                        cornerRadius = dp(12).toFloat()
+                    }
+                }
+                card.addView(TextView(this).apply {
+                    text = "${title} ${index + 1}（原组件编号 ${config.sourceWidgetId}）"
+                    textSize = 15f
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+                })
+                card.addView(TextView(this).apply {
+                    text = "已保存原来选择的 ${config.habitIds.size} 个习惯。添加到桌面后会自动绑定到新组件。"
+                    textSize = 12f
+                    setPadding(0, dp(5), 0, dp(9))
+                    setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
+                })
+                card.addView(Button(this).apply {
+                    text = "添加并恢复此组件"
+                    setOnClickListener { requestHabitRestore(config) }
+                })
+                root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
+            }
+        }
+
         setContentView(ScrollView(this).apply { isFillViewport = true; addView(root) })
+    }
+
+
+    private fun requestHabitRestore(config: WidgetRestoreStore.Config) {
+        val manager = AppWidgetManager.getInstance(this)
+        val component = ComponentName(packageName, config.providerClass)
+        if (!manager.isRequestPinAppWidgetSupported) {
+            WidgetRestoreStore.select(this, config.sourceWidgetId)
+            Toast.makeText(
+                this,
+                "当前桌面不支持应用内添加。请手动添加对应的习惯组件，配置窗口会自动载入恢复设置。",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        WidgetRestoreStore.setBaselineWidgetIds(
+            this, config.sourceWidgetId, config.providerClass,
+            manager.getAppWidgetIds(component)
+        )
+        val callbackIntent = Intent(this, WidgetRestoreCallbackActivity::class.java)
+            .putExtra(WidgetRestoreStore.EXTRA_RESTORE_SOURCE_WIDGET_ID, config.sourceWidgetId)
+            .putExtra(WidgetRestoreCallbackActivity.EXTRA_PROVIDER_CLASS, config.providerClass)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        val callback = PendingIntent.getActivity(
+            this,
+            31 * config.sourceWidgetId + config.providerClass.hashCode(),
+            callbackIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val accepted = runCatching {
+            manager.requestPinAppWidget(component, null, callback)
+        }.getOrDefault(false)
+        if (accepted) {
+            restoreButtons.forEach { it.isEnabled = false }
+            Toast.makeText(this, "已请求桌面添加习惯组件；确认后会自动恢复原来的习惯选择。", Toast.LENGTH_LONG).show()
+            window.decorView.post { moveTaskToBack(true) }
+        } else {
+            Toast.makeText(this, "桌面未接受添加请求，原恢复记录仍保留。", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun requestRestore(sourceWidgetId: Int) {
