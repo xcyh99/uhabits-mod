@@ -91,9 +91,24 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
             PictureWidgetRestoreStore.replacePending(this, emptyList())
         }
         val pending = WidgetRestoreStore.pending(this)
-        if (pending.isEmpty()) {
+        val history = WidgetRestoreStore.historyRecords(this)
+        fun restoreTitle(type: String, providerClass: String): String = when (type) {
+            "picture" -> "图片组件"
+            "habit" -> WidgetCatalog.discover(this)
+                .firstOrNull { it.provider.className == providerClass }?.title
+                ?: providerClass.substringAfterLast('.')
+            "time_record" -> "时间记录组件"
+            "simple" -> when (providerClass) {
+                DigitalClockWidgetProvider::class.java.name -> "数字时钟组件"
+                BatchAddWidgetProvider::class.java.name -> "批量添加组件"
+                else -> providerClass.substringAfterLast('.')
+            }
+            else -> providerClass.substringAfterLast('.')
+        }
+
+        if (pending.isEmpty() && history.isEmpty()) {
             root.addView(TextView(this).apply {
-                text = "没有待恢复的桌面组件配置。请先导入包含组件设置的完全备份。"
+                text = "没有待恢复的桌面组件配置，也没有历史恢复记录。请先导入包含组件设置的完全备份。"
                 textSize = 15f
                 setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
                 setPadding(dp(12), dp(18), dp(12), dp(18))
@@ -113,19 +128,11 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
                     setPadding(0, dp(14), 0, dp(8))
                 })
                 items.forEachIndexed { index, config ->
-                    val title = when (config.type) {
-                        "picture" -> "图片组件"
-                        "habit" -> WidgetCatalog.discover(this)
-                            .firstOrNull { it.provider.className == config.providerClass }?.title
-                            ?: config.providerClass.substringAfterLast('.')
-                        "time_record" -> "时间记录组件"
-                        "simple" -> when (config.providerClass) {
-                            DigitalClockWidgetProvider::class.java.name -> "数字时钟组件"
-                            BatchAddWidgetProvider::class.java.name -> "批量添加组件"
-                            else -> config.providerClass.substringAfterLast('.')
-                        }
-                        else -> config.providerClass.substringAfterLast('.')
+                    val title = restoreTitle(config.type, config.providerClass)
+                    val historyRecord = history.firstOrNull {
+                        it.sourceWidgetId == config.sourceWidgetId && it.providerClass == config.providerClass
                     }
+                    val count = historyRecord?.count ?: 0
                     val card = LinearLayout(this).apply {
                         orientation = LinearLayout.VERTICAL
                         setPadding(dp(14), dp(12), dp(14), dp(12))
@@ -143,9 +150,25 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
                     card.addView(TextView(this).apply {
                         text = detail(config)
                         textSize = 12f
-                        setPadding(0, dp(5), 0, dp(9))
+                        setPadding(0, dp(5), 0, dp(7))
                         setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
                     })
+                    card.addView(TextView(this).apply {
+                        text = "历史恢复 $count 次"
+                        textSize = 13f
+                        setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
+                        setPadding(0, 0, 0, dp(5))
+                    })
+                    if (count > 0) {
+                        card.addView(Button(this).apply {
+                            text = "清零"
+                            setOnClickListener {
+                                WidgetRestoreStore.clearHistory(this@PictureWidgetRestoreActivity,
+                                    config.sourceWidgetId, config.providerClass)
+                                recreate()
+                            }
+                        })
+                    }
                     val button = Button(this).apply {
                         text = "添加并恢复此组件"
                         setOnClickListener { requestHabitRestore(config) }
@@ -173,6 +196,57 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
             }
             addSection("其他组件", pending.filter { it.type == "simple" }) {
                 "组件实例数量和类型已保存；数字时钟样式等应用级设置会随完全备份恢复。"
+            }
+
+            val pendingKeys = pending.map { "${it.providerClass}#${it.sourceWidgetId}" }.toSet()
+            val historyOnly = history.filterNot { "${it.providerClass}#${it.sourceWidgetId}" in pendingKeys }
+            if (historyOnly.isNotEmpty()) {
+                root.addView(TextView(this).apply {
+                    text = "历史恢复记录"
+                    textSize = 17f
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+                    setPadding(0, dp(14), 0, dp(8))
+                })
+                historyOnly.forEach { record ->
+                    val card = LinearLayout(this).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setPadding(dp(14), dp(12), dp(14), dp(12))
+                        background = android.graphics.drawable.GradientDrawable().apply {
+                            setColor(if (dark) 0xFF2D3037.toInt() else android.graphics.Color.WHITE)
+                            cornerRadius = dp(12).toFloat()
+                        }
+                    }
+                    card.addView(TextView(this).apply {
+                        text = "${restoreTitle(record.type, record.providerClass)}（原组件编号 ${record.sourceWidgetId}）"
+                        textSize = 15f
+                        setTypeface(typeface, android.graphics.Typeface.BOLD)
+                        setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+                    })
+                    card.addView(TextView(this).apply {
+                        text = "历史恢复 ${record.count} 次"
+                        textSize = 13f
+                        setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
+                        setPadding(0, dp(5), 0, dp(5))
+                    })
+                    card.addView(TextView(this).apply {
+                        text = "当前没有待恢复配置；重新导入包含该组件设置的完全备份后，可以再次恢复。"
+                        textSize = 12f
+                        setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
+                        setPadding(0, 0, 0, dp(5))
+                    })
+                    card.addView(Button(this).apply {
+                        text = "清零"
+                        setOnClickListener {
+                            WidgetRestoreStore.clearHistory(this@PictureWidgetRestoreActivity,
+                                record.sourceWidgetId, record.providerClass)
+                            recreate()
+                        }
+                    })
+                    root.addView(card, LinearLayout.LayoutParams(-1, -2).apply {
+                        bottomMargin = dp(10)
+                    })
+                }
             }
         }
 
