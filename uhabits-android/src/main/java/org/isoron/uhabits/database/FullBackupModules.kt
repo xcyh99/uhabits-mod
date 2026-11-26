@@ -126,7 +126,7 @@ internal object FullBackupModuleRegistry {
         override fun restore(context: Context, restoreRoot: File) {
             val values = JSONObject(readPayload(restoreRoot, ENTRY)).getJSONObject("values")
             val providerClass = org.isoron.uhabits.widgets.TimeRecordWidgetProvider::class.java.name
-            val restored = values.keys().mapNotNull { key ->
+            val restored = values.keys().asSequence().mapNotNull { key ->
                 val sourceId = key.toIntOrNull() ?: return@mapNotNull null
                 val recordId = values.optString(key).takeIf { it.isNotBlank() } ?: return@mapNotNull null
                 org.isoron.uhabits.widgets.WidgetRestoreStore.Config(
@@ -140,7 +140,10 @@ internal object FullBackupModuleRegistry {
             org.isoron.uhabits.widgets.WidgetRestoreStore.mergePending(context, restored)
         }
 
-        override fun rollback(context: Context, safetyRoot: File) = restore(context, safetyRoot)
+        override fun rollback(context: Context, safetyRoot: File) {
+            org.isoron.uhabits.widgets.WidgetRestoreStore.replaceType(context, "time_record", emptyList())
+            restore(context, safetyRoot)
+        }
     }
 
 
@@ -236,7 +239,10 @@ internal object FullBackupModuleRegistry {
             org.isoron.uhabits.widgets.WidgetRestoreStore.mergePending(context, restored)
         }
 
-        override fun rollback(context: Context, safetyRoot: File) = restore(context, safetyRoot)
+        override fun rollback(context: Context, safetyRoot: File) {
+            org.isoron.uhabits.widgets.WidgetRestoreStore.replaceType(context, "picture", emptyList())
+            restore(context, safetyRoot)
+        }
     }
 
 
@@ -336,7 +342,10 @@ internal object FullBackupModuleRegistry {
             WidgetRestoreStore.mergePending(context, restored)
         }
 
-        override fun rollback(context: Context, safetyRoot: File) = restore(context, safetyRoot)
+        override fun rollback(context: Context, safetyRoot: File) {
+            org.isoron.uhabits.widgets.WidgetRestoreStore.replaceType(context, "habit", emptyList())
+            restore(context, safetyRoot)
+        }
     }
 
     private object AppPreferencesModule : FullBackupModule {
