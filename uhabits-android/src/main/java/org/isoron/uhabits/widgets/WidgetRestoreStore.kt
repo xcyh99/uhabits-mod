@@ -30,7 +30,12 @@ internal object WidgetRestoreStore {
         val pictureLeft: String? = null,
         val pictureRight: String? = null,
         val pictureSplit: Int = 5,
-        val pictureImageMode: String = "fit"
+        val pictureImageMode: String = "fit",
+        val pictureSplitY: Int = 5,
+        val pictureTopLeft: String? = null,
+        val pictureTopRight: String? = null,
+        val pictureBottomLeft: String? = null,
+        val pictureBottomRight: String? = null
     )
 
     private fun preferences(context: Context) =
@@ -62,7 +67,12 @@ internal object WidgetRestoreStore {
                     item.optInt("pictureSplit", 5).coerceIn(1, 9),
                     item.optString("pictureImageMode", "fit").let {
                         if (it in setOf("fit", "stretch", "crop")) it else "fit"
-                    }
+                    },
+                    item.optInt("pictureSplitY", 5).coerceIn(1, 9),
+                    item.optString("pictureTopLeft").takeIf { it.isNotBlank() },
+                    item.optString("pictureTopRight").takeIf { it.isNotBlank() },
+                    item.optString("pictureBottomLeft").takeIf { it.isNotBlank() },
+                    item.optString("pictureBottomRight").takeIf { it.isNotBlank() }
                 )
             }
         }.getOrDefault(emptyList())
@@ -83,7 +93,12 @@ internal object WidgetRestoreStore {
                 .put("pictureLeft", item.pictureLeft)
                 .put("pictureRight", item.pictureRight)
                 .put("pictureSplit", item.pictureSplit.coerceIn(1, 9))
-                .put("pictureImageMode", item.pictureImageMode))
+                .put("pictureImageMode", item.pictureImageMode)
+                .put("pictureSplitY", item.pictureSplitY.coerceIn(1, 9))
+                .put("pictureTopLeft", item.pictureTopLeft)
+                .put("pictureTopRight", item.pictureTopRight)
+                .put("pictureBottomLeft", item.pictureBottomLeft)
+                .put("pictureBottomRight", item.pictureBottomRight))
         }
         preferences(context).edit()
             .putString(PENDING, array.toString())
