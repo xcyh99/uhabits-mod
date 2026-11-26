@@ -82,7 +82,7 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
             }
         }
 
-        val habitConfigs = WidgetRestoreStore.pending(this)
+        val habitConfigs = WidgetRestoreStore.pending(this).filter { it.type == "habit" }
         if (habitConfigs.isNotEmpty()) {
             root.addView(TextView(this).apply {
                 text = "习惯类组件"
@@ -111,6 +111,48 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
                 })
                 card.addView(TextView(this).apply {
                     text = "已保存原来选择的 ${config.habitIds.size} 个习惯。添加到桌面后会自动绑定到新组件。"
+                    textSize = 12f
+                    setPadding(0, dp(5), 0, dp(9))
+                    setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
+                })
+                card.addView(Button(this).apply {
+                    text = "添加并恢复此组件"
+                    setOnClickListener { requestHabitRestore(config) }
+                })
+                root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
+            }
+        }
+
+
+        val timeRecordConfigs = WidgetRestoreStore.pending(this).filter { it.type == "time_record" }
+        if (timeRecordConfigs.isNotEmpty()) {
+            root.addView(TextView(this).apply {
+                text = "时间记录组件"
+                textSize = 17f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+                setPadding(0, dp(14), 0, dp(8))
+            })
+            timeRecordConfigs.forEachIndexed { index, config ->
+                val record = config.recordId?.let {
+                    org.isoron.uhabits.activities.timerecords.TimeRecordStore.get(this@PictureWidgetRestoreActivity, it)
+                }
+                val card = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(14), dp(12), dp(14), dp(12))
+                    background = android.graphics.drawable.GradientDrawable().apply {
+                        setColor(if (dark) 0xFF2D3037.toInt() else android.graphics.Color.WHITE)
+                        cornerRadius = dp(12).toFloat()
+                    }
+                }
+                card.addView(TextView(this).apply {
+                    text = "时间记录组件 ${index + 1}（原组件编号 ${config.sourceWidgetId}）"
+                    textSize = 15f
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+                })
+                card.addView(TextView(this).apply {
+                    text = if (record != null) "将重新绑定时间记录：${record.title}" else "原时间记录编号：${config.recordId}（请先确认记录数据已恢复）"
                     textSize = 12f
                     setPadding(0, dp(5), 0, dp(9))
                     setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
