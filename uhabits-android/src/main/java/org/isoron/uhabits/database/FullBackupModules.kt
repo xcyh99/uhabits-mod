@@ -138,7 +138,7 @@ internal object FullBackupModuleRegistry {
                     recordId = recordId
                 )
             }
-            org.isoron.uhabits.widgets.WidgetRestoreStore.mergePending(context, restored)
+            org.isoron.uhabits.widgets.WidgetRestoreStore.replaceType(context, "time_record", restored)
         }
 
         override fun rollback(context: Context, safetyRoot: File) {
@@ -237,7 +237,7 @@ internal object FullBackupModuleRegistry {
                     pictureImageMode = item.getString("imageMode")
                 )
             }
-            org.isoron.uhabits.widgets.WidgetRestoreStore.mergePending(context, restored)
+            org.isoron.uhabits.widgets.WidgetRestoreStore.replaceType(context, "picture", restored)
         }
 
         override fun rollback(context: Context, safetyRoot: File) {
@@ -342,7 +342,7 @@ internal object FullBackupModuleRegistry {
                     habitIds = (0 until ids.length()).map { ids.getLong(it) }
                 )
             }
-            WidgetRestoreStore.mergePending(context, restored)
+            WidgetRestoreStore.replaceType(context, "habit", restored)
         }
 
         override fun rollback(context: Context, safetyRoot: File) {
@@ -435,7 +435,7 @@ internal object FullBackupModuleRegistry {
                     type = "simple"
                 )
             }
-            org.isoron.uhabits.widgets.WidgetRestoreStore.mergePending(context, restored)
+            org.isoron.uhabits.widgets.WidgetRestoreStore.replaceType(context, "simple", restored)
         }
 
         override fun rollback(context: Context, safetyRoot: File) {
