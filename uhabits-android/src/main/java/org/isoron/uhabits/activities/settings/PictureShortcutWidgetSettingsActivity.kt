@@ -68,7 +68,8 @@ class PictureShortcutWidgetSettingsActivity : AppCompatActivity() {
                     setOnClickListener {
                         startActivity(Intent(this@PictureShortcutWidgetSettingsActivity,
                             PictureShortcutWidgetConfigureActivity::class.java)
-                            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id))
+                            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
+                            .putExtra(PictureShortcutWidgetConfigureActivity.EXTRA_EDIT_EXISTING_WIDGET, true))
                     }
                 }
                 card.addView(TextView(this).apply {
