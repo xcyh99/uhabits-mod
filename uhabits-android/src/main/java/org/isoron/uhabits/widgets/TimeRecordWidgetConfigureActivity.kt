@@ -31,6 +31,25 @@ class TimeRecordWidgetConfigureActivity : Activity() {
             return
         }
 
+
+        // Manual-add fallback for launchers without the in-app pin API.
+        val pendingRestore = WidgetRestoreStore.selected(this)
+        val providerClass = AppWidgetManager.getInstance(this)
+            .getAppWidgetInfo(widgetId)?.provider?.className
+        if (pendingRestore != null &&
+            pendingRestore.type == "time_record" &&
+            pendingRestore.providerClass == providerClass &&
+            pendingRestore.recordId != null
+        ) {
+            TimeRecordWidgetProvider.setRecord(this, widgetId, pendingRestore.recordId)
+            TimeRecordWidgetProvider.updateWidget(this, widgetId)
+            WidgetRestoreStore.consume(this, pendingRestore.sourceWidgetId, pendingRestore.providerClass)
+            WidgetRestoreStore.clearSelection(this, pendingRestore.sourceWidgetId)
+            setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
+            finish()
+            return
+        }
+
         val records = TimeRecordStore.getAll(this)
         if (records.isEmpty()) {
             Toast.makeText(this, R.string.time_records_widget_create_first, Toast.LENGTH_LONG).show()
