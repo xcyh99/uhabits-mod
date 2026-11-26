@@ -76,6 +76,7 @@ open class HabitPickerDialog : Activity() {
         ) {
             widgetPreferences.addWidget(widgetId, pendingRestore.habitIds.toLongArray())
             widgetUpdater.updateWidgets()
+            WidgetRestoreStore.recordSuccessfulRestore(this, pendingRestore)
             WidgetRestoreStore.consume(this, pendingRestore.sourceWidgetId, pendingRestore.providerClass)
             WidgetRestoreStore.clearSelection(this, pendingRestore.sourceWidgetId)
             setResult(RESULT_OK, Intent().putExtra(EXTRA_APPWIDGET_ID, widgetId))
