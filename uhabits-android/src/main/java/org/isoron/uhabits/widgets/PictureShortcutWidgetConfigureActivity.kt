@@ -227,7 +227,9 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
                 splitY = y
             }
         }
-        content.addView(editorView, LinearLayout.LayoutParams(-1, dp(300)))
+        content.addView(editorView, LinearLayout.LayoutParams(-1, dp(300)).apply {
+            topMargin = dp(8)
+        })
         content.addView(TextView(this).apply {
             text = "两条分界线按 10% 调整。未设置快捷方式的区域点击无反应。"
             textSize = 11f
@@ -587,7 +589,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         val message = "${zoneNames[sourceRegion]}格 → ${zoneNames[targetRegion]}格\n" +
             "${compactTargetLabel(before)} → ${compactTargetLabel(source)}\n\n" +
             "将覆盖${zoneNames[targetRegion]}格原有内容。"
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle("确认复制？")
             .setMessage(message)
             .setNegativeButton("取消", null)
@@ -597,6 +599,8 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
                 Toast.makeText(this, "已复制到${zoneNames[targetRegion]}", Toast.LENGTH_SHORT).show()
             }
             .show()
+        dialog.findViewById<TextView>(android.R.id.alertTitle)?.textSize = 14f
+        dialog.findViewById<TextView>(android.R.id.message)?.textSize = 11f
     }
 
     private fun showPushTargetsDialog(sourceRegion: Int) {
@@ -623,7 +627,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         }.joinToString("，")
         val message = "来源：${zoneNames[sourceRegion]}格 · ${compactTargetLabel(source)}\n" +
             "$details\n\n共 ${changed.size} 个目标，$summary。"
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle("确认推送？")
             .setMessage(message)
             .setNegativeButton("取消", null)
@@ -633,6 +637,8 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
                 Toast.makeText(this, "已推送到 ${changed.size} 个格子", Toast.LENGTH_SHORT).show()
             }
             .show()
+        dialog.findViewById<TextView>(android.R.id.alertTitle)?.textSize = 14f
+        dialog.findViewById<TextView>(android.R.id.message)?.textSize = 11f
     }
 
     private fun updateTargetLabels() {
