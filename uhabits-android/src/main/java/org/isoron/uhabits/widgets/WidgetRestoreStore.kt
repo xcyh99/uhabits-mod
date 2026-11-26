@@ -92,6 +92,11 @@ internal object WidgetRestoreStore {
             .commit()
     }
 
+    fun replaceType(context: Context, type: String, configs: List<Config>) {
+        val merged = pending(context).filterNot { it.type == type } + configs
+        replacePending(context, merged)
+    }
+
     fun mergePending(context: Context, configs: List<Config>) {
         val incomingKeys = configs.map { "${it.providerClass}#${it.sourceWidgetId}" }.toSet()
         val merged = pending(context)
