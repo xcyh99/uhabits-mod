@@ -603,7 +603,6 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
                 Toast.makeText(this, "已复制到${zoneNames[targetRegion]}", Toast.LENGTH_SHORT).show()
             }
             .show()
-        dialog.findViewById<TextView>(android.R.id.alertTitle)?.textSize = 14f
         dialog.findViewById<TextView>(android.R.id.message)?.textSize = 11f
     }
 
@@ -643,7 +642,6 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
                 Toast.makeText(this, "已推送到 ${changed.size} 个格子", Toast.LENGTH_SHORT).show()
             }
             .show()
-        dialog.findViewById<TextView>(android.R.id.alertTitle)?.textSize = 14f
         dialog.findViewById<TextView>(android.R.id.message)?.textSize = 11f
     }
 
