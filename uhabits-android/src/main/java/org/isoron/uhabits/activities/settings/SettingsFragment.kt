@@ -421,7 +421,13 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
 
         val webDavTitle = SpannableString("★ " + getString(R.string.webdav_sync))
         webDavTitle.setSpan(
-            ForegroundColorSpan(Color.rgb(76, 175, 80)),
+            ForegroundColorSpan(Color.WHITE),
+            0,
+            1,
+            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        webDavTitle.setSpan(
+            android.text.style.RelativeSizeSpan(1.35f),
             0,
             1,
             android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
