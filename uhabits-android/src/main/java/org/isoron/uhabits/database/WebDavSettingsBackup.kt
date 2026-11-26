@@ -115,7 +115,7 @@ class WebDavSettingsBackup(private val context: Context) {
                     }
                     event = parser.next()
                 }
-                return candidates.sortedDescending()
+                return candidates.sortedByDescending { it.substringAfter("_SET_").removeSuffix(".json") }
             }
         } finally {
             client.dispatcher.executorService.shutdown()
