@@ -8,6 +8,7 @@ import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
+import android.widget.CheckBox
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -267,27 +268,152 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
                     "__no_picture_zone_action" -> ""
                     else -> entry.widgetTarget
                 }
-            }
+            },
+            extraActions = listOf(
+                "从其他格子复制" to { showCopySourceDialog(region) },
+                "推送到其他格子" to { showPushTargetsDialog(region) }
+            )
         ) { selectedKey ->
-            when (region) {
-                0 -> topLeftTarget = selectedKey
-                1 -> topRightTarget = selectedKey
-                2 -> bottomLeftTarget = selectedKey
-                3 -> bottomRightTarget = selectedKey
-            }
+            setZoneTarget(region, selectedKey)
             updateTargetLabels()
         }
     }
 
-    private fun updateTargetLabels() {
-        val all = FeatureShortcutCatalog.getSelectableEntries(this).associate { it.widgetTarget to it.title }
-        fun label(target: String): String = when {
-            target.isBlank() -> "未设置（点击无反应）"
-            target == "pictureWidgetSettings:$widgetId" -> "打开本图片组件设置"
-            else -> all[target] ?: "选择快捷方式"
+    private val zoneNames = listOf("左上", "右上", "左下", "右下")
+
+    private fun zoneTarget(region: Int): String = when (region) {
+        0 -> topLeftTarget
+        1 -> topRightTarget
+        2 -> bottomLeftTarget
+        else -> bottomRightTarget
+    }
+
+    private fun setZoneTarget(region: Int, target: String) {
+        when (region) {
+            0 -> topLeftTarget = target
+            1 -> topRightTarget = target
+            2 -> bottomLeftTarget = target
+            3 -> bottomRightTarget = target
         }
+    }
+
+    private fun targetLabel(target: String): String {
+        if (target.isBlank()) return "未设置（点击无反应）"
+        if (target == "pictureWidgetSettings:$widgetId") return "打开本图片组件设置"
+        return FeatureShortcutCatalog.getSelectableEntries(this)
+            .firstOrNull { it.widgetTarget == target }?.title ?: "快捷方式"
+    }
+
+    private fun otherZones(current: Int): List<Int> = (0..3).filter { it != current }
+
+    private fun showCopySourceDialog(targetRegion: Int) {
+        val sources = otherZones(targetRegion)
+        var selectedSource = sources.first()
+        AlertDialog.Builder(this)
+            .setTitle("从哪个格子复制？")
+            .setSingleChoiceItems(
+                sources.map { "${zoneNames[it]}：${targetLabel(zoneTarget(it))}" }.toTypedArray(),
+                0
+            ) { dialog, which ->
+                selectedSource = sources[which]
+                dialog.dismiss()
+                showCopyReviewDialog(selectedSource, targetRegion)
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun showCopyReviewDialog(sourceRegion: Int, targetRegion: Int) {
+        val source = zoneTarget(sourceRegion)
+        val before = zoneTarget(targetRegion)
+        val result = source
+        val message = "来源：${zoneNames[sourceRegion]}\n复制内容：${targetLabel(source)}\n\n目标：${zoneNames[targetRegion]}\n原内容：${targetLabel(before)}\n复制后：${targetLabel(result)}\n\n确认后将覆盖目标格原有设置；来源为空时，目标格也会变为未设置。"
+        AlertDialog.Builder(this)
+            .setTitle("核对复制内容")
+            .setMessage(message)
+            .setNegativeButton("返回", null)
+            .setPositiveButton("确认复制") { _, _ ->
+                setZoneTarget(targetRegion, result)
+                updateTargetLabels()
+                Toast.makeText(this, "已复制到${zoneNames[targetRegion]}", Toast.LENGTH_SHORT).show()
+            }
+            .show()
+    }
+
+    private fun showPushTargetsDialog(sourceRegion: Int) {
+        val targets = otherZones(sourceRegion)
+        val source = zoneTarget(sourceRegion)
+        val checks = targets.map { region ->
+            CheckBox(this).apply {
+                text = "${zoneNames[region]}：原内容「${targetLabel(zoneTarget(region))}」\n推送后「${targetLabel(source)}」"
+                textSize = 14f
+                isChecked = false
+                setPadding(0, dp(6), 0, dp(6))
+            }
+        }
+        val summary = TextView(this).apply {
+            textSize = 13f
+            setPadding(0, dp(8), 0, 0)
+        }
+        fun refreshSummary() {
+            val selected = checks.indices.filter { checks[it].isChecked }.map { targets[it] }
+            val overwritten = selected.count { zoneTarget(it).isNotBlank() }
+            summary.text = when {
+                selected.isEmpty() -> "尚未选择目标格"
+                else -> "已选 ${selected.size} 个目标；其中 ${overwritten} 个将覆盖原有设置。"
+            }
+        }
+        checks.forEach { check ->
+            check.setOnCheckedChangeListener { _, _ -> refreshSummary() }
+        }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(4), dp(20), dp(4))
+            checks.forEach { addView(it) }
+            addView(summary)
+        }
+        refreshSummary()
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("推送到其他格子")
+            .setView(content)
+            .setNegativeButton("取消", null)
+            .setPositiveButton("下一步", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val selected = checks.indices.filter { checks[it].isChecked }.map { targets[it] }
+                if (selected.isEmpty()) {
+                    Toast.makeText(this, "请至少选择一个目标格", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                dialog.dismiss()
+                showPushReviewDialog(sourceRegion, selected)
+            }
+        }
+        dialog.show()
+    }
+
+    private fun showPushReviewDialog(sourceRegion: Int, targetRegions: List<Int>) {
+        val source = zoneTarget(sourceRegion)
+        val details = targetRegions.joinToString("\n\n") { region ->
+            "${zoneNames[region]}：\n原内容：${targetLabel(zoneTarget(region))}\n推送后：${targetLabel(source)}"
+        }
+        val message = "来源：${zoneNames[sourceRegion]}（${targetLabel(source)}）\n\n目标核对：\n$details\n\n确认后将一次性写入全部所选目标；来源为空时，所选目标将全部清空。"
+        AlertDialog.Builder(this)
+            .setTitle("最终确认推送")
+            .setMessage(message)
+            .setNegativeButton("取消", null)
+            .setPositiveButton("确认推送") { _, _ ->
+                targetRegions.forEach { setZoneTarget(it, source) }
+                updateTargetLabels()
+                Toast.makeText(this, "已推送到 ${targetRegions.size} 个格子", Toast.LENGTH_SHORT).show()
+            }
+            .show()
+    }
+
+    private fun updateTargetLabels() {
         editorView.zoneLabels = listOf(topLeftTarget, topRightTarget, bottomLeftTarget, bottomRightTarget)
-            .map { target -> label(target) }
+            .map { target -> targetLabel(target) }
     }
 
     private fun updateSplitLabels() {
