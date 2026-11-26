@@ -73,6 +73,13 @@ class WidgetRestoreCallbackActivity : AppCompatActivity() {
                     )
                     Toast.makeText(this, "图片组件已添加，请重新选择图片并保存。", Toast.LENGTH_LONG).show()
                 }
+                "simple" -> {
+                    val provider = Class.forName(providerClass)
+                        .getDeclaredConstructor().newInstance() as android.appwidget.AppWidgetProvider
+                    provider.onUpdate(this, manager, intArrayOf(newWidgetId))
+                    WidgetRestoreStore.consume(this, sourceId, providerClass)
+                    Toast.makeText(this, "组件已添加；应用设置会自动应用。", Toast.LENGTH_SHORT).show()
+                }
                 else -> throw IllegalStateException("暂不支持此组件的恢复类型：${config.type}")
             }
         } catch (error: Exception) {
