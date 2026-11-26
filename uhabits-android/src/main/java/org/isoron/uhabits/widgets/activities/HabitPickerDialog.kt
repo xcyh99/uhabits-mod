@@ -34,6 +34,7 @@ import org.isoron.uhabits.R
 import org.isoron.uhabits.activities.AndroidThemeSwitcher
 import org.isoron.uhabits.core.preferences.WidgetPreferences
 import org.isoron.uhabits.widgets.WidgetUpdater
+import org.isoron.uhabits.widgets.WidgetRestoreStore
 
 class BooleanHabitPickerDialog : HabitPickerDialog() {
     override fun shouldHideNumerical() = true
