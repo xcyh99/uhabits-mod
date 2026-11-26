@@ -122,11 +122,19 @@ internal object FullBackupModuleRegistry {
 
         override fun restore(context: Context, restoreRoot: File) {
             val values = JSONObject(readPayload(restoreRoot, ENTRY)).getJSONObject("values")
-            val editor = context.getSharedPreferences(
-                "time_record_widget_links", Context.MODE_PRIVATE
-            ).edit().clear()
-            values.keys().forEach { key -> editor.putString(key, values.getString(key)) }
-            if (!editor.commit()) throw IOException("时间记录小组件配置恢复失败")
+            val providerClass = org.isoron.uhabits.widgets.TimeRecordWidgetProvider::class.java.name
+            val restored = values.keys().mapNotNull { key ->
+                val sourceId = key.toIntOrNull() ?: return@mapNotNull null
+                val recordId = values.optString(key).takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                org.isoron.uhabits.widgets.WidgetRestoreStore.Config(
+                    sourceWidgetId = sourceId,
+                    providerClass = providerClass,
+                    habitIds = emptyList(),
+                    type = "time_record",
+                    recordId = recordId
+                )
+            }
+            org.isoron.uhabits.widgets.WidgetRestoreStore.mergePending(context, restored)
         }
 
         override fun rollback(context: Context, safetyRoot: File) = restore(context, safetyRoot)
