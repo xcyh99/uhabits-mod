@@ -152,7 +152,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             setSingleLine(true)
             setPadding(0, dp(6), 0, dp(2))
         }
-        modeSpinner = Spinner(this, null, android.R.attr.spinnerStyle, Spinner.MODE_DIALOG).apply {
+        modeSpinner = Spinner(this).apply {
             textAlignment = View.TEXT_ALIGNMENT_VIEW_START
         }
         val modeLabels = listOf("完全适应", "拉伸填满", "居中裁剪")
