@@ -43,6 +43,8 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     private lateinit var imageStatus: TextView
     private lateinit var editorView: PictureShortcutSplitEditorView
 
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         (application as HabitsApplication).component.preferences.let { AndroidThemeSwitcher(this, it).apply() }
         super.onCreate(savedInstanceState)
@@ -57,8 +59,6 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         bottomLeftTarget = ownSettingsTarget
         bottomRightTarget = ownSettingsTarget
 
-        val density = resources.displayMetrics.density
-        fun dp(value: Int) = (value * density).toInt()
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(16), dp(20), dp(20))
