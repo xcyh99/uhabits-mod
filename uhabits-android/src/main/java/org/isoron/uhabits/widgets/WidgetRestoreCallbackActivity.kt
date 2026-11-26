@@ -70,6 +70,7 @@ class WidgetRestoreCallbackActivity : AppCompatActivity() {
                     val provider = Class.forName(providerClass)
                         .getDeclaredConstructor().newInstance() as android.appwidget.AppWidgetProvider
                     provider.onUpdate(this, manager, intArrayOf(newWidgetId))
+                    WidgetRestoreStore.recordSuccessfulRestore(this, config)
                     WidgetRestoreStore.consume(this, sourceId, providerClass)
                     WidgetRestoreStore.clearSelection(this, sourceId)
                     Toast.makeText(this, "习惯组件配置已恢复。", Toast.LENGTH_SHORT).show()
@@ -78,6 +79,7 @@ class WidgetRestoreCallbackActivity : AppCompatActivity() {
                     val recordId = config.recordId ?: throw IllegalStateException("缺少时间记录编号")
                     TimeRecordWidgetProvider.setRecord(this, newWidgetId, recordId)
                     TimeRecordWidgetProvider.updateWidget(this, newWidgetId)
+                    WidgetRestoreStore.recordSuccessfulRestore(this, config)
                     WidgetRestoreStore.consume(this, sourceId, providerClass)
                     WidgetRestoreStore.clearSelection(this, sourceId)
                     Toast.makeText(this, "时间记录组件配置已恢复。", Toast.LENGTH_SHORT).show()
@@ -95,6 +97,7 @@ class WidgetRestoreCallbackActivity : AppCompatActivity() {
                     val provider = Class.forName(providerClass)
                         .getDeclaredConstructor().newInstance() as android.appwidget.AppWidgetProvider
                     provider.onUpdate(this, manager, intArrayOf(newWidgetId))
+                    WidgetRestoreStore.recordSuccessfulRestore(this, config)
                     WidgetRestoreStore.consume(this, sourceId, providerClass)
                     Toast.makeText(this, "组件已添加；应用设置会自动应用。", Toast.LENGTH_SHORT).show()
                 }
