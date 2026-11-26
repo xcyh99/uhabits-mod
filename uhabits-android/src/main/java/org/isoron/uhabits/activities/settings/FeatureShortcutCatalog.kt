@@ -280,8 +280,6 @@ object FeatureShortcutCatalog {
                 .putStringSet(KEY_ALLOWED_ENTRIES, current)
                 .remove("feature_shortcuts")
                 .remove("feature_shortcuts_order")
-                .remove(KEY_CATALOG_CACHE)
-                .putInt(KEY_CATALOG_CACHE_VERSION, 0)
                 .putInt(KEY_ALLOWED_MIGRATION_VERSION, ALLOWED_MIGRATION_VERSION)
                 .apply()
             return current
