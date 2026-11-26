@@ -42,6 +42,25 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
             setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
             setPadding(0, 0, 0, dp(12))
         })
+        // Migrate any pending picture-only queue created by an earlier 990B3 build
+        // into the shared restore queue before rendering the unified wizard.
+        val legacyPictureConfigs = PictureWidgetRestoreStore.pending(this)
+        if (legacyPictureConfigs.isNotEmpty()) {
+            val providerClass = PictureShortcutWidgetProvider::class.java.name
+            WidgetRestoreStore.mergePending(this, legacyPictureConfigs.map { item ->
+                WidgetRestoreStore.Config(
+                    sourceWidgetId = item.sourceWidgetId,
+                    providerClass = providerClass,
+                    habitIds = emptyList(),
+                    type = "picture",
+                    pictureLeft = item.left,
+                    pictureRight = item.right,
+                    pictureSplit = item.split,
+                    pictureImageMode = item.imageMode
+                )
+            })
+            PictureWidgetRestoreStore.replacePending(this, emptyList())
+        }
         val configs = PictureWidgetRestoreStore.pending(this)
         if (configs.isEmpty()) {
             root.addView(TextView(this).apply {
@@ -78,6 +97,45 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
                 }
                 restoreButtons += restoreButton
                 card.addView(restoreButton)
+                root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
+            }
+        }
+
+
+        val pictureConfigs = WidgetRestoreStore.pending(this).filter { it.type == "picture" }
+        if (pictureConfigs.isNotEmpty()) {
+            root.addView(TextView(this).apply {
+                text = "图片组件"
+                textSize = 17f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+                setPadding(0, dp(14), 0, dp(8))
+            })
+            pictureConfigs.forEachIndexed { index, config ->
+                val card = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(14), dp(12), dp(14), dp(12))
+                    background = android.graphics.drawable.GradientDrawable().apply {
+                        setColor(if (dark) 0xFF2D3037.toInt() else android.graphics.Color.WHITE)
+                        cornerRadius = dp(12).toFloat()
+                    }
+                }
+                card.addView(TextView(this).apply {
+                    text = "图片组件 ${index + 1}（原组件编号 ${config.sourceWidgetId}）"
+                    textSize = 15f
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+                })
+                card.addView(TextView(this).apply {
+                    text = "点击目标、分界比例和显示方式已保存；轻量备份不含图片文件，需要重新选择图片。"
+                    textSize = 12f
+                    setPadding(0, dp(5), 0, dp(9))
+                    setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
+                })
+                card.addView(Button(this).apply {
+                    text = "添加并恢复此组件"
+                    setOnClickListener { requestHabitRestore(config) }
+                })
                 root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
             }
         }
