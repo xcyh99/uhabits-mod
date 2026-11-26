@@ -26,7 +26,11 @@ internal object WidgetRestoreStore {
         val habitIds: List<Long>,
         val baselineWidgetIds: List<Int> = emptyList(),
         val type: String = "habit",
-        val recordId: String? = null
+        val recordId: String? = null,
+        val pictureLeft: String? = null,
+        val pictureRight: String? = null,
+        val pictureSplit: Int = 5,
+        val pictureImageMode: String = "fit"
     )
 
     private fun preferences(context: Context) =
@@ -52,7 +56,13 @@ internal object WidgetRestoreStore {
                         (0 until values.length()).map { values.optInt(it, -1) }.filter { it >= 0 }
                     } ?: emptyList(),
                     item.optString("type", "habit"),
-                    item.optString("recordId").takeIf { it.isNotBlank() }
+                    item.optString("recordId").takeIf { it.isNotBlank() },
+                    item.optString("pictureLeft").takeIf { it.isNotBlank() },
+                    item.optString("pictureRight").takeIf { it.isNotBlank() },
+                    item.optInt("pictureSplit", 5).coerceIn(1, 9),
+                    item.optString("pictureImageMode", "fit").let {
+                        if (it in setOf("fit", "stretch", "crop")) it else "fit"
+                    }
                 )
             }
         }.getOrDefault(emptyList())
@@ -69,7 +79,11 @@ internal object WidgetRestoreStore {
                 .put("habitIds", ids)
                 .put("baselineWidgetIds", JSONArray(item.baselineWidgetIds))
                 .put("type", item.type)
-                .put("recordId", item.recordId))
+                .put("recordId", item.recordId)
+                .put("pictureLeft", item.pictureLeft)
+                .put("pictureRight", item.pictureRight)
+                .put("pictureSplit", item.pictureSplit.coerceIn(1, 9))
+                .put("pictureImageMode", item.pictureImageMode))
         }
         preferences(context).edit()
             .putString(PENDING, array.toString())
