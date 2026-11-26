@@ -14,7 +14,6 @@ import org.isoron.uhabits.HabitsApplication
 import org.isoron.uhabits.activities.AndroidThemeSwitcher
 import org.isoron.uhabits.widgets.WidgetCatalog
 import org.isoron.uhabits.widgets.PictureWidgetRestoreActivity
-import org.isoron.uhabits.weather.WeatherDetailActivity
 
 class ComponentCenterActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,10 +84,6 @@ class ComponentCenterActivity : AppCompatActivity() {
         card("图片组件设置", "管理图片、左右点击区域及显示方式") {
             startActivity(Intent(this, PictureShortcutWidgetSettingsActivity::class.java))
         }
-        card("天气预报", "未来 7 天趋势、逐小时天气与详细信息") {
-            startActivity(Intent(this, WeatherDetailActivity::class.java))
-        }
-
         setContentView(ScrollView(this).apply { isFillViewport = true; addView(root) })
     }
 }
