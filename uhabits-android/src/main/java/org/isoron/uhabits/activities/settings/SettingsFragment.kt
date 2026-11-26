@@ -1754,11 +1754,11 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             "#7E57C2"
         )
         val uploadButton = actionButton(
-            getString(R.string.webdav_upload),
+            "上传数据备份",
             "#D32F2F"
         )
         val downloadButton = actionButton(
-            getString(R.string.webdav_download),
+            "下载数据备份",
             "#2E7D32"
         )
 
