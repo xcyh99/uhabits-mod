@@ -295,8 +295,17 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             Toast.makeText(this, "请先选择一张图片", Toast.LENGTH_LONG).show()
             return
         }
+        val restoredConfig = restoreSourceWidgetId?.takeIf { restoreFromGenericQueue }?.let { sourceId ->
+            WidgetRestoreStore.find(this, sourceId, PictureShortcutWidgetProvider::class.java.name)
+        }
         PictureShortcutWidgetProvider.save(this, widgetId, file?.takeIf { it.isFile }?.name.orEmpty(),
             leftTarget, rightTarget, split, imageMode)
+        restoreSaved = true
+        // Count only after the restored settings have been saved and the widget updated.
+        PictureShortcutWidgetProvider.updateWidget(this, widgetId)
+        restoredConfig?.let { config ->
+            WidgetRestoreStore.recordSuccessfulRestore(this, config)
+        }
         restoreSourceWidgetId?.let { sourceId ->
             if (restoreFromGenericQueue) {
                 WidgetRestoreStore.consume(this, sourceId, PictureShortcutWidgetProvider::class.java.name)
@@ -306,8 +315,6 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             }
             restoreSourceWidgetId = null
         }
-        restoreSaved = true
-        PictureShortcutWidgetProvider.updateWidget(this, widgetId)
         setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
         finish()
     }
