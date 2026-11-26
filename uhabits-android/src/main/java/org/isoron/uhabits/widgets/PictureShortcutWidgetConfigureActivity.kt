@@ -152,7 +152,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             setSingleLine(true)
             setPadding(0, dp(6), 0, dp(2))
         }
-        modeSpinner = Spinner(this).apply {
+        modeSpinner = Spinner(this, null, android.R.attr.spinnerStyle, Spinner.MODE_DIALOG).apply {
             textAlignment = View.TEXT_ALIGNMENT_VIEW_START
         }
         val modeLabels = listOf("完全适应", "拉伸填满", "居中裁剪")
@@ -228,7 +228,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             }
         }
         content.addView(editorView, LinearLayout.LayoutParams(-1, dp(300)).apply {
-            topMargin = dp(8)
+            topMargin = dp(16)
         })
         content.addView(TextView(this).apply {
             text = "两条分界线按 10% 调整。未设置快捷方式的区域点击无反应。"
