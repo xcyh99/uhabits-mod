@@ -437,6 +437,10 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     }
 
     private fun saveWidget() {
+        // The editor view is the source of truth for the live split positions.
+        // Read it at save time so the persisted values cannot lag behind the UI callback.
+        splitX = editorView.splitX.coerceIn(1, 9)
+        splitY = editorView.splitY.coerceIn(1, 9)
         val file = imageFile
         if (file == null || !file.isFile) {
             Toast.makeText(
