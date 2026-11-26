@@ -6,6 +6,7 @@ import android.os.SystemClock
 import androidx.preference.PreferenceManager
 import org.json.JSONArray
 import org.json.JSONObject
+import org.isoron.uhabits.widgets.WidgetRestoreStore
 import java.io.File
 import java.io.IOException
 
@@ -137,7 +138,7 @@ internal object FullBackupModuleRegistry {
                     type = "time_record",
                     recordId = recordId
                 )
-            }
+            }.toList()
             org.isoron.uhabits.widgets.WidgetRestoreStore.replaceType(context, "time_record", restored)
         }
 
