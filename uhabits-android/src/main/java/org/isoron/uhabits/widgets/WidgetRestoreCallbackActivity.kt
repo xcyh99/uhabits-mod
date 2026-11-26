@@ -38,18 +38,16 @@ class WidgetRestoreCallbackActivity : AppCompatActivity() {
             AppWidgetManager.EXTRA_APPWIDGET_ID,
             AppWidgetManager.INVALID_APPWIDGET_ID
         )
-        val callbackProvider = if (callbackWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-            manager.getAppWidgetInfo(callbackWidgetId)?.provider
-        } else null
+        val currentIds = manager.getAppWidgetIds(component).toSet()
         val newWidgetId = when {
-            callbackProvider == component -> callbackWidgetId
+            callbackWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID &&
+                callbackWidgetId in currentIds -> callbackWidgetId
             callbackWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID -> {
                 Toast.makeText(this, "桌面返回的组件编号与请求类型不匹配；恢复记录已保留。", Toast.LENGTH_LONG).show()
                 finish()
                 return
             }
             else -> {
-                val currentIds = manager.getAppWidgetIds(component).toSet()
                 val newIds = currentIds - config.baselineWidgetIds.toSet()
                 if (newIds.size != 1) {
                     Toast.makeText(
