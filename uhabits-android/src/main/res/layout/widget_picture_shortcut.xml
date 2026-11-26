@@ -31,8 +31,8 @@
         android:textColor="#FFFFFFFF"
         android:background="#FF30343B"
         android:textSize="14sp" />
-    <!-- Four independent touch zones. Their weighted row/column sizes are
-         updated by the X/Y split values in PictureShortcutWidgetProvider. -->
+    <!-- A 10x10 invisible touch grid allows independent X/Y splits in 10% steps.
+         Adjacent cells route to the same quadrant, appearing as four continuous areas. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -41,32 +41,1174 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="5"
+            android:layout_weight="1"
             android:orientation="horizontal"
             android:weightSum="10">
-                <TextView
-                    android:id="@+id/picture_zone_top_left"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@android:color/transparent"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:text=""
-                    android:textSize="1sp"
-                    android:padding="0dp" />
-                <TextView
-                    android:id="@+id/picture_zone_top_right"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@android:color/transparent"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:text=""
-                    android:textSize="1sp"
-                    android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_0"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_2"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_3"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_4"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_5"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_6"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_7"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_8"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_9"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
         </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:weightSum="10">
+            <TextView
+                android:id="@+id/picture_cell_10"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_11"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_12"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_13"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_14"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_15"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_16"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_17"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_18"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_19"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:weightSum="10">
+            <TextView
+                android:id="@+id/picture_cell_20"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_21"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_22"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_23"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_24"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_25"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_26"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_27"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_28"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_29"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:weightSum="10">
+            <TextView
+                android:id="@+id/picture_cell_30"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_31"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_32"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_33"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_34"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_35"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_36"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_37"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_38"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_39"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:weightSum="10">
+            <TextView
+                android:id="@+id/picture_cell_40"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_41"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_42"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_43"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_44"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_45"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_46"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_47"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_48"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_49"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:weightSum="10">
+            <TextView
+                android:id="@+id/picture_cell_50"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_51"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_52"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_53"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_54"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_55"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_56"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_57"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_58"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_59"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:weightSum="10">
+            <TextView
+                android:id="@+id/picture_cell_60"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_61"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_62"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_63"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_64"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_65"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_66"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_67"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_68"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_69"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:weightSum="10">
+            <TextView
+                android:id="@+id/picture_cell_70"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_71"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_72"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_73"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_74"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_75"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_76"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_77"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_78"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_79"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:weightSum="10">
+            <TextView
+                android:id="@+id/picture_cell_80"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_81"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_82"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_83"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_84"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_85"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_86"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_87"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_88"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_89"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:weightSum="10">
+            <TextView
+                android:id="@+id/picture_cell_90"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_91"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_92"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_93"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_94"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_95"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_96"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_97"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_98"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+            <TextView
+                android:id="@+id/picture_cell_99"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:text=""
+                android:textSize="1sp"
+                android:padding="0dp" />
+        </LinearLayout>
+    </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
