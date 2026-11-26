@@ -168,6 +168,10 @@
             android:name="org.isoron.uhabits.activities.settings.ComponentAddActivity"
             android:exported="false"
             android:label="组件添加" />
+        <activity
+            android:name="org.isoron.uhabits.activities.settings.TimeCenterActivity"
+            android:exported="false"
+            android:label="时间中心" />
 
         <activity
             android:name="org.isoron.uhabits.activities.settings.SettingsActivity"
