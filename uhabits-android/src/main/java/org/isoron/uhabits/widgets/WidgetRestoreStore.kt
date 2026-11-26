@@ -146,6 +146,75 @@ internal object WidgetRestoreStore {
         }
     }
 
+    data class HistoryRecord(
+        val sourceWidgetId: Int,
+        val providerClass: String,
+        val type: String,
+        val count: Int
+    )
+
+    private const val HISTORY_FILE = "widget_restore_history.json"
+
+    // Stored under noBackupFilesDir: local history is intentionally excluded from
+    // both the app's portable backup and Android Auto Backup/restore.
+    private fun historyFile(context: Context) = java.io.File(context.noBackupFilesDir, HISTORY_FILE)
+
+    private fun readHistory(context: Context): MutableList<HistoryRecord> {
+        val file = historyFile(context)
+        if (!file.isFile) return mutableListOf()
+        return runCatching {
+            val array = JSONArray(file.readText())
+            (0 until array.length()).mapNotNull { index ->
+                val item = array.optJSONObject(index) ?: return@mapNotNull null
+                val sourceId = item.optInt("sourceWidgetId", -1)
+                val provider = item.optString("providerClass")
+                val type = item.optString("type", "habit")
+                val count = item.optInt("count", 0)
+                if (sourceId < 0 || provider.isBlank() || count <= 0) null
+                else HistoryRecord(sourceId, provider, type, count)
+            }.toMutableList()
+        }.getOrDefault(mutableListOf())
+    }
+
+    private fun writeHistory(context: Context, records: List<HistoryRecord>) {
+        val array = JSONArray()
+        records.filter { it.count > 0 }.forEach { record ->
+            array.put(JSONObject()
+                .put("sourceWidgetId", record.sourceWidgetId)
+                .put("providerClass", record.providerClass)
+                .put("type", record.type)
+                .put("count", record.count))
+        }
+        historyFile(context).writeText(array.toString())
+    }
+
+    @Synchronized
+    fun historyRecords(context: Context): List<HistoryRecord> = readHistory(context).toList()
+
+    @Synchronized
+    fun recordSuccessfulRestore(context: Context, config: Config) {
+        val records = readHistory(context)
+        val index = records.indexOfFirst {
+            it.sourceWidgetId == config.sourceWidgetId &&
+                it.providerClass == config.providerClass
+        }
+        if (index >= 0) {
+            records[index] = records[index].copy(count = records[index].count + 1)
+        } else {
+            records.add(HistoryRecord(
+                config.sourceWidgetId, config.providerClass, config.type, 1
+            ))
+        }
+        writeHistory(context, records)
+    }
+
+    @Synchronized
+    fun clearHistory(context: Context, sourceWidgetId: Int, providerClass: String) {
+        writeHistory(context, readHistory(context).filterNot {
+            it.sourceWidgetId == sourceWidgetId && it.providerClass == providerClass
+        })
+    }
+
     fun consume(context: Context, sourceWidgetId: Int, providerClass: String? = null) {
         replacePending(
             context,
