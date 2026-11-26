@@ -273,8 +273,28 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 startActivityForResult(intent, FULL_BACKUP_RESTORE_REQUEST_CODE)
                 return true
             }
-            "timeRecords" -> {
-                startActivity(Intent(requireContext(), org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
+            "timeCenter" -> {
+                AlertDialog.Builder(requireContext())
+                    .setTitle("时间中心")
+                    .setItems(arrayOf("时间记录", "状态栏天数", "悬浮计时器")) { _, which ->
+                        when (which) {
+                            0 -> startActivity(Intent(requireContext(), org.isoron.uhabits.activities.timerecords.TimeRecordsActivity::class.java))
+                            1 -> showStatusBarDaysSettings()
+                            2 -> {
+                                val context = requireContext()
+                                if (!Settings.canDrawOverlays(context)) {
+                                    Toast.makeText(context, "请允许十字习惯 APP 显示在其他应用上层，然后再次点击悬浮计时器", Toast.LENGTH_LONG).show()
+                                    val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context.packageName))
+                                    startActivity(intent)
+                                } else {
+                                    val intent = Intent(context, FloatingTimerService::class.java).setAction(FloatingTimerService.ACTION_SETUP)
+                                    if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
+                                }
+                            }
+                        }
+                    }
+                    .setNegativeButton("关闭", null)
+                    .show()
                 return true
             }
             "puzzleGames" -> {
