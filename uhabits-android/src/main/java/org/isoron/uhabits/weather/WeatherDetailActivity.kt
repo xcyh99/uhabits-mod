@@ -117,8 +117,8 @@ class WeatherDetailActivity : AppCompatActivity() {
                 gravity = Gravity.CENTER
                 addView(label(WeatherRepository.dayLabel(day.date, index), 11f, true))
                 addView(label(WeatherRepository.weatherIcon(day.code), 21f).apply { setPadding(0, dp(4), 0, dp(4)) })
-                addView(label("${day.high}°", 13f, true, Color.rgb(215, 112, 42)))
-                addView(label("${day.low}°", 12f, false, Color.rgb(56, 126, 205)))
+                addView(label("${day.high}°", 13f, true, highTemperatureColor))
+                addView(label("${day.low}°", 12f, false, lowTemperatureColor))
                 if (day.date == selectedDate) {
                     background = android.graphics.drawable.GradientDrawable().apply {
                         setColor(selectedCardColor); cornerRadius = dp(13).toFloat()
