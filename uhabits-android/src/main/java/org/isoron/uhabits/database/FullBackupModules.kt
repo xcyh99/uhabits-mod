@@ -165,19 +165,30 @@ internal object FullBackupModuleRegistry {
             )
             val configs = linkedMapOf<Int, JSONObject>()
             val ids = prefs.all.keys.mapNotNull { key ->
-                Regex("^(\\d+)_(left|right|split|imageMode)$").matchEntire(key)
-                    ?.groupValues?.get(1)?.toIntOrNull()
+                Regex("^(\\d+)_(left|right|split|splitY|imageMode|topLeft|topRight|bottomLeft|bottomRight)$")
+                    .matchEntire(key)?.groupValues?.get(1)?.toIntOrNull()
             }.toSet()
             ids.forEach { id ->
                 val left = prefs.getString("${id}_left", null)
                 val right = prefs.getString("${id}_right", null)
-                if (left != null || right != null || prefs.contains("${id}_split") || prefs.contains("${id}_imageMode")) {
+                if (left != null || right != null || prefs.contains("${id}_split") ||
+                    prefs.contains("${id}_splitY") || prefs.contains("${id}_imageMode")
+                ) {
                     val mode = prefs.getString("${id}_imageMode", "fit") ?: "fit"
+                    val topLeft = prefs.getString("${id}_topLeft", left ?: "feature:__feature_center")
+                    val topRight = prefs.getString("${id}_topRight", right ?: "feature:__settings")
+                    val bottomLeft = prefs.getString("${id}_bottomLeft", left ?: "feature:__feature_center")
+                    val bottomRight = prefs.getString("${id}_bottomRight", right ?: "feature:__settings")
                     configs[id] = JSONObject()
                         .put("sourceWidgetId", id)
-                        .put("left", left ?: "feature:__feature_center")
-                        .put("right", right ?: "feature:__settings")
+                        .put("left", left ?: topLeft)
+                        .put("right", right ?: topRight)
                         .put("split", prefs.getInt("${id}_split", 5).coerceIn(1, 9))
+                        .put("splitY", prefs.getInt("${id}_splitY", 5).coerceIn(1, 9))
+                        .put("topLeft", topLeft)
+                        .put("topRight", topRight)
+                        .put("bottomLeft", bottomLeft)
+                        .put("bottomRight", bottomRight)
                         .put("imageMode", if (mode in setOf("fit", "stretch", "crop")) mode else "fit")
                 }
             }
@@ -185,16 +196,25 @@ internal object FullBackupModuleRegistry {
                 configs[item.sourceWidgetId] = JSONObject()
                     .put("sourceWidgetId", item.sourceWidgetId)
                     .put("left", item.left).put("right", item.right)
-                    .put("split", item.split).put("imageMode", item.imageMode)
+                    .put("split", item.split).put("splitY", 5)
+                    .put("topLeft", item.left).put("topRight", item.right)
+                    .put("bottomLeft", item.left).put("bottomRight", item.right)
+                    .put("imageMode", item.imageMode)
             }
             org.isoron.uhabits.widgets.WidgetRestoreStore.pending(context)
                 .filter { it.type == "picture" }
                 .forEach { item ->
+                    val left = item.pictureLeft ?: "feature:__feature_center"
+                    val right = item.pictureRight ?: "feature:__settings"
                     configs[item.sourceWidgetId] = JSONObject()
                         .put("sourceWidgetId", item.sourceWidgetId)
-                        .put("left", item.pictureLeft ?: "feature:__feature_center")
-                        .put("right", item.pictureRight ?: "feature:__settings")
+                        .put("left", left).put("right", right)
                         .put("split", item.pictureSplit)
+                        .put("splitY", item.pictureSplitY)
+                        .put("topLeft", item.pictureTopLeft ?: left)
+                        .put("topRight", item.pictureTopRight ?: right)
+                        .put("bottomLeft", item.pictureBottomLeft ?: left)
+                        .put("bottomRight", item.pictureBottomRight ?: right)
                         .put("imageMode", item.pictureImageMode)
                 }
             val array = JSONArray()
@@ -213,9 +233,14 @@ internal object FullBackupModuleRegistry {
             for (index in 0 until configs.length()) {
                 val item = configs.optJSONObject(index) ?: throw IOException("图片组件配置项无效")
                 val split = item.optInt("split", -1)
+                val splitY = item.optInt("splitY", 5)
                 if (item.optInt("sourceWidgetId", -1) < 0 ||
                     item.opt("left") !is String || item.opt("right") !is String ||
-                    split !in 1..9 || item.optString("imageMode") !in setOf("fit", "stretch", "crop")
+                    split !in 1..9 || splitY !in 1..9 ||
+                    item.optString("imageMode") !in setOf("fit", "stretch", "crop") ||
+                    listOf("topLeft", "topRight", "bottomLeft", "bottomRight").any { key ->
+                        item.has(key) && item.opt(key) !is String
+                    }
                 ) throw IOException("图片组件配置字段无效")
             }
         }
@@ -227,15 +252,22 @@ internal object FullBackupModuleRegistry {
             val providerClass = org.isoron.uhabits.widgets.PictureShortcutWidgetProvider::class.java.name
             val restored = (0 until array.length()).map { index ->
                 val item = array.getJSONObject(index)
+                val left = item.getString("left")
+                val right = item.getString("right")
                 org.isoron.uhabits.widgets.WidgetRestoreStore.Config(
                     sourceWidgetId = item.getInt("sourceWidgetId"),
                     providerClass = providerClass,
                     habitIds = emptyList(),
                     type = "picture",
-                    pictureLeft = item.getString("left"),
-                    pictureRight = item.getString("right"),
+                    pictureLeft = left,
+                    pictureRight = right,
                     pictureSplit = item.getInt("split"),
-                    pictureImageMode = item.getString("imageMode")
+                    pictureImageMode = item.getString("imageMode"),
+                    pictureSplitY = item.optInt("splitY", 5).coerceIn(1, 9),
+                    pictureTopLeft = item.optString("topLeft").takeIf { it.isNotBlank() } ?: left,
+                    pictureTopRight = item.optString("topRight").takeIf { it.isNotBlank() } ?: right,
+                    pictureBottomLeft = item.optString("bottomLeft").takeIf { it.isNotBlank() } ?: left,
+                    pictureBottomRight = item.optString("bottomRight").takeIf { it.isNotBlank() } ?: right
                 )
             }
             org.isoron.uhabits.widgets.WidgetRestoreStore.replaceType(context, "picture", restored)
