@@ -43,6 +43,7 @@ class TimeRecordWidgetConfigureActivity : Activity() {
         ) {
             TimeRecordWidgetProvider.setRecord(this, widgetId, pendingRestore.recordId)
             TimeRecordWidgetProvider.updateWidget(this, widgetId)
+            WidgetRestoreStore.recordSuccessfulRestore(this, pendingRestore)
             WidgetRestoreStore.consume(this, pendingRestore.sourceWidgetId, pendingRestore.providerClass)
             WidgetRestoreStore.clearSelection(this, pendingRestore.sourceWidgetId)
             setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
