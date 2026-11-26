@@ -40,6 +40,7 @@ internal object FullBackupModuleRegistry {
         TimeRecordsModule,
         TimeRecordWidgetLinksModule,
         PictureWidgetConfigurationsModule,
+        HabitWidgetConfigurationsModule,
         AppPreferencesModule,
         FloatingTimerModule
     )
@@ -205,6 +206,96 @@ internal object FullBackupModuleRegistry {
                 )
             }
             org.isoron.uhabits.widgets.PictureWidgetRestoreStore.replacePending(context, restored)
+        }
+
+        override fun rollback(context: Context, safetyRoot: File) = restore(context, safetyRoot)
+    }
+
+
+    /**
+     * Stores the habit selections for each habit-based widget instance.
+     * Widget IDs are device-local, so restore records are queued and rebound
+     * only after the launcher allocates a new ID.
+     */
+    private object HabitWidgetConfigurationsModule : FullBackupModule {
+        private const val ENTRY = "widgets/habit_widget_configurations.json"
+        override val id = "habit_widget_configurations"
+        override val entries = setOf(ENTRY)
+        override val requiredEntries = emptySet<String>()
+
+        override fun export(context: Context, stagingRoot: File) {
+            val manager = android.appwidget.AppWidgetManager.getInstance(context)
+            val widgetPreferences = org.isoron.uhabits.core.preferences.WidgetPreferences(
+                org.isoron.uhabits.preferences.SharedPreferencesStorage(context)
+            )
+            val configs = JSONArray()
+            manager.installedProviders
+                .mapNotNull { it.provider }
+                .filter { it.packageName == context.packageName }
+                .distinct()
+                .forEach { provider ->
+                    val providerClass = runCatching {
+                        Class.forName(provider.className)
+                    }.getOrNull() ?: return@forEach
+                    if (!org.isoron.uhabits.widgets.BaseWidgetProvider::class.java.isAssignableFrom(providerClass)) {
+                        return@forEach
+                    }
+                    manager.getAppWidgetIds(provider).forEach { widgetId ->
+                        val habitIds = widgetPreferences.getHabitIdsFromWidgetId(widgetId)
+                        if (habitIds.isNotEmpty()) {
+                            val ids = JSONArray()
+                            habitIds.forEach { ids.put(it) }
+                            configs.put(JSONObject()
+                                .put("sourceWidgetId", widgetId)
+                                .put("providerClass", provider.className)
+                                .put("habitIds", ids))
+                        }
+                    }
+                }
+            writePayload(stagingRoot, ENTRY, JSONObject()
+                .put("format", "SHIZI_HABIT_WIDGET_CONFIGS")
+                .put("version", 1)
+                .put("configs", configs)
+                .toString())
+        }
+
+        override fun validate(payloads: Map<String, ByteArray>) {
+            val root = jsonPayload(payloads, ENTRY)
+            val configs = root.optJSONArray("configs")
+            if (root.optString("format") != "SHIZI_HABIT_WIDGET_CONFIGS" ||
+                root.optInt("version", -1) != 1 || configs == null
+            ) throw IOException("习惯组件配置备份格式不受支持")
+            val seen = mutableSetOf<String>()
+            for (index in 0 until configs.length()) {
+                val item = configs.optJSONObject(index) ?: throw IOException("习惯组件配置项无效")
+                val sourceId = item.optInt("sourceWidgetId", -1)
+                val provider = item.optString("providerClass")
+                val ids = item.optJSONArray("habitIds")
+                if (sourceId < 0 || provider.isBlank() || ids == null || ids.length() == 0 ||
+                    !seen.add("$provider#$sourceId")
+                ) throw IOException("习惯组件配置字段无效")
+                for (i in 0 until ids.length()) {
+                    if (ids.opt(i) !is Number || ids.optLong(i) <= 0L) {
+                        throw IOException("习惯组件包含无效的习惯编号")
+                    }
+                }
+            }
+        }
+
+        override fun snapshot(context: Context, safetyRoot: File) = export(context, safetyRoot)
+
+        override fun restore(context: Context, restoreRoot: File) {
+            val array = JSONObject(readPayload(restoreRoot, ENTRY)).getJSONArray("configs")
+            val restored = (0 until array.length()).map { index ->
+                val item = array.getJSONObject(index)
+                val ids = item.getJSONArray("habitIds")
+                WidgetRestoreStore.Config(
+                    sourceWidgetId = item.getInt("sourceWidgetId"),
+                    providerClass = item.getString("providerClass"),
+                    habitIds = (0 until ids.length()).map { ids.getLong(it) }
+                )
+            }
+            WidgetRestoreStore.replacePending(context, restored)
         }
 
         override fun rollback(context: Context, safetyRoot: File) = restore(context, safetyRoot)
