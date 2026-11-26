@@ -60,12 +60,6 @@
                 android:summary="@string/webdav_sync_summary"
                 app:iconSpaceReserved="false" />
 
-        <Preference
-                android:key="settingsBackupRestore"
-                android:title="@string/settings_backup_restore"
-                android:summary="@string/settings_backup_restore_summary"
-                app:iconSpaceReserved="false" />
-
     </PreferenceCategory>
 
 <PreferenceCategory
