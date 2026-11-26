@@ -152,10 +152,17 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         val explicitRestoreSourceId = intent.getIntExtra(
             PictureWidgetRestoreStore.EXTRA_RESTORE_SOURCE_WIDGET_ID, -1
         )
+        val hasExistingWidgetConfig = saved.contains("${widgetId}_left") ||
+            saved.contains("${widgetId}_right") || saved.contains("${widgetId}_split") ||
+            saved.contains("${widgetId}_imageMode")
         val restoredConfig = if (explicitRestoreSourceId >= 0) {
             PictureWidgetRestoreStore.find(this, explicitRestoreSourceId)
-        } else {
+        } else if (!hasExistingWidgetConfig) {
+            // Manual-add fallback is only eligible for a fresh widget ID; never
+            // let a stale restore selection overwrite an existing widget's settings.
             PictureWidgetRestoreStore.selected(this)
+        } else {
+            null
         }
         restoredConfig?.let { restored ->
             restoreSourceWidgetId = restored.sourceWidgetId
