@@ -36,6 +36,7 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
                 .getDeclaredConstructor().newInstance() as android.appwidget.AppWidgetProvider
             provider.onUpdate(this, manager, intArrayOf(widgetId))
         }.onSuccess {
+            WidgetRestoreStore.recordSuccessfulRestore(this, config)
             WidgetRestoreStore.consume(this, config.sourceWidgetId, config.providerClass)
             WidgetRestoreStore.clearSelection(this, config.sourceWidgetId)
             Toast.makeText(this, "组件已识别，恢复完成。", Toast.LENGTH_LONG).show()
