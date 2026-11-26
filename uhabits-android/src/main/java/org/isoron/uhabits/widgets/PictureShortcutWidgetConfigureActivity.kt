@@ -588,7 +588,11 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         }
         val message = "${zoneNames[sourceRegion]}格 → ${zoneNames[targetRegion]}格\n" +
             "${compactTargetLabel(before)} → ${compactTargetLabel(source)}\n\n" +
-            "将覆盖${zoneNames[targetRegion]}格原有内容。"
+            when {
+                source.isBlank() -> "来源为空，将清空${zoneNames[targetRegion]}格。"
+                before.isBlank() -> "将填入${zoneNames[targetRegion]}格。"
+                else -> "将覆盖${zoneNames[targetRegion]}格原有内容。"
+            }
         val dialog = AlertDialog.Builder(this)
             .setTitle("确认复制？")
             .setMessage(message)
@@ -617,7 +621,9 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             return
         }
         val details = changed.joinToString("\n") { region ->
-            "${zoneNames[region]}：${compactTargetLabel(zoneTarget(region))} → ${compactTargetLabel(source)}"
+            val before = zoneTarget(region)
+            val action = if (before.isBlank()) "填入" else "覆盖"
+            "${zoneNames[region]}：${compactTargetLabel(before)} → ${compactTargetLabel(source)}（$action）"
         }
         val overwritten = changed.count { zoneTarget(it).isNotBlank() }
         val filled = changed.size - overwritten
