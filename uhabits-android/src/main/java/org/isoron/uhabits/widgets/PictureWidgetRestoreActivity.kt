@@ -76,7 +76,11 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
             setOnClickListener {
                 val count = WidgetRestoreStore.pending(this@PictureWidgetRestoreActivity).size +
                     PictureWidgetRestoreStore.pending(this@PictureWidgetRestoreActivity).size
-                readStatus.text = "读取完成：本机存档中有 $count 项待恢复组件配置。"
+                Toast.makeText(
+                    this@PictureWidgetRestoreActivity,
+                    "读取完成：本机存档中有 $count 项待恢复组件配置。",
+                    Toast.LENGTH_LONG
+                ).show()
                 recreate()
             }
         })
