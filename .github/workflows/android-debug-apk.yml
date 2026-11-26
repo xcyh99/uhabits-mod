@@ -1,5 +1,6 @@
 name: Android APK (stable signing)
 # 990B2 validation rerun after Kotlin widget signature fix
+# test/100B1 weather feature integration validation
 
 on:
   workflow_dispatch:
