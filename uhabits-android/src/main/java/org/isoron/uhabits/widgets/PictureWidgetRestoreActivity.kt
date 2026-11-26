@@ -37,7 +37,7 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
             setBackgroundColor(if (dark) 0xFF191B1F.toInt() else 0xFFF6F7F9.toInt())
         }
         root.addView(TextView(this).apply {
-            text = "这里列出完全备份中保存的图片组件配置。选择一项后，将新的图片组件添加到桌面，应用会把原来的点击目标、分界比例和显示方式绑定到新组件。"
+            text = "这里列出完全备份中保存的桌面组件配置。选择一项后，应用会将原来的设置和关联关系恢复到新添加的组件；图片组件需要重新选择图片。"
             textSize = 13f
             setTextColor(if (dark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY)
             setPadding(0, 0, 0, dp(12))
@@ -62,9 +62,9 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
             PictureWidgetRestoreStore.replacePending(this, emptyList())
         }
         val configs = PictureWidgetRestoreStore.pending(this)
-        if (configs.isEmpty()) {
+        if (configs.isEmpty() && WidgetRestoreStore.pending(this).none { it.type == "picture" }) {
             root.addView(TextView(this).apply {
-                text = "没有待恢复的图片组件配置。请先导入包含图片组件设置的完全备份。"
+                text = "没有待恢复的图片组件配置。请先导入包含组件设置的完全备份。"
                 textSize = 15f
                 setTextColor(if (dark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
                 setPadding(dp(12), dp(18), dp(12), dp(18))
