@@ -349,7 +349,6 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         multiSelect: Boolean,
         onConfirmed: (List<Int>) -> Unit
     ) {
-        val candidates = otherZones(currentRegion)
         val selected = linkedSetOf<Int>()
         val grid = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -362,6 +361,15 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         val selectionSummary = TextView(this).apply {
             textSize = 12f
             setPadding(dp(2), dp(8), dp(2), dp(2))
+        }
+        var positiveButton: Button? = null
+        fun refreshSummary() {
+            selectionSummary.text = if (selected.isEmpty()) {
+                if (multiSelect) "请选择推送目标（可多选）" else "请选择一个复制来源"
+            } else {
+                if (multiSelect) "已选择 ${selected.size} 个目标" else "来源：${zoneNames[selected.first()]}"
+            }
+            positiveButton?.isEnabled = selected.isNotEmpty()
         }
         fun renderGrid() {
             grid.removeAllViews()
@@ -391,7 +399,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
                                 else -> "${zoneNames[region]} · ○"
                             }
                             textSize = 12f
-                            setTextColor(color.takeIf { isCurrent || isSelected } ?: currentTextColor)
+                            setTextColor(if (isCurrent || isSelected) color else currentTextColor)
                         }
                         val detail = TextView(this@PictureShortcutWidgetConfigureActivity).apply {
                             text = compactTargetLabel(zoneTarget(region))
@@ -406,28 +414,20 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
                         if (!isCurrent) setOnClickListener {
                             if (multiSelect) {
                                 if (!selected.add(region)) selected.remove(region)
-                                renderGrid()
                             } else {
                                 selected.clear()
                                 selected.add(region)
-                                renderGrid()
                             }
+                            renderGrid()
+                            refreshSummary()
                         }
                     }
                     row.addView(tile, LinearLayout.LayoutParams(0, dp(76), 1f).apply {
-                        if (columnIndex == 0) marginEnd = dp(6)
-                        else marginStart = dp(6)
+                        if (columnIndex == 0) marginEnd = dp(6) else marginStart = dp(6)
                         bottomMargin = dp(6)
                     })
                 }
                 grid.addView(row)
-            }
-        }
-        fun refreshSummary() {
-            selectionSummary.text = if (selected.isEmpty()) {
-                if (multiSelect) "请选择推送目标（可多选）" else "请选择一个复制来源"
-            } else {
-                if (multiSelect) "已选择 ${selected.size} 个目标" else "来源：${zoneNames[selected.first()]}"
             }
         }
         renderGrid()
@@ -441,9 +441,8 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             .setPositiveButton(if (multiSelect) "下一步" else "确认复制", null)
             .create()
         dialog.setOnShowListener {
-            val positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-            positive.isEnabled = false
-            positive.setOnClickListener {
+            positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            positiveButton?.setOnClickListener {
                 if (selected.isEmpty()) {
                     Toast.makeText(this, "请先选择格子", Toast.LENGTH_SHORT).show()
                 } else {
@@ -452,9 +451,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
                     onConfirmed(result)
                 }
             }
-            // Re-evaluate button state whenever the selection changes.
-            grid.setTag { positive.isEnabled = selected.isNotEmpty() }
-            positive.isEnabled = selected.isNotEmpty()
+            refreshSummary()
         }
         dialog.show()
     }
