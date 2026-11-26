@@ -76,7 +76,6 @@ import org.isoron.uhabits.database.WebDavSync
 import org.isoron.uhabits.database.FullBackupManager
 import org.isoron.uhabits.database.AutoBackup
 import org.isoron.uhabits.database.WebDavFullBackup
-import org.isoron.uhabits.database.WebDavSettingsBackup
 import org.isoron.uhabits.database.TwoWaySyncPreview
 import org.isoron.uhabits.database.DatabaseSyncMergeWriter
 import org.isoron.uhabits.database.DatabaseSyncSafetyBackup
@@ -219,7 +218,6 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     "featureShortcuts",
                     "widgetManager",
                     "webDavSync",
-                    "settingsBackupRestore",
                     "autoBackup",
                     "clearLocalHabitData",
                     "reminderCustomize",
@@ -384,10 +382,6 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
             }
             "webDavSync" -> {
                 showWebDavSettings()
-                return true
-            }
-            "settingsBackupRestore" -> {
-                showSettingsBackupRestore()
                 return true
             }
             "clearLocalHabitData" -> {
@@ -1499,133 +1493,6 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 )
             }
         }.start()
-    }
-
-    private fun showSettingsBackupRestore() {
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.settings_backup_restore)
-            .setItems(arrayOf(
-                getString(R.string.settings_backup_upload),
-                getString(R.string.settings_backup_download)
-            )) { _, which ->
-                runSettingsBackupAction(which == 0)
-            }
-            .setNegativeButton(R.string.clear_label, null)
-            .show()
-    }
-
-    private fun runSettingsBackupAction(upload: Boolean) {
-        val credentials = WebDavCredentialsStore(requireContext()).load()
-        val server = credentials.server.trim()
-        val username = credentials.username.trim()
-        val password = credentials.password
-        if (!server.startsWith("https://") || username.isBlank() || password.isBlank()) {
-            Toast.makeText(
-                requireContext(),
-                R.string.webdav_https_required,
-                Toast.LENGTH_LONG
-            ).show()
-            return
-        }
-        val config = WebDavSync.Config(server, username, password)
-        val appContext = requireContext().applicationContext
-        Thread {
-            val backup = WebDavSettingsBackup(appContext)
-            if (upload) {
-                val result = runCatching { backup.upload(config) }
-                activity?.runOnUiThread {
-                    if (!isAdded) return@runOnUiThread
-                    result.fold(
-                        {
-                            Toast.makeText(
-                                requireContext(),
-                                R.string.settings_backup_success_upload,
-                                Toast.LENGTH_LONG
-                            ).show()
-                        },
-                        { error ->
-                            Toast.makeText(
-                                requireContext(),
-                                error.message ?: getString(R.string.webdav_operation_failed),
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    )
-                }
-            } else {
-                val result = runCatching { backup.listBackupFiles(config) }
-                activity?.runOnUiThread {
-                    if (!isAdded) return@runOnUiThread
-                    result.fold(
-                        { files -> showSettingsBackupPicker(files, config, appContext) },
-                        { error ->
-                            Toast.makeText(
-                                requireContext(),
-                                error.message ?: getString(R.string.webdav_operation_failed),
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    )
-                }
-            }
-        }.start()
-    }
-
-    private fun showSettingsBackupPicker(
-        files: List<String>,
-        config: WebDavSync.Config,
-        appContext: android.content.Context
-    ) {
-        if (files.isEmpty()) {
-            Toast.makeText(requireContext(), "服务器目录中没有找到软件设置备份（SET.json）", Toast.LENGTH_LONG).show()
-            return
-        }
-        val labels = files.map { name ->
-            val device = name.removePrefix("WEB_").substringBefore("_SET_")
-            val timestamp = name.substringAfter("_SET_").removeSuffix(".json")
-            "$device  ·  $timestamp"
-        }.toTypedArray()
-        AlertDialog.Builder(requireContext())
-            .setTitle("选择要恢复的软件设置")
-            .setItems(labels) { _, which ->
-                val selected = files[which]
-                AlertDialog.Builder(requireContext())
-                    .setTitle("确认恢复设置")
-                    .setMessage("将使用以下备份覆盖本机对应的软件设置：\n\n$selected\n\n此操作不会修改习惯和打卡数据库。")
-                    .setNegativeButton("取消", null)
-                    .setPositiveButton("确认恢复") { _, _ ->
-                        Thread {
-                            val result = runCatching {
-                                WebDavSettingsBackup(appContext).download(config, selected)
-                            }
-                            activity?.runOnUiThread {
-                                if (!isAdded) return@runOnUiThread
-                                result.fold(
-                                    {
-                                        Toast.makeText(
-                                            requireContext(),
-                                            R.string.settings_backup_success_download,
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                        updateWeekdayPreference()
-                                        widgetUpdater?.updateWidgets()
-                                        requireActivity().recreate()
-                                    },
-                                    { error ->
-                                        Toast.makeText(
-                                            requireContext(),
-                                            error.message ?: getString(R.string.webdav_operation_failed),
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                    }
-                                )
-                            }
-                        }.start()
-                    }
-                    .show()
-            }
-            .setNegativeButton("取消", null)
-            .show()
     }
 
     private fun confirmClearLocalHabitData() {
