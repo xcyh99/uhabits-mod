@@ -337,7 +337,7 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
                             recreate()
                         }
                     }
-                    actionRow.addView(clearButton, LinearLayout.LayoutParams(dp(62), dp(38)).apply {
+                    actionRow.addView(clearButton, LinearLayout.LayoutParams(dp(36), dp(38)).apply {
                         marginEnd = dp(6)
                     })
 
@@ -353,7 +353,9 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
                         setOnClickListener { requestHabitRestore(config) }
                     }
                     restoreButtons += button
-                    actionRow.addView(button, LinearLayout.LayoutParams(dp(116), dp(38)))
+                    button.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.rgb(46, 160, 90))
+                    button.setTextColor(Color.WHITE)
+                    actionRow.addView(button, LinearLayout.LayoutParams(dp(142), dp(38)))
                     card.addView(actionRow)
 
                     root.addView(card, LinearLayout.LayoutParams(-1, -2).apply {
