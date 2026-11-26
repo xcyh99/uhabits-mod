@@ -1,6 +1,7 @@
 package org.isoron.uhabits.widgets
 
 import android.appwidget.AppWidgetManager
+import android.content.Intent
 import android.content.ComponentName
 import android.os.Bundle
 import android.widget.Toast
@@ -51,17 +52,29 @@ class WidgetRestoreCallbackActivity : AppCompatActivity() {
                     val provider = Class.forName(providerClass)
                         .getDeclaredConstructor().newInstance() as android.appwidget.AppWidgetProvider
                     provider.onUpdate(this, manager, intArrayOf(newWidgetId))
+                    WidgetRestoreStore.consume(this, sourceId, providerClass)
+                    WidgetRestoreStore.clearSelection(this, sourceId)
+                    Toast.makeText(this, "习惯组件配置已恢复。", Toast.LENGTH_SHORT).show()
                 }
                 "time_record" -> {
                     val recordId = config.recordId ?: throw IllegalStateException("缺少时间记录编号")
                     TimeRecordWidgetProvider.setRecord(this, newWidgetId, recordId)
                     TimeRecordWidgetProvider.updateWidget(this, newWidgetId)
+                    WidgetRestoreStore.consume(this, sourceId, providerClass)
+                    WidgetRestoreStore.clearSelection(this, sourceId)
+                    Toast.makeText(this, "时间记录组件配置已恢复。", Toast.LENGTH_SHORT).show()
+                }
+                "picture" -> {
+                    startActivity(
+                        Intent(this, PictureShortcutWidgetConfigureActivity::class.java)
+                            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, newWidgetId)
+                            .putExtra(WidgetRestoreStore.EXTRA_RESTORE_SOURCE_WIDGET_ID, sourceId)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    )
+                    Toast.makeText(this, "图片组件已添加，请重新选择图片并保存。", Toast.LENGTH_LONG).show()
                 }
                 else -> throw IllegalStateException("暂不支持此组件的恢复类型：${config.type}")
             }
-            WidgetRestoreStore.consume(this, sourceId, providerClass)
-            WidgetRestoreStore.clearSelection(this, sourceId)
-            Toast.makeText(this, "习惯组件配置已恢复。", Toast.LENGTH_SHORT).show()
         } catch (error: Exception) {
             Toast.makeText(this, "组件已添加，但配置恢复失败；原恢复记录已保留。", Toast.LENGTH_LONG).show()
         }
