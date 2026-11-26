@@ -32,6 +32,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     private var split = 5
     private var imageMode = "fit"
     private var restoreSourceWidgetId: Int? = null
+    private var restoreSaved = false
     private lateinit var modeSpinner: Spinner
     private lateinit var preview: ImageView
     private lateinit var imageStatus: TextView
@@ -148,7 +149,15 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
                 imageStatus.text = "当前图片：${existing.name}"
             }
         }
-        PictureWidgetRestoreStore.selected(this)?.let { restored ->
+        val explicitRestoreSourceId = intent.getIntExtra(
+            PictureWidgetRestoreStore.EXTRA_RESTORE_SOURCE_WIDGET_ID, -1
+        )
+        val restoredConfig = if (explicitRestoreSourceId >= 0) {
+            PictureWidgetRestoreStore.find(this, explicitRestoreSourceId)
+        } else {
+            PictureWidgetRestoreStore.selected(this)
+        }
+        restoredConfig?.let { restored ->
             restoreSourceWidgetId = restored.sourceWidgetId
             leftTarget = restored.left
             rightTarget = restored.right
@@ -161,6 +170,13 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         }
         updateSplitLabel()
         updateTargetLabels()
+    }
+
+    override fun onDestroy() {
+        if (isFinishing && !restoreSaved) {
+            restoreSourceWidgetId?.let { PictureWidgetRestoreStore.clearSelection(this, it) }
+        }
+        super.onDestroy()
     }
 
     private fun chooseImage() {
@@ -250,6 +266,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             PictureWidgetRestoreStore.consume(this, sourceId)
             restoreSourceWidgetId = null
         }
+        restoreSaved = true
         PictureShortcutWidgetProvider.updateWidget(this, widgetId)
         setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
         finish()
