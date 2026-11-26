@@ -40,9 +40,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
     private lateinit var modeSpinner: Spinner
     private lateinit var preview: ImageView
     private lateinit var imageStatus: TextView
-    private lateinit var zoneButtons: List<Button>
-    private lateinit var splitXLabel: TextView
-    private lateinit var splitYLabel: TextView
+    private lateinit var editorView: PictureShortcutSplitEditorView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         (application as HabitsApplication).component.preferences.let { AndroidThemeSwitcher(this, it).apply() }
@@ -80,43 +78,14 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             text = "从手机相册选择图片"
             setOnClickListener { chooseImage() }
         })
-        zoneButtons = listOf(
-            Button(this).apply { text = "左上：选择快捷方式"; setOnClickListener { chooseTarget(0) } },
-            Button(this).apply { text = "右上：选择快捷方式"; setOnClickListener { chooseTarget(1) } },
-            Button(this).apply { text = "左下：选择快捷方式"; setOnClickListener { chooseTarget(2) } },
-            Button(this).apply { text = "右下：选择快捷方式"; setOnClickListener { chooseTarget(3) } }
-        )
-        zoneButtons.forEach { content.addView(it) }
-        splitXLabel = TextView(this).apply { textSize = 14f }
-        content.addView(splitXLabel)
-        val splitXSeekBar = SeekBar(this).apply {
-            max = 8
-            progress = 4
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                    splitX = progress + 1
-                    updateSplitLabels()
-                }
-                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-            })
+        editorView = PictureShortcutSplitEditorView(this).apply {
+            onZoneClick = { region -> chooseTarget(region) }
+            onSplitChanged = { x, y ->
+                splitX = x
+                splitY = y
+            }
         }
-        content.addView(splitXSeekBar)
-        splitYLabel = TextView(this).apply { textSize = 14f; setPadding(0, dp(8), 0, 0) }
-        content.addView(splitYLabel)
-        val splitYSeekBar = SeekBar(this).apply {
-            max = 8
-            progress = 4
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                    splitY = progress + 1
-                    updateSplitLabels()
-                }
-                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-            })
-        }
-        content.addView(splitYSeekBar)
+        content.addView(editorView, LinearLayout.LayoutParams(-1, dp(300)))
         content.addView(TextView(this).apply {
             text = "图片显示方式"
             textSize = 14f
@@ -163,8 +132,8 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         // Migrate unsupported legacy modes to the default native FIT_CENTER mode.
         if (imageMode == "width" || imageMode == "height") imageMode = "fit"
         modeSpinner.setSelection(when (imageMode) { "stretch" -> 1; "crop" -> 2; else -> 0 })
-        splitXSeekBar.progress = splitX - 1
-        splitYSeekBar.progress = splitY - 1
+        editorView.splitX = splitX
+        editorView.splitY = splitY
         saved.getString("${widgetId}_image", null)?.takeIf { it.isNotBlank() }?.let { name ->
             val existing = File(filesDir, name)
             if (existing.isFile) {
@@ -214,8 +183,8 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             imageMode = restored.pictureImageMode
             imageFile = null
             modeSpinner.setSelection(when (imageMode) { "stretch" -> 1; "crop" -> 2; else -> 0 })
-            splitXSeekBar.progress = splitX - 1
-            splitYSeekBar.progress = splitY - 1
+            editorView.splitX = splitX
+            editorView.splitY = splitY
             imageStatus.text = "设置已载入；轻量备份不含图片，请重新选择原图片后保存"
         }
         legacyRestoredConfig?.let { restored ->
@@ -229,8 +198,8 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             imageMode = restored.imageMode
             imageFile = null
             modeSpinner.setSelection(when (imageMode) { "stretch" -> 1; "crop" -> 2; else -> 0 })
-            splitXSeekBar.progress = splitX - 1
-            splitYSeekBar.progress = splitY - 1
+            editorView.splitX = splitX
+            editorView.splitY = splitY
             imageStatus.text = "设置已载入；轻量备份不含图片，请重新选择图片（也可先保存组件）"
         }
         updateSplitLabels()
@@ -317,14 +286,13 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             target == "pictureWidgetSettings:$widgetId" -> "打开本图片组件设置"
             else -> all[target] ?: "选择快捷方式"
         }
-        val targets = listOf(topLeftTarget, topRightTarget, bottomLeftTarget, bottomRightTarget)
-        val names = listOf("左上", "右上", "左下", "右下")
-        zoneButtons.forEachIndexed { index, button -> button.text = "${names[index]}：${label(targets[index])}" }
+        editorView.zoneLabels = listOf(topLeftTarget, topRightTarget, bottomLeftTarget, bottomRightTarget)
+            .map { target -> label(target) }
     }
 
     private fun updateSplitLabels() {
-        splitXLabel.text = "X 轴左右分界：左侧 ${splitX * 10}%　|　右侧 ${(10 - splitX) * 10}%"
-        splitYLabel.text = "Y 轴上下分界：上方 ${splitY * 10}%　|　下方 ${(10 - splitY) * 10}%"
+        editorView.splitX = splitX
+        editorView.splitY = splitY
     }
 
     private fun saveWidget() {
