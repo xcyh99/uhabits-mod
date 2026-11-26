@@ -68,7 +68,14 @@ class PictureWidgetRestoreActivity : AppCompatActivity() {
         val legacyPictureConfigs = PictureWidgetRestoreStore.pending(this)
         if (legacyPictureConfigs.isNotEmpty()) {
             val providerClass = PictureShortcutWidgetProvider::class.java.name
-            WidgetRestoreStore.mergePending(this, legacyPictureConfigs.map { item ->
+            val currentGenericKeys = WidgetRestoreStore.pending(this)
+                .filter { it.type == "picture" }
+                .map { "${it.providerClass}#${it.sourceWidgetId}" }
+                .toSet()
+            val legacyToMigrate = legacyPictureConfigs.filterNot {
+                "${providerClass}#${it.sourceWidgetId}" in currentGenericKeys
+            }
+            WidgetRestoreStore.mergePending(this, legacyToMigrate.map { item ->
                 WidgetRestoreStore.Config(
                     sourceWidgetId = item.sourceWidgetId,
                     providerClass = providerClass,
