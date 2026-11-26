@@ -41,6 +41,7 @@ class PictureShortcutWidgetProvider : AppWidgetProvider() {
                 .remove(id.toString() + "_left").remove(id.toString() + "_right")
                 .remove(id.toString() + "_split").remove(id.toString() + "_imageMode")
                 .remove(id.toString() + "_splitY")
+                .remove(id.toString() + "_sourceUri")
                 .remove(id.toString() + "_topLeft").remove(id.toString() + "_topRight")
                 .remove(id.toString() + "_bottomLeft").remove(id.toString() + "_bottomRight").apply()
         }
