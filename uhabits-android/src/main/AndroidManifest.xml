@@ -163,7 +163,17 @@
         <activity
             android:name="org.isoron.uhabits.weather.WeatherDetailActivity"
             android:exported="false"
-            android:label="天气" />
+            android:label="天气">
+            <meta-data
+                android:name="org.isoron.uhabits.shortcut.key"
+                android:value="weatherForecast" />
+            <meta-data
+                android:name="org.isoron.uhabits.shortcut.title"
+                android:value="天气预报" />
+            <meta-data
+                android:name="org.isoron.uhabits.shortcut.category"
+                android:value="功能" />
+        </activity>
 
         <activity
             android:name="org.isoron.uhabits.activities.settings.ComponentCenterActivity"
