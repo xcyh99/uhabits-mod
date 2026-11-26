@@ -99,6 +99,9 @@ internal object FullBackupModuleRegistry {
             preferences.all.toSortedMap().forEach { (key, value) ->
                 if (value is String) values.put(key, value)
             }
+            org.isoron.uhabits.widgets.WidgetRestoreStore.pending(context)
+                .filter { it.type == "time_record" && it.providerClass == org.isoron.uhabits.widgets.TimeRecordWidgetProvider::class.java.name }
+                .forEach { item -> item.recordId?.let { values.put(item.sourceWidgetId.toString(), it) } }
             val document = JSONObject()
                 .put("format", "SHIZI_WIDGET_LINKS")
                 .put("version", 1)
@@ -260,6 +263,16 @@ internal object FullBackupModuleRegistry {
                         }
                     }
                 }
+            org.isoron.uhabits.widgets.WidgetRestoreStore.pending(context)
+                .filter { it.type == "habit" }
+                .forEach { item ->
+                    val ids = JSONArray()
+                    item.habitIds.forEach { ids.put(it) }
+                    configs.put(JSONObject()
+                        .put("sourceWidgetId", item.sourceWidgetId)
+                        .put("providerClass", item.providerClass)
+                        .put("habitIds", ids))
+                }
             writePayload(stagingRoot, ENTRY, JSONObject()
                 .put("format", "SHIZI_HABIT_WIDGET_CONFIGS")
                 .put("version", 1)
@@ -303,7 +316,7 @@ internal object FullBackupModuleRegistry {
                     habitIds = (0 until ids.length()).map { ids.getLong(it) }
                 )
             }
-            WidgetRestoreStore.replacePending(context, restored)
+            WidgetRestoreStore.mergePending(context, restored)
         }
 
         override fun rollback(context: Context, safetyRoot: File) = restore(context, safetyRoot)
