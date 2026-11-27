@@ -124,7 +124,8 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
         controls.addView(button("重置") { resetTimer() }, LinearLayout.LayoutParams(0, -2, 1f))
         root.addView(controls)
         root.addView(button("关闭悬浮窗口") {
-            pauseTimer()
+            // Hiding the overlay must not pause either the independent timer
+            // or a timer currently shared with Big Clock.
             stopService(Intent(this, FloatingTimerService::class.java))
             refreshStatus()
         }, LinearLayout.LayoutParams(-1, -2))
