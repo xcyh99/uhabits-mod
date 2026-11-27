@@ -22,7 +22,7 @@ object FeatureShortcutCatalog {
     const val KEY_ALLOWED_ENTRIES = "shortcut_candidate_keys_v1"
     private const val KEY_CATALOG_CACHE = "shortcut_catalog_cache_v1"
     private const val KEY_CATALOG_CACHE_VERSION = "shortcut_catalog_cache_version"
-    private const val CATALOG_CACHE_VERSION = 7
+    private const val CATALOG_CACHE_VERSION = 8
     private const val META_KEY = "org.isoron.uhabits.shortcut.key"
     private const val META_TITLE = "org.isoron.uhabits.shortcut.title"
     private const val META_CATEGORY = "org.isoron.uhabits.shortcut.category"
@@ -80,7 +80,6 @@ object FeatureShortcutCatalog {
         BuiltIn("desktopWidgetTimeSettings", "时间组件设置", "设置"),
         BuiltIn("autoBackup", "自动备份设置", "设置"),
         BuiltIn("webDavSync", "WebDAV 云端管理", "设置"),
-        BuiltIn("settingsBackupRestore", "设置备份与恢复", "设置"),
         BuiltIn("reminderCustomize", "提醒设置", "设置"),
         BuiltIn("shortcutManagement", "快捷中心", "设置"),
         BuiltIn("desktopShortcuts", "桌面快捷管理", "设置"),
@@ -89,7 +88,7 @@ object FeatureShortcutCatalog {
 
     private val recommended = builtIns.filterNot { it.key == "widgetRestore" }.map { it.key }.toSet() + setOf("pictureShortcutWidgetSettings")
     private const val KEY_ALLOWED_MIGRATION_VERSION = "shortcut_candidate_migration_version"
-    private const val ALLOWED_MIGRATION_VERSION = 7
+    private const val ALLOWED_MIGRATION_VERSION = 8
 
     fun getEntries(context: Context, onProgress: ((String) -> Unit)? = null): List<Entry> {
         val result = mutableListOf<Entry>()
@@ -272,14 +271,17 @@ object FeatureShortcutCatalog {
         val store = PreferenceManager.getDefaultSharedPreferences(context)
         val version = store.getInt(KEY_ALLOWED_MIGRATION_VERSION, 0)
 
-        // Version 6 starts with the current catalog only. Historical shortcut aliases are not imported.
+        // Version 6 starts with the current catalog only. Later migrations preserve
+        // the user's selected entries while adding newly discoverable time pages.
         if (version < ALLOWED_MIGRATION_VERSION) {
-            // v7 adds the direct clock-settings destination without discarding
-            // the user's existing v6 selections.
+            // v8 adds Time Center and the standalone Status Bar Days manager.
             val current = if (version < 6) recommended.toMutableSet()
                 else store.getStringSet(KEY_ALLOWED_ENTRIES, recommended)?.toMutableSet()
                     ?: recommended.toMutableSet()
             current.add("desktopWidgetTimeSettings")
+            current.add("timeCenter")
+            current.add("statusBarDaysManagement")
+            current.remove("settingsBackupRestore")
             val ownComponent = ComponentName(
                 context,
                 org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java
