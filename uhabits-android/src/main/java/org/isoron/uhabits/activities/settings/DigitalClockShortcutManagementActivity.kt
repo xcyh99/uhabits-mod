@@ -259,9 +259,6 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
 
     private fun targetKey(slot: Int) = "digital_clock_target_shortcut$slot"
     private fun iconUriKey(slot: Int) = "digital_clock_shortcut_icon_uri_$slot"
-    companion object {
-        const val EXTRA_SLOT = "digital_clock_shortcut_icon_slot"
-    }
     private fun targetLabel(value: String): String = when {
         value.startsWith("feature:") -> FeatureShortcutCatalog.getCachedEntry(this, value.removePrefix("feature:"))?.name ?: "十字习惯功能"
         value.startsWith("app:") -> {
@@ -288,6 +285,7 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
     private fun resolveSecondaryText(): Int = if (isDark()) Color.LTGRAY else Color.DKGRAY
     private fun isDark() = androidx.core.graphics.ColorUtils.calculateLuminance(resolvePageBackground()) < 0.5
     companion object {
+        const val EXTRA_SLOT = "digital_clock_shortcut_icon_slot"
         private const val KEY_COUNT = "digital_clock_shortcut_count"
         private const val KEY_ENABLED = "digital_clock_shortcut_enabled_"
         private const val KEY_ORDER = "digital_clock_shortcut_order"
