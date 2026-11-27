@@ -23,10 +23,10 @@ class TimeCenterActivity : AppCompatActivity() {
 
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
-        val pageBackground = StyledResources(this).getColor(R.attr.contrast0)
-        val dark = androidx.core.graphics.ColorUtils.calculateLuminance(pageBackground) < 0.5
-        val primary = if (dark) Color.WHITE else Color.BLACK
-        val secondary = if (dark) Color.LTGRAY else Color.DKGRAY
+        val pageBackground = Color.rgb(25, 27, 31)
+        val dark = true
+        val primary = Color.WHITE
+        val secondary = Color.LTGRAY
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
