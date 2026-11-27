@@ -30,6 +30,13 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
     private lateinit var minutes: EditText
     private lateinit var seconds: EditText
     private lateinit var status: TextView
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val ticker = object : Runnable {
+        override fun run() {
+            refreshStatus()
+            handler.postDelayed(this, 1000L)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val component = (application as HabitsApplication).component
@@ -114,7 +121,8 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
         controls.addView(button("重置") { resetTimer() }, LinearLayout.LayoutParams(0, -2, 1f))
         root.addView(controls)
         root.addView(button("关闭悬浮窗口") {
-            startService(Intent(this, FloatingTimerService::class.java).setAction(FloatingTimerService.ACTION_STOP))
+            pauseTimer()
+            stopService(Intent(this, FloatingTimerService::class.java))
             refreshStatus()
         }, LinearLayout.LayoutParams(-1, -2))
         root.addView(button("允许显示在其他应用上层") {
@@ -126,7 +134,16 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
         refreshStatus()
     }
 
-    override fun onResume() { super.onResume(); if (::status.isInitialized) refreshStatus() }
+    override fun onResume() {
+        super.onResume()
+        handler.removeCallbacks(ticker)
+        if (::status.isInitialized) handler.post(ticker)
+    }
+
+    override fun onPause() {
+        handler.removeCallbacks(ticker)
+        super.onPause()
+    }
 
     private fun durationMs(): Long {
         val h = hours.text.toString().toLongOrNull() ?: 0L
@@ -148,6 +165,7 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
     }
 
     private fun startOrResume() {
+        if (state.getBoolean("running", false)) { refreshStatus(); return }
         if (!Settings.canDrawOverlays(this)) {
             startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
             return
