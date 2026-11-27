@@ -19,7 +19,7 @@ import androidx.preference.PreferenceManager
 /** Manages the fourth-row shortcuts of the digital-clock widget. */
 class DigitalClockShortcutManagementActivity : AppCompatActivity() {
     private val store by lazy { PreferenceManager.getDefaultSharedPreferences(this) }
-    private val rows = (1..9).toMutableList()
+    private val rows = (1..8).toMutableList()
     private var maxCount = 4
     private lateinit var list: LinearLayout
     private var dragging = false
@@ -27,7 +27,7 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         title = "快捷方式管理"
-        maxCount = store.getInt(KEY_COUNT, 4).coerceIn(4, 9)
+        maxCount = store.getInt(KEY_COUNT, 4).coerceIn(0, 8)
         loadOrder()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -35,7 +35,7 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
             setBackgroundColor(resolvePageBackground())
         }
         root.addView(TextView(this).apply {
-            text = "快捷方式数量"
+            text = "显示数量"
             textSize = 17f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setTextColor(resolvePrimaryText())
@@ -79,7 +79,7 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
     private fun ensureDefaults() {
         if (!store.contains(KEY_ENABLED + "1")) {
             val e = store.edit()
-            for (i in 1..9) e.putBoolean(KEY_ENABLED + i, i <= 4)
+            for (i in 1..8) e.putBoolean(KEY_ENABLED + i, i <= 4)
             e.apply()
         }
     }
@@ -164,23 +164,27 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
                 }
             }
             row.addView(handle, LinearLayout.LayoutParams(dp(38), dp(44)))
-            row.addView(actionText("编辑") { editTarget(slot) })
-            row.addView(actionText("删除") { confirmDelete(slot) })
+            row.addView(actionIcon(android.R.drawable.ic_menu_edit, "编辑", PURPLE) { editTarget(slot) },
+                LinearLayout.LayoutParams(dp(48), dp(48)).apply { marginStart = dp(6) })
+            row.addView(actionIcon(android.R.drawable.ic_menu_delete, "删除", Color.rgb(211, 76, 76)) { confirmDelete(slot) },
+                LinearLayout.LayoutParams(dp(48), dp(48)).apply { marginStart = dp(10) })
             list.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(7) })
         }
     }
 
-    private fun actionText(label: String, action: () -> Unit) = TextView(this).apply {
-        text = label
-        textSize = 13f
-        setTextColor(PURPLE)
-        gravity = Gravity.CENTER
-        setPadding(dp(7), dp(8), dp(7), dp(8))
-        setOnClickListener { action() }
-    }
+    private fun actionIcon(drawable: Int, description: String, tint: Int, action: () -> Unit) =
+        android.widget.ImageView(this).apply {
+            setImageResource(drawable)
+            imageTintList = android.content.res.ColorStateList.valueOf(tint)
+            contentDescription = description
+            scaleType = android.widget.ImageView.ScaleType.CENTER
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { action() }
+        }
 
     private fun chooseCount(onSelected: (Int) -> Unit) {
-        val values = (4..9).toList()
+        val values = (0..8).toList()
         AlertDialog.Builder(this).setTitle("快捷方式数量")
             .setSingleChoiceItems(values.map { "$it 个" }.toTypedArray(), values.indexOf(maxCount)) { dialog, which ->
                 val next = values[which]
@@ -209,8 +213,9 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
     }
 
     private fun confirmDelete(slot: Int) {
+        val name = store.getString(targetKey(slot), null)?.let(::targetLabel) ?: "这个快捷方式"
         AlertDialog.Builder(this).setTitle("删除快捷方式")
-            .setMessage("只从桌面快捷方式列表中移除，不删除对应的时间项目或应用。")
+            .setMessage("确定删除「$name」快捷方式吗？删除后只从快捷方式列表和桌面第四行移除，不会删除原始时间记录及其数据。")
             .setNegativeButton("取消", null)
             .setPositiveButton("删除") { _, _ ->
                 store.edit().remove(targetKey(slot)).putBoolean(KEY_ENABLED + slot, false).apply()
@@ -225,9 +230,10 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
 
     private fun loadOrder() {
         val saved = store.getString(KEY_ORDER, null)?.split(",")?.mapNotNull { it.toIntOrNull() } ?: return
-        if (saved.size == 9 && saved.toSet() == (1..9).toSet()) {
+        val normalized = saved.filter { it in 1..8 }.distinct()
+        if (normalized.isNotEmpty()) {
             rows.clear()
-            rows.addAll(saved)
+            rows.addAll(normalized + (1..8).filterNot { it in normalized })
         }
     }
 
