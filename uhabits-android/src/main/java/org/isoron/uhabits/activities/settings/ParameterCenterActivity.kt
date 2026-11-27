@@ -51,11 +51,11 @@ class ParameterCenterActivity : AppCompatActivity() {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(dp(16), dp(16), dp(14), dp(16))
-                background = GradientDrawable().apply {
+                setBackground(GradientDrawable().apply {
                     setColor(if (dark) Color.rgb(45, 48, 55) else Color.WHITE)
                     cornerRadius = dp(13).toFloat()
                     setStroke(dp(1), if (dark) Color.rgb(75, 78, 86) else Color.rgb(225, 228, 233))
-                }
+                })
                 isClickable = true
                 isFocusable = true
                 setOnClickListener {
