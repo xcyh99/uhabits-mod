@@ -185,11 +185,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
                 imageMode = listOf("fit", "stretch", "crop")[position]
-                preview.scaleType = when (imageMode) {
-                    "stretch" -> ImageView.ScaleType.FIT_XY
-                    "crop" -> ImageView.ScaleType.CENTER_CROP
-                    else -> ImageView.ScaleType.FIT_CENTER
-                }
+                updatePreviewScaleType()
             }
         }
         val imageSettingsRow = LinearLayout(this).apply {
@@ -250,7 +246,8 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             isFillViewport = false
             addView(content)
         }, LinearLayout.LayoutParams(-1, 0, 1f))
-        page.addView(saveButton, LinearLayout.LayoutParams(-1, dp(52)).apply {
+        // Use the theme's native Button height instead of forcing an oversized 52dp height.
+        page.addView(saveButton, LinearLayout.LayoutParams(-1, -2).apply {
             setMargins(dp(16), dp(8), dp(16), dp(12))
         })
         setContentView(page)
@@ -269,6 +266,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
         // Migrate unsupported legacy modes to the default native FIT_CENTER mode.
         if (imageMode == "width" || imageMode == "height") imageMode = "fit"
         modeSpinner.setSelection(when (imageMode) { "stretch" -> 1; "crop" -> 2; else -> 0 })
+        updatePreviewScaleType()
         editorView.splitX = splitX
         editorView.splitY = splitY
         imageUri = saved.getString("${widgetId}_sourceUri", null)?.let { runCatching { Uri.parse(it) }.getOrNull() }
@@ -322,6 +320,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             imageMode = restored.pictureImageMode
             imageFile = null
             modeSpinner.setSelection(when (imageMode) { "stretch" -> 1; "crop" -> 2; else -> 0 })
+            updatePreviewScaleType()
             editorView.splitX = splitX
             editorView.splitY = splitY
             imageStatus.text = "设置已载入；轻量备份不含图片，请重新选择原图片后保存"
@@ -337,6 +336,7 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             imageMode = restored.imageMode
             imageFile = null
             modeSpinner.setSelection(when (imageMode) { "stretch" -> 1; "crop" -> 2; else -> 0 })
+            updatePreviewScaleType()
             editorView.splitX = splitX
             editorView.splitY = splitY
             imageStatus.text = "设置已载入；轻量备份不含图片，请重新选择图片（也可先保存组件）"
@@ -643,6 +643,14 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             }
             .show()
         dialog.findViewById<TextView>(android.R.id.message)?.textSize = 11f
+    }
+
+    private fun updatePreviewScaleType() {
+        preview.scaleType = when (imageMode) {
+            "stretch" -> ImageView.ScaleType.FIT_XY
+            "crop" -> ImageView.ScaleType.CENTER_CROP
+            else -> ImageView.ScaleType.FIT_CENTER
+        }
     }
 
     private fun updateTargetLabels() {
