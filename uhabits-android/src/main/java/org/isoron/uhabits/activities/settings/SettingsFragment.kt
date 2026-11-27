@@ -191,6 +191,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
         val openFeatureCenter = requireActivity().intent.getBooleanExtra("open_feature_center", false)
         if ((targetPreference != null && targetPreference != "widgetManager") || openFeatureCenter) {
             view.post {
+                if (targetPreference == "startupPage") {
+                    showStartupPageSettings()
+                    return@post
+                }
                 if (targetPreference == "historyWhiteWeight") {
                     showHistoryWhiteWeightSetting()
                     return@post
