@@ -142,7 +142,7 @@ class DigitalClockShortcutIconActivity : AppCompatActivity() {
     private fun updatePreview() {
         fileName.text = selectedName ?: "使用默认图标"
         val bitmap = selectedUri?.let { uri ->
-            runCatching { contentResolver.openInputStream(uri)?.use(BitmapFactory::decodeStream) }.getOrNull()
+            runCatching { contentResolver.openInputStream(uri)?.use { stream -> BitmapFactory.decodeStream(stream) } }.getOrNull()
         }
         if (bitmap != null) preview.setImageBitmap(bitmap) else preview.setImageResource(android.R.drawable.ic_menu_view)
     }
