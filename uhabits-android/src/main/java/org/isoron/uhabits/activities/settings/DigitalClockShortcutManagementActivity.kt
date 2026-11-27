@@ -27,6 +27,7 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         title = "快捷方式管理"
         maxCount = store.getInt(KEY_COUNT, 4).coerceIn(4, 9)
+        loadOrder()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(10), dp(16), dp(24))
@@ -211,16 +212,7 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
     }
 
     private fun persistOrder() {
-        val e = store.edit()
-        val targets = rows.map { store.getString(targetKey(it), null) }
-        val enabled = rows.map { store.getBoolean(KEY_ENABLED + it, it <= 4) }
-        rows.forEachIndexed { index, slot ->
-            val key = targetKey(slot)
-            if (targets[index] == null) e.remove(key) else e.putString(key, targets[index])
-            e.putBoolean(KEY_ENABLED + slot, enabled[index])
-        }
-        e.putString(KEY_ORDER, rows.joinToString(","))
-        e.apply()
+        store.edit().putString(KEY_ORDER, rows.joinToString(",")).apply()
     }
 
     private fun loadOrder() {
