@@ -93,7 +93,7 @@ class TimeRecordsFragment : PreferenceFragmentCompat() {
         ) { showEditor(TimeRecord.COUNTDOWN) })
         addCategory.addPreference(createAction(
             "日期推算",
-            "独立计算两个日期和时间之间的跨度；只计算，不创建正计时或倒计时记录。"
+            "独立计算两个日期和时间之间的跨度；只计算，不创建正计天或倒计天记录。"
         ) { showStandaloneDateCalculator() })
         val recordsCategory = PreferenceCategory(context).apply {
             title = getString(R.string.time_records_saved_category)
