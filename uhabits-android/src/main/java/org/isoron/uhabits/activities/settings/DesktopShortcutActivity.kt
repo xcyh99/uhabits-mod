@@ -100,6 +100,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
     private lateinit var photoNameView: TextView
     private lateinit var photoLocationView: TextView
     private lateinit var shortcutsContainer: LinearLayout
+    private lateinit var shortcutCountView: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Apply the selected app theme before Activity/AppCompat initializes views.
@@ -259,7 +260,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
         val createAction = Button(this).apply {
             text = "创建并添加到桌面"; textSize = 13f; setTextColor(Color.WHITE)
             backgroundTintList = android.content.res.ColorStateList.valueOf(Color.rgb(126,87,194))
-            layoutParams = LinearLayout.LayoutParams(-1, dp(41)).apply { topMargin = dp(4) }
+            layoutParams = LinearLayout.LayoutParams(-1, dp(47)).apply { topMargin = dp(4) }
             setOnClickListener { createShortcut() }
         }
         content.addView(createAction)
@@ -277,7 +278,18 @@ class DesktopShortcutActivity : AppCompatActivity() {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) { updateIconPreview() }
         }
         updatePhotoInfo(); updateIconPreview()
-        content.addView(label("已有桌面快捷方式"))
+        val shortcutHeader = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        shortcutHeader.addView(label("已有桌面快捷方式"), LinearLayout.LayoutParams(0, -2, 1f))
+        shortcutCountView = TextView(this).apply {
+            textSize = 11f
+            setTextColor(secondaryText)
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        shortcutHeader.addView(shortcutCountView)
+        content.addView(shortcutHeader)
         shortcutsContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         content.addView(shortcutsContainer); refreshShortcutList()
         val scroll = ScrollView(this).apply { isFillViewport = true; addView(content) }
@@ -357,13 +369,25 @@ class DesktopShortcutActivity : AppCompatActivity() {
         val darkMode = ColorUtils.calculateLuminance(StyledResources(this).getColor(R.attr.contrast0)) < 0.5
         val listPrimaryText = if (darkMode) Color.WHITE else Color.BLACK
         val listSecondaryText = if (darkMode) Color.LTGRAY else Color.DKGRAY
+        shortcutCountView.text = "已显示 ${entries.count { it.visible }}/${entries.size}"
         if (entries.isEmpty()) {
             shortcutsContainer.addView(TextView(this).apply { text = "暂无已创建的桌面快捷方式"; textSize = 12f; setTextColor(Color.GRAY) })
             return
         }
         entries.forEach { entry ->
-            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(0,dp(4),0,dp(4)) }
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(7) }
+                setPadding(dp(10), dp(8), dp(8), dp(8))
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    setColor(if (darkMode) Color.rgb(45, 48, 55) else Color.WHITE)
+                    cornerRadius = dp(13).toFloat()
+                    setStroke(dp(1), if (darkMode) Color.rgb(70, 74, 82) else Color.rgb(230, 233, 238))
+                }
+            }
             val check = CheckBox(this).apply {
+                layoutParams = LinearLayout.LayoutParams(dp(32), dp(44))
                 isChecked = entry.visible
                 setOnCheckedChangeListener { _, checked ->
                     val updated = readShortcuts().map { if (it.id == entry.id) it.copy(visible = checked) else it }
@@ -386,20 +410,38 @@ class DesktopShortcutActivity : AppCompatActivity() {
                     }
                 }
             }
+            val number = TextView(this).apply {
+                textSize = 13f
+                gravity = Gravity.CENTER
+                setTextColor(0xFF9575CD.toInt())
+                includeFontPadding = false
+                text = (entries.indexOf(entry) + 1).toString()
+            }
+            number.layoutParams = LinearLayout.LayoutParams(dp(24), dp(44))
             val rowIcon = ImageView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(dp(34), dp(34)).apply { marginEnd = dp(7) }
                 scaleType = ImageView.ScaleType.FIT_CENTER
                 setImageBitmap(runCatching { buildIcon(entry) }.getOrNull())
             }
             val details = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0,-2,1f) }
-            details.addView(TextView(this).apply { text = entry.name; textSize = 13f; setTextColor(listPrimaryText) })
+            details.addView(TextView(this).apply { text = entry.name; textSize = 14f; setTextColor(listPrimaryText); maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END })
             val target = targets.firstOrNull { it.key == entry.targetKey }?.title ?: entry.targetKey
-            details.addView(TextView(this).apply { text = "打开：" + target.substringAfter("】",target); textSize = 10f; setTextColor(listSecondaryText); maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END })
-            row.addView(check); row.addView(rowIcon); row.addView(details)
-            row.addView(TextView(this).apply { text = "编辑"; textSize = 12f; setTextColor(Color.rgb(126,87,194)); setPadding(dp(6),dp(10),dp(6),dp(10)); setOnClickListener { editShortcut(entry) } })
-            row.addView(TextView(this).apply { text = "删除"; textSize = 12f; setTextColor(Color.rgb(180,70,70)); setPadding(dp(6),dp(10),0,dp(10)); setOnClickListener { confirmDeleteShortcut(entry) } })
+            details.addView(TextView(this).apply { text = target.substringAfter("】", target); textSize = 10f; setTextColor(listSecondaryText); maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END })
+            val edit = TextView(this).apply {
+                text = "编辑"; textSize = 12f; setTextColor(0xFF9575CD.toInt())
+                gravity = Gravity.CENTER; setPadding(dp(3), dp(10), dp(3), dp(10))
+                layoutParams = LinearLayout.LayoutParams(dp(42), dp(44))
+                setOnClickListener { editShortcut(entry) }
+            }
+            val remove = TextView(this).apply {
+                text = "删除"; textSize = 12f; setTextColor(Color.rgb(211, 76, 76))
+                gravity = Gravity.CENTER; setPadding(dp(3), dp(10), dp(3), dp(10))
+                layoutParams = LinearLayout.LayoutParams(dp(42), dp(44)).apply { marginStart = dp(3) }
+                setOnClickListener { confirmDeleteShortcut(entry) }
+            }
+            row.addView(check); row.addView(number); row.addView(rowIcon); row.addView(details)
+            row.addView(edit); row.addView(remove)
             shortcutsContainer.addView(row)
-            shortcutsContainer.addView(View(this).apply { setBackgroundColor(if (darkMode) Color.DKGRAY else 0xFFE5E1E8.toInt()) }, LinearLayout.LayoutParams(-1,dp(1)))
         }
     }
 
