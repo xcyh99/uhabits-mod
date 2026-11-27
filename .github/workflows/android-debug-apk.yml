@@ -38,6 +38,7 @@ on:
       - test/big-clock-time-center
       - fix/desktop-shortcut-reenable-verify
       - fix/project-detail-description-notes-label
+      - fix/exclude-duplicate-fontawesome-asset
   pull_request:
     branches:
       - dev
