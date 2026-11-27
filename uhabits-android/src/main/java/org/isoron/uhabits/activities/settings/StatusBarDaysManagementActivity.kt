@@ -90,16 +90,18 @@ class StatusBarDaysManagementActivity : AppCompatActivity() {
 
     private inner class RowsAdapter : RecyclerView.Adapter<RowsAdapter.Holder>() {
         var startDrag: ((RecyclerView.ViewHolder) -> Unit)? = null
-        inner class Holder(val check: CheckBox, val drag: TextView) : RecyclerView.ViewHolder(LinearLayout(this@StatusBarDaysManagementActivity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(8), dp(8), dp(8), dp(8)); addView(check, LinearLayout.LayoutParams(0, -2, 1f)); addView(drag, LinearLayout.LayoutParams(-2, -2)) })
+        inner class Holder(val check: CheckBox, val categoryLabel: TextView, val drag: TextView) : RecyclerView.ViewHolder(LinearLayout(this@StatusBarDaysManagementActivity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(8), dp(7), dp(8), dp(7)); addView(check, LinearLayout.LayoutParams(0, -2, 1f)); addView(categoryLabel, LinearLayout.LayoutParams(-2, -2)); addView(drag, LinearLayout.LayoutParams(-2, -2)) })
         private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
         override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): Holder {
             val check = CheckBox(this@StatusBarDaysManagementActivity).apply { textSize = 15f; setPadding(0, dp(4), dp(8), dp(4)) }
-            val drag = TextView(this@StatusBarDaysManagementActivity).apply { text = "☰"; textSize = 24f; gravity = Gravity.CENTER; setPadding(dp(14), dp(6), dp(8), dp(6)); contentDescription = "按住拖动排序" }
-            return Holder(check, drag)
+            val category = TextView(this@StatusBarDaysManagementActivity).apply { textSize = 11f; setTextColor(if (androidx.core.graphics.ColorUtils.calculateLuminance(StyledResources(this@StatusBarDaysManagementActivity).getColor(R.attr.contrast0)) < .5) Color.LTGRAY else Color.DKGRAY); setPadding(dp(6), 0, dp(4), 0); maxLines = 1 }
+            val drag = TextView(this@StatusBarDaysManagementActivity).apply { text = "☰"; textSize = 22f; gravity = Gravity.CENTER; setPadding(dp(10), dp(4), dp(4), dp(4)); contentDescription = "按住拖动排序" }
+            check.maxLines = 1; check.isSingleLine = true; check.ellipsize = android.text.TextUtils.TruncateAt.END
+            return Holder(check, category, drag)
         }
         override fun getItemCount() = rows.size
         override fun onBindViewHolder(holder: Holder, position: Int) {
-            val row = rows[position]; holder.check.setOnCheckedChangeListener(null); holder.check.text = "${row.title}\\n【${row.category}】"; holder.check.isChecked = row.key !in hidden
+            val row = rows[position]; holder.check.setOnCheckedChangeListener(null); holder.check.text = row.title; holder.categoryLabel.text = row.category; holder.check.isChecked = row.key !in hidden
             holder.check.setOnCheckedChangeListener { _, checked -> setVisible(row, checked) }
             holder.drag.setOnTouchListener { _, event -> if (event.actionMasked == MotionEvent.ACTION_DOWN) { startDrag?.invoke(holder); true } else true }
         }
