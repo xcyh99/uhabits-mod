@@ -480,11 +480,12 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
 
     private fun showParameterCenter() {
         AlertDialog.Builder(requireContext())
-            .setTitle("参数中心")
-            .setItems(arrayOf("白色数字权重", "白边参数")) { _, which ->
+            .setTitle("页面")
+            .setItems(arrayOf("白色数字权重", "白边参数", "启动首页设置")) { _, which ->
                 when (which) {
                     0 -> showWhiteTextWeightTargets()
                     1 -> showWhiteOutlineTargets()
+                    2 -> showStartupPageSettings()
                 }
             }
             .setNegativeButton("关闭", null)
