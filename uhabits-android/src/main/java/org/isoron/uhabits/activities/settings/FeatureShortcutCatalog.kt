@@ -22,7 +22,7 @@ object FeatureShortcutCatalog {
     const val KEY_ALLOWED_ENTRIES = "shortcut_candidate_keys_v1"
     private const val KEY_CATALOG_CACHE = "shortcut_catalog_cache_v1"
     private const val KEY_CATALOG_CACHE_VERSION = "shortcut_catalog_cache_version"
-    private const val CATALOG_CACHE_VERSION = 10
+    private const val CATALOG_CACHE_VERSION = 11
     private const val META_KEY = "org.isoron.uhabits.shortcut.key"
     private const val META_TITLE = "org.isoron.uhabits.shortcut.title"
     private const val META_CATEGORY = "org.isoron.uhabits.shortcut.category"
@@ -88,7 +88,7 @@ object FeatureShortcutCatalog {
 
     private val recommended = builtIns.filterNot { it.key == "widgetRestore" }.map { it.key }.toSet() + setOf("pictureShortcutWidgetSettings")
     private const val KEY_ALLOWED_MIGRATION_VERSION = "shortcut_candidate_migration_version"
-    private const val ALLOWED_MIGRATION_VERSION = 10
+    private const val ALLOWED_MIGRATION_VERSION = 11
 
     fun getEntries(context: Context, onProgress: ((String) -> Unit)? = null): List<Entry> {
         val result = mutableListOf<Entry>()
@@ -274,15 +274,11 @@ object FeatureShortcutCatalog {
         // Version 6 starts with the current catalog only. Later migrations preserve
         // the user's selected entries while adding newly discoverable time pages.
         if (version < ALLOWED_MIGRATION_VERSION) {
-            // v10 adds the Big Clock page without clearing prior choices.
+            // v11 refreshes the discoverable page catalog while leaving new entries unchecked by default.
             val current = if (version < 6) recommended.toMutableSet()
                 else store.getStringSet(KEY_ALLOWED_ENTRIES, recommended)?.toMutableSet()
                     ?: recommended.toMutableSet()
             current.add("desktopWidgetTimeSettings")
-            current.add("timeCenter")
-            current.add("statusBarDaysManagement")
-            current.add("floatingTimerManagement")
-            current.add("bigClock")
             current.remove("settingsBackupRestore")
             val ownComponent = ComponentName(
                 context,
