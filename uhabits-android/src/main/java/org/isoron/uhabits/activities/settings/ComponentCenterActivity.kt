@@ -58,7 +58,7 @@ class ComponentCenterActivity : AppCompatActivity() {
             row.addView(TextView(this).apply { text = "›"; textSize = 26f; setTextColor(if (dark) Color.LTGRAY else Color.DKGRAY) })
             root.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
         }
-        card("新建组件", "添加全新的桌面组件") {
+        card("添加组件", "选择并添加桌面组件") {
             startActivity(Intent(this, ComponentAddActivity::class.java))
         }
 
@@ -92,17 +92,17 @@ class ComponentAddActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         (application as HabitsApplication).component.preferences.let { AndroidThemeSwitcher(this, it).apply() }
         super.onCreate(savedInstanceState)
-        title = "新建组件"
+        title = "添加组件"
         val d = resources.displayMetrics.density
         fun dp(v: Int) = (v * d).toInt()
         val dark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-        val entries = WidgetCatalog.discover(this)
+        val entries = WidgetCatalog.discover(this).sortedWith(compareByDescending<WidgetCatalog.Entry> { it.installedCount }.thenBy { it.title })
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(12), dp(16), dp(24))
             setBackgroundColor(if (dark) Color.rgb(25, 27, 31) else Color.rgb(246, 247, 249))
         }
         root.addView(TextView(this).apply {
-            text = "选择要添加的桌面组件。勾选多个可依次请求添加，最终由手机桌面确认。"
+            text = "按已添加数量从多到少排列。选择要添加的桌面组件，最终由手机桌面确认。"
             textSize = 13f; setTextColor(if (dark) Color.LTGRAY else Color.DKGRAY)
             setPadding(dp(2), dp(4), dp(2), dp(12))
         })
