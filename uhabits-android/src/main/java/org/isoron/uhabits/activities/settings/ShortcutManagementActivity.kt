@@ -28,10 +28,10 @@ class ShortcutManagementActivity : AppCompatActivity() {
         title = "快捷中心"
         val density = resources.displayMetrics.density
         fun dp(v: Int) = (v * density).toInt()
-        val background = StyledResources(this).getColor(R.attr.contrast0)
-        val dark = androidx.core.graphics.ColorUtils.calculateLuminance(background) < 0.5
-        val primary = if (dark) Color.WHITE else Color.BLACK
-        val secondary = if (dark) Color.LTGRAY else Color.DKGRAY
+        val background = Color.rgb(25, 27, 31)
+        val dark = true
+        val primary = Color.WHITE
+        val secondary = Color.LTGRAY
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(16), dp(16), dp(24)); setBackgroundColor(background) }
         fun item(name: String, summary: String, action: () -> Unit) {
             val card = LinearLayout(this).apply {
