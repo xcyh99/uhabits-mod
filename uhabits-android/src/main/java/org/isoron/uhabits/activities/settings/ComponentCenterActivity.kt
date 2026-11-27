@@ -2,6 +2,8 @@ package org.isoron.uhabits.activities.settings
 
 import android.appwidget.AppWidgetManager
 import android.content.Intent
+import android.content.pm.ShortcutManager
+import org.json.JSONArray
 import android.graphics.Color
 import android.os.Bundle
 import android.view.Gravity
@@ -89,6 +91,30 @@ class ComponentCenterActivity : AppCompatActivity() {
 }
 
 class ComponentAddActivity : AppCompatActivity() {
+    private lateinit var shortcutCountLabel: TextView
+
+    override fun onResume() {
+        super.onResume()
+        if (::shortcutCountLabel.isInitialized) updateShortcutCount()
+    }
+
+    private fun updateShortcutCount() {
+        val preferences = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+        val raw = preferences.getString("desktop_shortcut_entries_v1", null)
+        val savedIds = runCatching {
+            val array = JSONArray(raw ?: "[]")
+            (0 until array.length()).mapNotNull { index ->
+                array.optJSONObject(index)?.optString("id")?.takeIf { it.isNotBlank() }
+            }.toSet()
+        }.getOrDefault(emptySet())
+        val pinnedIds = runCatching {
+            getSystemService(ShortcutManager::class.java)?.pinnedShortcuts
+                ?.map { it.id }?.toSet().orEmpty()
+        }.getOrDefault(emptySet())
+        val count = savedIds.count { it in pinnedIds }
+        shortcutCountLabel.text = "桌面已有 $count 个"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         (application as HabitsApplication).component.preferences.let { AndroidThemeSwitcher(this, it).apply() }
         super.onCreate(savedInstanceState)
@@ -105,6 +131,57 @@ class ComponentAddActivity : AppCompatActivity() {
             text = "按已添加数量从多到少排列。选择要添加的桌面组件，最终由手机桌面确认。"
             textSize = 13f; setTextColor(if (dark) Color.LTGRAY else Color.DKGRAY)
             setPadding(dp(2), dp(4), dp(2), dp(12))
+        })
+
+        root.addView(TextView(this).apply {
+            text = "桌面快捷"
+            textSize = 16f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(if (dark) Color.WHITE else Color.BLACK)
+            setPadding(dp(2), dp(10), dp(2), dp(6))
+        })
+        val shortcutEntry = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(14), dp(14), dp(14), dp(14))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(if (dark) Color.rgb(45, 48, 55) else Color.WHITE)
+                cornerRadius = dp(12).toFloat()
+                setStroke(dp(1), if (dark) Color.rgb(70, 74, 82) else Color.rgb(230, 233, 238))
+            }
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                startActivity(Intent(this@ComponentAddActivity, DesktopShortcutActivity::class.java))
+            }
+        }
+        shortcutEntry.addView(TextView(this).apply {
+            text = "桌面快捷"
+            textSize = 15f
+            setTextColor(if (dark) Color.WHITE else Color.BLACK)
+        }, LinearLayout.LayoutParams(0, -2, 1f))
+        shortcutCountLabel = TextView(this).apply {
+            textSize = 13f
+            setTextColor(if (dark) Color.LTGRAY else Color.DKGRAY)
+        }
+        shortcutEntry.addView(shortcutCountLabel)
+        shortcutEntry.addView(TextView(this).apply {
+            text = "›"
+            textSize = 24f
+            setPadding(dp(10), 0, 0, 0)
+            setTextColor(if (dark) Color.LTGRAY else Color.DKGRAY)
+        })
+        root.addView(shortcutEntry, LinearLayout.LayoutParams(-1, -2).apply {
+            bottomMargin = dp(12)
+        })
+        updateShortcutCount()
+
+        root.addView(TextView(this).apply {
+            text = "桌面组件"
+            textSize = 16f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(if (dark) Color.WHITE else Color.BLACK)
+            setPadding(dp(2), dp(8), dp(2), dp(6))
         })
         val checks = entries.map { entry ->
             android.widget.CheckBox(this).apply {
