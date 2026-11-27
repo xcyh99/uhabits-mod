@@ -149,7 +149,11 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
             val name = target?.let(::targetLabel) ?: "未设置"
             val rowIcon = ImageView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(dp(34), dp(34)).apply { marginEnd = dp(7) }
-                scaleType = ImageView.ScaleType.FIT_CENTER
+                scaleType = when (store.getInt(iconModeKey(slot), 0).coerceIn(0, 2)) {
+                    1 -> ImageView.ScaleType.FIT_XY
+                    2 -> ImageView.ScaleType.CENTER_CROP
+                    else -> ImageView.ScaleType.FIT_CENTER
+                }
                 val uri = store.getString(iconUriKey(slot), null)?.let(Uri::parse)
                 val bitmap = uri?.let { runCatching { contentResolver.openInputStream(it)?.use { stream -> BitmapFactory.decodeStream(stream) } }.getOrNull() }
                 if (bitmap != null) {
@@ -277,6 +281,7 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
 
     private fun targetKey(slot: Int) = "digital_clock_target_shortcut$slot"
     private fun iconUriKey(slot: Int) = "digital_clock_shortcut_icon_uri_$slot"
+    private fun iconModeKey(slot: Int) = "digital_clock_shortcut_icon_mode_$slot"
     private fun targetLabel(value: String): String = when {
         value.startsWith("feature:") -> FeatureShortcutCatalog.getCachedEntry(this, value.removePrefix("feature:"))?.name ?: "十字习惯功能"
         value.startsWith("app:") -> {
