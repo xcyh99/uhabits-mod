@@ -1,5 +1,5 @@
 name: Android APK (stable signing)
-# 990B2 validation rerun after Kotlin widget signature fix
+# Build validation for desktop shortcut activity duplicate-source fix
 
 on:
   workflow_dispatch:
