@@ -10,6 +10,7 @@ import android.view.*
 import android.widget.*
 import androidx.preference.PreferenceManager
 import java.util.Locale
+import org.isoron.uhabits.widgets.BigClockWidgetProvider
 
 class FloatingTimerService : Service() {
     companion object {
@@ -190,8 +191,7 @@ class FloatingTimerService : Service() {
         val pauseMark = if (running) "" else " Ⅱ"
         timerView?.text = String.format(Locale.getDefault(), "%02d:%02d:%02d%s", h, m, s, pauseMark)
         if (countdown && ms == 0L && running) {
-            if (syncEnabled()) bigClockPrefs().edit().putBoolean("down_running", false).putLong("down_base", 0L).apply()
-            else prefs.edit().putBoolean("running", false).putLong("base", 0L).apply()
+            if (!syncEnabled()) prefs.edit().putBoolean("running", false).putLong("base", 0L).apply()
             timerView?.text = "00:00:00"
         }
     }
@@ -210,6 +210,7 @@ class FloatingTimerService : Service() {
             shared.edit().putLong(baseKey, current).putLong(anchorKey, SystemClock.elapsedRealtime())
                 .putBoolean(runningKey, !running).apply()
             updateText()
+            BigClockWidgetProvider.updateAll(this)
             return
         }
         val running = prefs.getBoolean("running", false)
