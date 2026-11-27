@@ -134,14 +134,21 @@ class DesktopShortcutActivity : AppCompatActivity() {
             setTypeface(typeface, Typeface.BOLD)
             setPadding(0, dp(12), 0, dp(5))
         }
+        fun compactLabel(value: String) = TextView(this).apply {
+            text = value
+            textSize = 11f
+            setTextColor(primaryText)
+            setTypeface(typeface, Typeface.BOLD)
+            setPadding(0, dp(4), 0, dp(1))
+        }
         fun spinner(items: List<String>) = Spinner(this).apply {
             val itemAdapter = object : ArrayAdapter<String>(
                 this@DesktopShortcutActivity, android.R.layout.simple_spinner_item, items
             ) {
                 private fun style(view: TextView, dropdown: Boolean): TextView {
                     view.setTextColor(primaryText)
-                    view.textSize = 15f
-                    view.setPadding(dp(12), dp(10), dp(12), dp(10))
+                    view.textSize = 12f
+                    view.setPadding(dp(8), dp(3), dp(8), dp(3))
                     view.setBackgroundColor(if (dropdown) pageBackground else Color.TRANSPARENT)
                     return view
                 }
@@ -188,25 +195,15 @@ class DesktopShortcutActivity : AppCompatActivity() {
         content.addView(label("打开目标"))
         content.addView(targetButton)
 
+        content.addView(label("图标设置"))
         val options = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         val iconColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(4) } }
         val colorColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) } }
-        val restoreColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) } }
-        iconColumn.addView(label("内置图标")); iconColumn.addView(iconSpinner)
-        colorColumn.addView(label("图标底色")); colorColumn.addView(colorSpinner)
-        restoreColumn.addView(label(" "))
-        restoreColumn.addView(Button(this).apply {
-            text = "恢复默认图标"; textSize = 11f; setTextColor(primaryText)
-            backgroundTintList = android.content.res.ColorStateList.valueOf(if (isDarkBackground) Color.rgb(55,58,65) else Color.rgb(235,237,240))
-            setOnClickListener {
-                // Defer deleting the previously saved image until the edited shortcut is actually saved.
-                photoFile = null; originalPhotoUri = null; originalPhotoName = null; originalPhotoLocation = null
-                iconSpinner.setSelection(0)
-                photoStatus.text = "未选择相册图片（可选）"
-                updatePhotoInfo(); updateIconPreview()
-            }
-        })
-        options.addView(iconColumn); options.addView(colorColumn); options.addView(restoreColumn)
+        iconColumn.addView(compactLabel("内置图标"))
+        iconColumn.addView(iconSpinner, LinearLayout.LayoutParams(-1, dp(34)))
+        colorColumn.addView(compactLabel("图标底色"))
+        colorColumn.addView(colorSpinner, LinearLayout.LayoutParams(-1, dp(34)))
+        options.addView(iconColumn); options.addView(colorColumn)
         content.addView(options)
 
         val previewRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(0,dp(8),0,dp(8)) }
@@ -216,12 +213,35 @@ class DesktopShortcutActivity : AppCompatActivity() {
             setBackgroundColor(if (isDarkBackground) Color.rgb(38,40,45) else Color.rgb(238,239,242))
         }
         val right = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.TOP; layoutParams = LinearLayout.LayoutParams(0,dp(164),1f) }
-        right.addView(Button(this).apply {
-            text = "选择图片"; textSize = 13f; setTextColor(Color.WHITE)
+        val photoActionRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        photoActionRow.addView(Button(this).apply {
+            text = "选择图片"; textSize = 12f; setTextColor(Color.WHITE)
             backgroundTintList = android.content.res.ColorStateList.valueOf(Color.rgb(126,87,194))
-            layoutParams = LinearLayout.LayoutParams(-1, dp(44))
+            layoutParams = LinearLayout.LayoutParams(0, dp(40), 2f).apply { marginEnd = dp(3) }
             setOnClickListener { choosePhoto() }
         })
+        photoActionRow.addView(Button(this).apply {
+            text = "恢复"; textSize = 11f; setTextColor(primaryText)
+            backgroundTintList = android.content.res.ColorStateList.valueOf(if (isDarkBackground) Color.rgb(55,58,65) else Color.rgb(235,237,240))
+            layoutParams = LinearLayout.LayoutParams(0, dp(40), 1f).apply { marginStart = dp(3) }
+            setOnClickListener {
+                // Restore the built-in icon; keep the selected built-in background color.
+                // The previous custom photo is retained on disk until the edit is saved.
+                photoFile = null
+                originalPhotoUri = null
+                originalPhotoName = null
+                originalPhotoLocation = null
+                iconSpinner.setSelection(0)
+                photoScaleSpinner.setSelection(0)
+                photoStatus.text = "未选择相册图片（可选）"
+                updatePhotoInfo()
+                updateIconPreview()
+            }
+        })
+        right.addView(photoActionRow, LinearLayout.LayoutParams(-1, dp(40)))
         photoNameView = TextView(this).apply {
             textSize = 12f; setTextColor(primaryText); maxLines = 2
             ellipsize = android.text.TextUtils.TruncateAt.END
@@ -239,7 +259,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
         val createAction = Button(this).apply {
             text = "创建并添加到桌面"; textSize = 13f; setTextColor(Color.WHITE)
             backgroundTintList = android.content.res.ColorStateList.valueOf(Color.rgb(126,87,194))
-            layoutParams = LinearLayout.LayoutParams(-1, dp(82)).apply { topMargin = dp(4) }
+            layoutParams = LinearLayout.LayoutParams(-1, dp(41)).apply { topMargin = dp(4) }
             setOnClickListener { createShortcut() }
         }
         content.addView(createAction)

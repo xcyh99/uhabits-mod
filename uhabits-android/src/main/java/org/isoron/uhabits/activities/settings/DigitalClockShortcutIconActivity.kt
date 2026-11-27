@@ -58,11 +58,32 @@ class DigitalClockShortcutIconActivity : AppCompatActivity() {
             gravity = Gravity.TOP
             layoutParams = LinearLayout.LayoutParams(0, dp(164), 1f)
         }
-        controls.addView(Button(this).apply {
+        val photoActionRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        photoActionRow.addView(Button(this).apply {
             text = "选择图片"
-            layoutParams = LinearLayout.LayoutParams(-1, dp(44))
+            textSize = 12f
+            setTextColor(Color.WHITE)
+            backgroundTintList = android.content.res.ColorStateList.valueOf(Color.rgb(126, 87, 194))
+            layoutParams = LinearLayout.LayoutParams(0, dp(40), 2f).apply { marginEnd = dp(3) }
             setOnClickListener { chooseImage() }
         })
+        photoActionRow.addView(Button(this).apply {
+            text = "恢复"
+            textSize = 11f
+            setTextColor(primary)
+            backgroundTintList = android.content.res.ColorStateList.valueOf(if (dark) Color.rgb(55, 58, 65) else Color.rgb(235, 237, 240))
+            layoutParams = LinearLayout.LayoutParams(0, dp(40), 1f).apply { marginStart = dp(3) }
+            setOnClickListener {
+                selectedUri = null
+                selectedName = null
+                mode.setSelection(0)
+                updatePreview()
+            }
+        })
+        controls.addView(photoActionRow, LinearLayout.LayoutParams(-1, dp(40)))
         fileName = TextView(this).apply {
             textSize = 12f
             setTextColor(primary)
@@ -93,11 +114,7 @@ class DigitalClockShortcutIconActivity : AppCompatActivity() {
         mode.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
-                preview.scaleType = when (position) {
-                    1 -> ImageView.ScaleType.FIT_XY
-                    2 -> ImageView.ScaleType.CENTER_CROP
-                    else -> ImageView.ScaleType.FIT_CENTER
-                }
+                updatePreview()
             }
         }
         previewRow.addView(preview)
@@ -148,17 +165,20 @@ class DigitalClockShortcutIconActivity : AppCompatActivity() {
 
     private fun updatePreview() {
         fileName.text = selectedName ?: "使用默认图标"
-        preview.scaleType = when (mode.selectedItemPosition) {
-            1 -> ImageView.ScaleType.FIT_XY
-            2 -> ImageView.ScaleType.CENTER_CROP
-            else -> ImageView.ScaleType.FIT_CENTER
-        }
         val bitmap = selectedUri?.let { uri ->
             runCatching { contentResolver.openInputStream(uri)?.use { stream -> BitmapFactory.decodeStream(stream) } }.getOrNull()
         }
         if (bitmap != null) {
+            preview.scaleType = when (mode.selectedItemPosition) {
+                1 -> ImageView.ScaleType.FIT_XY
+                2 -> ImageView.ScaleType.CENTER_CROP
+                else -> ImageView.ScaleType.FIT_CENTER
+            }
             preview.setImageBitmap(bitmap)
         } else {
+            // Native/default icons retain their original presentation; photo scale modes
+            // are applied only when the user has selected a custom image.
+            preview.scaleType = ImageView.ScaleType.FIT_CENTER
             val target = store.getString("digital_clock_target_shortcut$slot", null)
             val drawable = when {
                 target?.startsWith("feature:") == true ->
