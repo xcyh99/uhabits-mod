@@ -69,7 +69,7 @@ object StatusBarDaysNotifier {
         }.sortedBy { (itemMode, itemId) ->
             val index = savedOrder.indexOf("$itemMode:$itemId")
             if (index < 0) Int.MAX_VALUE else index
-        }
+        }.asReversed() // Notifications are shown newest-first; post in reverse so the visible order matches the management list.
         if (items.isEmpty()) {
             previousIds.forEach { manager.cancel(it) }
             manager.cancel(NOTIFICATION_ID)
