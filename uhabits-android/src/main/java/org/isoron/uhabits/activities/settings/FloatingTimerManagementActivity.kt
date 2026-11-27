@@ -171,7 +171,7 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
             return
         }
         val down = modeGroup.checkedRadioButtonId == ID_DOWN
-        if (!state.contains("mode") || state.getString("mode", "down") != if (down) "down" else "up") saveSettings()
+        if (!state.contains("mode") || state.getString("mode", "down") != (if (down) "down" else "up")) saveSettings()
         if (down && !state.getBoolean("running", false) && state.getLong("base", 0L) <= 0L) {
             val duration = durationMs()
             if (duration <= 0L) { Toast.makeText(this, "请先设置倒计时时长", Toast.LENGTH_SHORT).show(); return }
