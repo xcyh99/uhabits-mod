@@ -43,6 +43,8 @@ class StatusBarDaysManagementActivity : AppCompatActivity() {
         }.getOrDefault(emptyList())
         val orderedKeys = (savedOrder.filter { it in selected } + selected.filter { it !in savedOrder }).distinct()
         orderedKeys.forEach { key -> rowFor(key)?.let { rows.add(it) } }
+        // Normalize and persist a deterministic order, including projects added after the last reorder.
+        persistOrder()
 
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
