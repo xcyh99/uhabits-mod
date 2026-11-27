@@ -25,6 +25,8 @@ import java.util.Locale
 /** Full-page controls for the independently running floating timer overlay. */
 class FloatingTimerManagementActivity : AppCompatActivity() {
     private val state by lazy { getSharedPreferences("floating_timer_state", MODE_PRIVATE) }
+    private fun syncEnabled() = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this).getBoolean("big_clock_sync_floating", false)
+    private fun bigState() = getSharedPreferences("big_clock_state", MODE_PRIVATE)
     private lateinit var modeGroup: RadioGroup
     private lateinit var hours: EditText
     private lateinit var minutes: EditText
@@ -82,7 +84,7 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
         modeGroup = RadioGroup(this).apply { orientation = RadioGroup.HORIZONTAL }
         modeGroup.addView(RadioButton(this).apply { id = ID_UP; text = "正计时"; setTextColor(primary) })
         modeGroup.addView(RadioButton(this).apply { id = ID_DOWN; text = "倒计时"; setTextColor(primary) })
-        modeGroup.check(if (state.getString("mode", "down") == "up") ID_UP else ID_DOWN)
+        modeGroup.check(if ((if (syncEnabled()) bigState().getString("mode", "down") else state.getString("mode", "down")) == "up") ID_UP else ID_DOWN)
         root.addView(modeGroup)
 
         root.addView(TextView(this).apply {
@@ -100,7 +102,7 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             setText(value.toString().padStart(2, '0'))
         }
-        val duration = state.getLong("duration", 0L) / 1000
+        val duration = (if (syncEnabled()) bigState().getLong("down_duration", 0L) else state.getLong("duration", 0L)) / 1000
         hours = timeField("时", duration / 3600)
         minutes = timeField("分", (duration % 3600) / 60)
         seconds = timeField("秒", duration % 60)
@@ -155,59 +157,104 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
     private fun saveSettings() {
         val down = modeGroup.checkedRadioButtonId == ID_DOWN
         val duration = durationMs()
-        state.edit().putString("mode", if (down) "down" else "up")
-            .putLong("duration", duration)
-            .putLong("base", if (down) duration else 0L)
-            .putLong("anchor", SystemClock.elapsedRealtime())
-            .putBoolean("running", false).apply()
+        if (syncEnabled()) {
+            val p = bigState()
+            val edit = p.edit().putString("mode", if (down) "down" else "up")
+                .putLong(if (down) "down_duration" else "up_base", if (down) duration else 0L)
+                .putLong(if (down) "down_base" else "up_base", if (down) duration else 0L)
+                .putLong(if (down) "down_anchor" else "up_anchor", SystemClock.elapsedRealtime())
+                .putBoolean(if (down) "down_running" else "up_running", false)
+            edit.apply()
+        } else state.edit().putString("mode", if (down) "down" else "up")
+            .putLong("duration", duration).putLong("base", if (down) duration else 0L)
+            .putLong("anchor", SystemClock.elapsedRealtime()).putBoolean("running", false).apply()
         refreshStatus()
         Toast.makeText(this, "计时设置已保存", Toast.LENGTH_SHORT).show()
     }
 
     private fun startOrResume() {
-        if (state.getBoolean("running", false)) { refreshStatus(); return }
+        val down = modeGroup.checkedRadioButtonId == ID_DOWN
+        val expectedMode = if (down) "down" else "up"
+        if (syncEnabled()) {
+            val p = bigState()
+            val runningKey = if (down) "down_running" else "up_running"
+            if (p.getBoolean(runningKey, false)) { refreshStatus(); return }
+            val baseKey = if (down) "down_base" else "up_base"
+            if (down && p.getLong(baseKey, p.getLong("down_duration", 0L)) <= 0L) {
+                val duration = durationMs()
+                if (duration <= 0L) { Toast.makeText(this, "请先设置倒计时时长", Toast.LENGTH_SHORT).show(); return }
+                p.edit().putLong("down_duration", duration).putLong("down_base", duration).apply()
+            }
+            p.edit().putString("mode", expectedMode).putLong(if (down) "down_anchor" else "up_anchor", SystemClock.elapsedRealtime())
+                .putBoolean(runningKey, true).apply()
+        } else {
+            if (state.getBoolean("running", false)) { refreshStatus(); return }
+            if (!state.contains("mode") || state.getString("mode", "down") != expectedMode) saveSettings()
+            if (down && state.getLong("base", 0L) <= 0L) {
+                val duration = durationMs()
+                if (duration <= 0L) { Toast.makeText(this, "请先设置倒计时时长", Toast.LENGTH_SHORT).show(); return }
+                state.edit().putLong("duration", duration).putLong("base", duration).apply()
+            }
+            state.edit().putLong("anchor", SystemClock.elapsedRealtime()).putBoolean("running", true).apply()
+        }
         if (!Settings.canDrawOverlays(this)) {
+            if (syncEnabled()) bigState().edit().putBoolean(if (down) "down_running" else "up_running", false).apply()
+            else state.edit().putBoolean("running", false).apply()
             startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
             return
         }
-        val down = modeGroup.checkedRadioButtonId == ID_DOWN
-        if (!state.contains("mode") || state.getString("mode", "down") != (if (down) "down" else "up")) saveSettings()
-        if (down && !state.getBoolean("running", false) && state.getLong("base", 0L) <= 0L) {
-            val duration = durationMs()
-            if (duration <= 0L) { Toast.makeText(this, "请先设置倒计时时长", Toast.LENGTH_SHORT).show(); return }
-            state.edit().putLong("duration", duration).putLong("base", duration).apply()
-        }
-        state.edit().putLong("anchor", SystemClock.elapsedRealtime()).putBoolean("running", true).apply()
         val intent = Intent(this, FloatingTimerService::class.java).setAction(FloatingTimerService.ACTION_START)
         if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(intent) else startService(intent)
         refreshStatus()
     }
 
     private fun pauseTimer() {
-        if (!state.getBoolean("running", false)) { refreshStatus(); return }
-        val down = state.getString("mode", "down") == "down"
-        val base = state.getLong("base", 0L)
-        val anchor = state.getLong("anchor", 0L)
-        val current = if (down) (base - (SystemClock.elapsedRealtime() - anchor)).coerceAtLeast(0)
-            else (base + (SystemClock.elapsedRealtime() - anchor)).coerceAtLeast(0)
-        state.edit().putLong("base", current).putBoolean("running", false).apply()
+        val down = modeGroup.checkedRadioButtonId == ID_DOWN
+        if (syncEnabled()) {
+            val p = bigState()
+            val runningKey = if (down) "down_running" else "up_running"
+            if (!p.getBoolean(runningKey, false)) { refreshStatus(); return }
+            val baseKey = if (down) "down_base" else "up_base"
+            val anchor = p.getLong(if (down) "down_anchor" else "up_anchor", 0L)
+            val base = p.getLong(baseKey, 0L)
+            val delta = (SystemClock.elapsedRealtime() - anchor).coerceAtLeast(0)
+            val current = if (down) (base - delta).coerceAtLeast(0) else base + delta
+            p.edit().putLong(baseKey, current).putBoolean(runningKey, false).apply()
+        } else {
+            if (!state.getBoolean("running", false)) { refreshStatus(); return }
+            val isDown = state.getString("mode", "down") == "down"
+            val base = state.getLong("base", 0L)
+            val anchor = state.getLong("anchor", 0L)
+            val delta = (SystemClock.elapsedRealtime() - anchor).coerceAtLeast(0)
+            val current = if (isDown) (base - delta).coerceAtLeast(0) else base + delta
+            state.edit().putLong("base", current).putBoolean("running", false).apply()
+        }
         refreshStatus()
     }
 
     private fun resetTimer() {
         val down = modeGroup.checkedRadioButtonId == ID_DOWN
         val duration = durationMs()
-        state.edit().putString("mode", if (down) "down" else "up")
+        if (syncEnabled()) {
+            val p = bigState()
+            p.edit().putString("mode", if (down) "down" else "up")
+                .putLong(if (down) "down_duration" else "up_base", if (down) duration else 0L)
+                .putLong(if (down) "down_base" else "up_base", if (down) duration else 0L)
+                .putLong(if (down) "down_anchor" else "up_anchor", SystemClock.elapsedRealtime())
+                .putBoolean(if (down) "down_running" else "up_running", false).apply()
+        } else state.edit().putString("mode", if (down) "down" else "up")
             .putLong("duration", duration).putLong("base", if (down) duration else 0L)
             .putLong("anchor", SystemClock.elapsedRealtime()).putBoolean("running", false).apply()
         refreshStatus()
     }
 
     private fun refreshStatus() {
-        val down = state.getString("mode", "down") == "down"
-        val running = state.getBoolean("running", false)
-        val base = state.getLong("base", state.getLong("duration", 0L))
-        val delta = if (running) (SystemClock.elapsedRealtime() - state.getLong("anchor", 0L)).coerceAtLeast(0) else 0L
+        val down = if (syncEnabled()) bigState().getString("mode", "down") == "down" else state.getString("mode", "down") == "down"
+        val p = if (syncEnabled()) bigState() else state
+        val running = if (syncEnabled()) p.getBoolean(if (down) "down_running" else "up_running", false) else p.getBoolean("running", false)
+        val base = if (syncEnabled()) p.getLong(if (down) "down_base" else "up_base", p.getLong("down_duration", 0L)) else p.getLong("base", p.getLong("duration", 0L))
+        val anchor = if (syncEnabled()) p.getLong(if (down) "down_anchor" else "up_anchor", 0L) else p.getLong("anchor", 0L)
+        val delta = if (running) (SystemClock.elapsedRealtime() - anchor).coerceAtLeast(0) else 0L
         val ms = if (down) (base - delta).coerceAtLeast(0) else (base + delta).coerceAtLeast(0)
         val total = ms / 1000
         status.text = String.format(Locale.getDefault(), "%02d:%02d:%02d  ·  %s", total / 3600, (total % 3600) / 60, total % 60, if (running) "运行中" else "已暂停")
