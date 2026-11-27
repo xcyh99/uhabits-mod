@@ -88,9 +88,8 @@ class TimeCenterActivity : AppCompatActivity() {
         item("时间记录", "查看和管理时间记录") {
             startActivity(Intent(this, TimeRecordsActivity::class.java))
         }
-        item("状态栏天数", "设置和管理状态栏天数显示") {
-            startActivity(Intent(this, SettingsActivity::class.java)
-                .putExtra("open_preference_key", "statusBarDays"))
+        item("状态栏天数", "管理显示项目、勾选状态和排列顺序") {
+            startActivity(Intent(this, StatusBarDaysManagementActivity::class.java))
         }
         item("悬浮计时器", "启动和设置悬浮计时器") {
             startActivity(Intent(this, SettingsActivity::class.java)
