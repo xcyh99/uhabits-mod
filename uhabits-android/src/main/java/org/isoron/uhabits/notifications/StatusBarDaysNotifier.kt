@@ -50,7 +50,12 @@ object StatusBarDaysNotifier {
 
         // New multi-item configuration; if absent, retain compatibility with the old single-item setting.
         val configured = prefs.getStringSet("status_bar_days_items", emptySet()).orEmpty()
-        val items = if (configured.isNotEmpty()) {
+        val hiddenItems = prefs.getStringSet("status_bar_days_hidden_items", emptySet()).orEmpty()
+        val savedOrder = runCatching {
+            val array = org.json.JSONArray(prefs.getString("status_bar_days_order", "[]"))
+            (0 until array.length()).map { array.getString(it) }
+        }.getOrDefault(emptyList())
+        val items = (if (configured.isNotEmpty()) {
             configured.mapNotNull { entry ->
                 val split = entry.split(":", limit = 2)
                 if (split.size == 2 && split[0] in setOf("checkin", "countdown", "elapsed")) {
@@ -59,6 +64,12 @@ object StatusBarDaysNotifier {
             }
         } else {
             listOf(mode to "")
+        }).filterNot { (itemMode, itemId) ->
+            itemId.isNotBlank() && "$itemMode:$itemId" in hiddenItems
+        }.sortedBy { (itemMode, itemId) ->
+            val key = "$itemMode:$itemId"
+            val index = savedOrder.indexOf(key)
+            if (index < 0) Int.MAX_VALUE else index
         }
         if (items.isEmpty()) {
             previousIds.forEach { manager.cancel(it) }
