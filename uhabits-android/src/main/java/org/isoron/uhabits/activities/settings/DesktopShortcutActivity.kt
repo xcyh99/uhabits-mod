@@ -422,7 +422,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
             }.getOrNull()
             val file = File(filesDir, "desktop_shortcut_photo_${System.currentTimeMillis()}.png")
             FileOutputStream(file).use { out ->
-                cropSquare(bitmap, 512).compress(Bitmap.CompressFormat.PNG, 100, out)
+                fitWithinMaxDimension(bitmap, 1024).compress(Bitmap.CompressFormat.PNG, 100, out)
             }
             photoFile = file
             photoStatus.text = "已选择相册图片：${originalPhotoName ?: file.name}"
@@ -433,15 +433,17 @@ class DesktopShortcutActivity : AppCompatActivity() {
         }
     }
 
-    private fun cropSquare(source: Bitmap, size: Int): Bitmap {
-        val side = minOf(source.width, source.height)
-        val x = (source.width - side) / 2
-        val y = (source.height - side) / 2
-        val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(output)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
-        canvas.drawBitmap(source, Rect(x, y, x + side, y + side), Rect(0, 0, size, size), paint)
-        return output
+    /**
+     * Keep the complete source image and its aspect ratio when storing a shortcut photo.
+     * The selected display mode is applied later by scalePhoto() for both preview and launcher icon.
+     */
+    private fun fitWithinMaxDimension(source: Bitmap, maxDimension: Int): Bitmap {
+        val largest = maxOf(source.width, source.height)
+        if (largest <= maxDimension) return source
+        val scale = maxDimension.toFloat() / largest
+        val width = (source.width * scale).toInt().coerceAtLeast(1)
+        val height = (source.height * scale).toInt().coerceAtLeast(1)
+        return Bitmap.createScaledBitmap(source, width, height, true)
     }
 
     private fun createShortcut() {
