@@ -2,6 +2,7 @@ package org.isoron.uhabits.activities.games
 
 import android.app.AlertDialog
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -32,6 +33,11 @@ class PuzzleGamesActivity : AppCompatActivity() {
     private var game = Game.MINES
     private var soundEnabled = true
     private val tone by lazy { ToneGenerator(AudioManager.STREAM_MUSIC, 55) }
+    private var darkMode = false
+    private val pageBackground: Int get() = if (darkMode) Color.rgb(25, 27, 33) else Color.rgb(245, 247, 250)
+    private val boardBackground: Int get() = if (darkMode) Color.rgb(31, 34, 41) else Color.rgb(238, 243, 248)
+    private val primaryText: Int get() = if (darkMode) Color.WHITE else Color.rgb(30, 45, 62)
+    private val secondaryText: Int get() = if (darkMode) Color.LTGRAY else Color.DKGRAY
 
     enum class Game(val label: String) {
         MINES("扫雷"), MERGE("2048"), SUDOKU("数独"), BOX("推箱子"), BIRD("飞鸟穿越")
@@ -39,17 +45,18 @@ class PuzzleGamesActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        darkMode = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
         soundEnabled = getSharedPreferences("puzzle_games", MODE_PRIVATE).getBoolean("sound", true)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(Color.rgb(245, 247, 250))
+            setBackgroundColor(pageBackground)
             setPadding(dp(10), dp(8), dp(10), dp(8))
         }
         val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         val title = TextView(this).apply {
-            text = "益智游戏"
+            text = "游戏中心"
             textSize = 21f
-            setTextColor(Color.rgb(30, 45, 62))
+            setTextColor(primaryText)
             setPadding(dp(4), dp(8), dp(4), dp(8))
         }
         header.addView(title, LinearLayout.LayoutParams(0, dp(48), 1f))
@@ -78,7 +85,7 @@ class PuzzleGamesActivity : AppCompatActivity() {
         root.addView(choices)
         status = TextView(this).apply {
             textSize = 14f
-            setTextColor(Color.DKGRAY)
+            setTextColor(secondaryText)
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(6), dp(5), dp(6), dp(5))
         }
@@ -147,7 +154,7 @@ class PuzzleGamesActivity : AppCompatActivity() {
     inner class GameBoard(context: Context) : View(context) {
         var game = Game.MINES
         private val p = Paint(Paint.ANTI_ALIAS_FLAG)
-        private val bg = Color.rgb(238, 243, 248)
+        private val bg get() = boardBackground
         private var downX = 0f
         private var downY = 0f
         private var selectedRow = -1
@@ -352,22 +359,22 @@ class PuzzleGamesActivity : AppCompatActivity() {
             val size = min(width - 20f, height - 150f)
             val cell = size / 9f
             val left = (width-size)/2f; val top = 12f
-            c.drawRect(left,top,left+size,top+size,paint(Color.WHITE))
+            c.drawRect(left,top,left+size,top+size,paint(if (darkMode) Color.rgb(42, 46, 55) else Color.WHITE))
             for(r in 0..9) {
                 val thick = if(r%3==0) 3f else 1f
-                c.drawLine(left,top+r*cell,left+size,top+r*cell,paint(Color.DKGRAY,thick,Paint.Style.STROKE))
+                c.drawLine(left,top+r*cell,left+size,top+r*cell,paint(if (darkMode) Color.rgb(185, 192, 204) else Color.DKGRAY,thick,Paint.Style.STROKE))
                 c.drawLine(left+r*cell,top,left+r*cell,top+size,paint(Color.DKGRAY,thick,Paint.Style.STROKE))
             }
             for(r in 0..8) for(col in 0..8) {
                 if(r==selectedRow && col==selectedCol) c.drawRect(left+col*cell,top+r*cell,left+(col+1)*cell,top+(r+1)*cell,paint(0x553F8FE8))
                 val v=sudoku[r][col]
-                if(v>0) text(c,v.toString(),left+(col+.5f)*cell,top+(r+.68f)*cell,cell*.52f,if(puzzle[r][col]>0) Color.DKGRAY else Color.rgb(35,105,190))
+                if(v>0) text(c,v.toString(),left+(col+.5f)*cell,top+(r+.68f)*cell,cell*.52f,if(puzzle[r][col]>0) primaryText else Color.rgb(75,145,225))
             }
             val keyY=top+size+35f
             for(n in 1..9) {
                 val x=width*(n-.5f)/9f
-                c.drawRoundRect(RectF(x-width/18f,keyY-22,x+width/18f,keyY+22),6f,6f,paint(Color.rgb(219,230,240)))
-                text(c,n.toString(),x,keyY+8,20f,Color.rgb(30,90,150))
+                c.drawRoundRect(RectF(x-width/18f,keyY-22,x+width/18f,keyY+22),6f,6f,paint(if (darkMode) Color.rgb(65, 72, 84) else Color.rgb(219,230,240)))
+                text(c,n.toString(),x,keyY+8,20f,if (darkMode) Color.rgb(220, 230, 245) else Color.rgb(30,90,150))
             }
         }
 
