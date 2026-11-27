@@ -226,6 +226,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
             setOnClickListener { openOriginalPhoto() }
         }
         photoLocationView = TextView(this).apply { visibility = View.GONE }
+        right.addView(TextView(this).apply { text = "图片文件名"; textSize = 11f; setTextColor(secondaryText); setPadding(dp(2), dp(3), 0, 0) })
         right.addView(photoNameView)
         right.addView(TextView(this).apply { text = "图片显示方式"; textSize = 11f; setTextColor(secondaryText); setPadding(dp(2), dp(4), 0, 0) })
         photoScaleSpinner = spinner(listOf("完全适应", "拉伸填满", "居中裁剪"))
