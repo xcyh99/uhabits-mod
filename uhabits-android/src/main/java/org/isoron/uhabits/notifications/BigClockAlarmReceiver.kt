@@ -48,7 +48,7 @@ class BigClockAlarmReceiver : BroadcastReceiver() {
         try {
             val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
             if (Build.VERSION.SDK_INT >= 26) vibrator.vibrate(android.os.VibrationEffect.createOneShot(700, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
-            else @Suppress("DEPRECATION") vibrator.vibrate(700)
+            else vibrator.vibrate(700)
         } catch (_: Exception) {}
         BigClockWidgetProvider.updateAll(context)
     }
