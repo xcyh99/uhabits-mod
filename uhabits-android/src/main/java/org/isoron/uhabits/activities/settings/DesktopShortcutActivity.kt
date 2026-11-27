@@ -390,24 +390,20 @@ class DesktopShortcutActivity : AppCompatActivity() {
                 layoutParams = LinearLayout.LayoutParams(dp(32), dp(44))
                 isChecked = entry.visible
                 setOnCheckedChangeListener { _, checked ->
-                    val updated = readShortcuts().map { if (it.id == entry.id) it.copy(visible = checked) else it }
-                    saveShortcuts(updated)
-                    shortcutCountView.text = "已显示 ${updated.count { it.visible }}/${updated.size}"
-                    val manager = getSystemService(ShortcutManager::class.java)
-                    if (!checked) {
-                        runCatching { manager?.disableShortcuts(listOf(entry.id), "已隐藏") }
-                    } else {
-                        runCatching {
-                            val launch = Intent(this@DesktopShortcutActivity, org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java).apply {
-                                action = ACTION_OPEN_DESKTOP_SHORTCUT
-                                putExtra(EXTRA_TARGET, entry.targetKey)
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                            }
-                            val info = ShortcutInfo.Builder(this@DesktopShortcutActivity, entry.id)
-                                .setShortLabel(entry.name.take(25)).setLongLabel(entry.name.take(40))
-                                .setIcon(Icon.createWithBitmap(buildIcon(entry))).setIntent(launch).build()
-                            manager?.requestPinShortcut(info, null)
+                    try {
+                        setShortcutEnabled(entry, checked)
+                        val updated = readShortcuts().map {
+                            if (it.id == entry.id) it.copy(visible = checked) else it
                         }
+                        saveShortcuts(updated)
+                        shortcutCountView.text = "已显示 ${updated.count { it.visible }}/${updated.size}"
+                    } catch (error: Exception) {
+                        Toast.makeText(
+                            this@DesktopShortcutActivity,
+                            "桌面快捷方式状态修改失败：${error.message ?: error.javaClass.simpleName}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        refreshShortcutList()
                     }
                 }
             }
@@ -443,6 +439,47 @@ class DesktopShortcutActivity : AppCompatActivity() {
             row.addView(check); row.addView(number); row.addView(rowIcon); row.addView(details)
             row.addView(edit); row.addView(remove)
             shortcutsContainer.addView(row)
+        }
+    }
+
+    private fun setShortcutEnabled(entry: ShortcutEntry, enabled: Boolean) {
+        val manager = getSystemService(ShortcutManager::class.java)
+            ?: throw IllegalStateException("系统未提供快捷方式管理服务")
+
+        val pinned = manager.pinnedShortcuts.firstOrNull { it.id == entry.id }
+            ?: throw IllegalStateException("系统桌面中找不到原快捷方式，未执行状态修改")
+
+        if (enabled) {
+            // Re-enable the existing pinned ID; do not issue a new pin request.
+            manager.enableShortcuts(listOf(entry.id))
+
+            // Refresh the same pinned shortcut's payload so launchers receive the
+            // current label, icon and intent after the enabled-state transition.
+            val launchIntent = Intent(
+                this,
+                org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java
+            ).apply {
+                action = ACTION_OPEN_DESKTOP_SHORTCUT
+                putExtra(EXTRA_TARGET, entry.targetKey)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
+            val refreshed = ShortcutInfo.Builder(this, entry.id)
+                .setShortLabel(entry.name.take(25))
+                .setLongLabel(entry.name.take(40))
+                .setIcon(Icon.createWithBitmap(buildIcon(entry)))
+                .setIntent(launchIntent)
+                .build()
+            manager.updateShortcuts(listOf(refreshed))
+        } else {
+            manager.disableShortcuts(listOf(entry.id), "已隐藏")
+        }
+
+        val actual = manager.pinnedShortcuts.firstOrNull { it.id == entry.id }
+            ?: throw IllegalStateException("操作后系统桌面不再返回该快捷方式")
+        if (actual.isEnabled != enabled) {
+            throw IllegalStateException(
+                if (enabled) "系统仍将此快捷方式标记为停用" else "系统没有确认快捷方式已停用"
+            )
         }
     }
 
