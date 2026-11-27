@@ -171,7 +171,19 @@
         <activity
             android:name="org.isoron.uhabits.activities.settings.TimeCenterActivity"
             android:exported="false"
-            android:label="时间中心" />
+            android:label="时间中心">
+            <meta-data android:name="org.isoron.uhabits.shortcut.key" android:value="timeCenter" />
+            <meta-data android:name="org.isoron.uhabits.shortcut.title" android:value="时间中心" />
+            <meta-data android:name="org.isoron.uhabits.shortcut.category" android:value="功能" />
+        </activity>
+        <activity
+            android:name="org.isoron.uhabits.activities.settings.StatusBarDaysManagementActivity"
+            android:exported="false"
+            android:label="状态栏天数">
+            <meta-data android:name="org.isoron.uhabits.shortcut.key" android:value="statusBarDaysManagement" />
+            <meta-data android:name="org.isoron.uhabits.shortcut.title" android:value="状态栏天数管理" />
+            <meta-data android:name="org.isoron.uhabits.shortcut.category" android:value="功能" />
+        </activity>
 
         <activity
             android:name="org.isoron.uhabits.activities.settings.SettingsActivity"
