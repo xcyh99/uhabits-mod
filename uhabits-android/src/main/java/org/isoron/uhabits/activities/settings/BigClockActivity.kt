@@ -18,6 +18,7 @@ import org.isoron.uhabits.HabitsApplication
 import org.isoron.uhabits.R
 import org.isoron.uhabits.activities.AndroidThemeSwitcher
 import org.isoron.uhabits.utils.StyledResources
+import org.isoron.uhabits.widgets.BigClockWidgetProvider
 import org.json.JSONArray
 import java.util.Locale
 
