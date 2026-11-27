@@ -24,7 +24,7 @@ class ComponentCenterActivity : AppCompatActivity() {
         title = "组件中心"
         val d = resources.displayMetrics.density
         fun dp(v: Int) = (v * d).toInt()
-        val dark = true
+        val dark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(12), dp(16), dp(24))
