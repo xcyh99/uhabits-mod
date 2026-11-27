@@ -85,7 +85,11 @@ class StatusBarDaysManagementActivity : AppCompatActivity() {
         persistOrder(); if (::adapter.isInitialized) adapter.notifyDataSetChanged()
     }
 
-    private fun persistOrder() { PreferenceManager.getDefaultSharedPreferences(this).edit().putString(KEY_ORDER, JSONArray(rows.map { it.key }).toString()).apply() }
+    private fun persistOrder() {
+        PreferenceManager.getDefaultSharedPreferences(this).edit()
+            .putString(KEY_ORDER, JSONArray(rows.map { it.key }).toString()).apply()
+        StatusBarDaysNotifier.update(this)
+    }
     private fun setVisible(row: Row, visible: Boolean) { if (visible) hidden.remove(row.key) else hidden.add(row.key); PreferenceManager.getDefaultSharedPreferences(this).edit().putStringSet(KEY_HIDDEN, hidden.toSet()).apply(); StatusBarDaysNotifier.update(this) }
 
     private inner class RowsAdapter : RecyclerView.Adapter<RowsAdapter.Holder>() {
