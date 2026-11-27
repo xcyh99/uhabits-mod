@@ -171,6 +171,7 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
         } else state.edit().putString("mode", if (down) "down" else "up")
             .putLong("duration", duration).putLong("base", if (down) duration else 0L)
             .putLong("anchor", SystemClock.elapsedRealtime()).putBoolean("running", false).apply()
+        if (syncEnabled()) org.isoron.uhabits.widgets.BigClockWidgetProvider.updateAll(this)
         refreshStatus()
         Toast.makeText(this, "计时设置已保存", Toast.LENGTH_SHORT).show()
     }
@@ -205,11 +206,13 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
         if (!Settings.canDrawOverlays(this)) {
             if (syncEnabled()) bigState().edit().putBoolean(if (down) "down_running" else "up_running", false).apply()
             else state.edit().putBoolean("running", false).apply()
+            if (syncEnabled()) org.isoron.uhabits.widgets.BigClockWidgetProvider.updateAll(this)
             startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
             return
         }
         val intent = Intent(this, FloatingTimerService::class.java).setAction(FloatingTimerService.ACTION_START)
         if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(intent) else startService(intent)
+        if (syncEnabled()) org.isoron.uhabits.widgets.BigClockWidgetProvider.updateAll(this)
         refreshStatus()
     }
 
@@ -235,6 +238,7 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
             val current = if (isDown) (base - delta).coerceAtLeast(0) else base + delta
             state.edit().putLong("base", current).putBoolean("running", false).apply()
         }
+        if (syncEnabled()) org.isoron.uhabits.widgets.BigClockWidgetProvider.updateAll(this)
         refreshStatus()
     }
 
@@ -252,6 +256,7 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
         } else state.edit().putString("mode", if (down) "down" else "up")
             .putLong("duration", duration).putLong("base", if (down) duration else 0L)
             .putLong("anchor", SystemClock.elapsedRealtime()).putBoolean("running", false).apply()
+        if (syncEnabled()) org.isoron.uhabits.widgets.BigClockWidgetProvider.updateAll(this)
         refreshStatus()
     }
 
