@@ -214,7 +214,8 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                 views.setInt(container, "setGravity", gravity)
                 val target = prefs.getString("digital_clock_target_shortcut$slot", null)
                 val resolved = resolveShortcut(context, target, slot)
-                resolved.second?.let { views.setImageViewBitmap(icon, it) }
+                val customIcon = loadCustomShortcutIcon(context, prefs, slot)
+                (customIcon ?: resolved.second)?.let { views.setImageViewBitmap(icon, it) }
                 views.setOnClickPendingIntent(container, createTargetPendingIntent(context, widgetId, slot + 1, target))
             }
             // Keep the former shared time target as a fallback for existing installations.
@@ -231,6 +232,37 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
             if (dateTarget != "none") views.setOnClickPendingIntent(R.id.digital_clock_date, createTargetPendingIntent(context, widgetId, 2, dateTarget))
             manager.updateAppWidget(widgetId, views)
         }
+        private fun loadCustomShortcutIcon(context: Context, prefs: android.content.SharedPreferences, slot: Int): Bitmap? {
+            val uriText = prefs.getString("digital_clock_shortcut_icon_uri_$slot", null) ?: return null
+            val source = runCatching {
+                context.contentResolver.openInputStream(android.net.Uri.parse(uriText))?.use { android.graphics.BitmapFactory.decodeStream(it) }
+            }.getOrNull() ?: return null
+            val size = 96
+            val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(output)
+            val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG or android.graphics.Paint.FILTER_BITMAP_FLAG)
+            val src = android.graphics.Rect(0, 0, source.width, source.height)
+            val mode = prefs.getInt("digital_clock_shortcut_icon_mode_$slot", 0).coerceIn(0, 2)
+            val dst = when (mode) {
+                0 -> {
+                    val scale = minOf(size.toFloat() / source.width, size.toFloat() / source.height)
+                    val width = (source.width * scale).toInt().coerceAtLeast(1)
+                    val height = (source.height * scale).toInt().coerceAtLeast(1)
+                    android.graphics.Rect((size - width) / 2, (size - height) / 2, (size + width) / 2, (size + height) / 2)
+                }
+                1 -> android.graphics.Rect(0, 0, size, size)
+                else -> {
+                    val side = minOf(source.width, source.height)
+                    val left = (source.width - side) / 2
+                    val top = (source.height - side) / 2
+                    src.set(left, top, left + side, top + side)
+                    android.graphics.Rect(0, 0, size, size)
+                }
+            }
+            canvas.drawBitmap(source, src, dst, paint)
+            return output
+        }
+
         private fun resolveShortcut(context: Context, value: String?, index: Int): Pair<String, Bitmap?> {
             if (value.isNullOrBlank() || value == "none") return "快捷$index" to null
             if (value.startsWith("app:")) {
