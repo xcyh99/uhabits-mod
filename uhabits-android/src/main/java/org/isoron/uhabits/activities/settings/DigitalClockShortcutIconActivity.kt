@@ -83,6 +83,7 @@ class DigitalClockShortcutIconActivity : AppCompatActivity() {
             setSelection(store.getInt(modeKey(), 0).coerceIn(0, 2))
         }
         controls.addView(mode, LinearLayout.LayoutParams(-1, dp(42)))
+        controls.addView(android.widget.Space(this), LinearLayout.LayoutParams(-1, 0, 1f))
         mode.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
