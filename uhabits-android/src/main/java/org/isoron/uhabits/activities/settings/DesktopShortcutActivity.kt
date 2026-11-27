@@ -243,7 +243,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
         saveButton = createAction
         iconSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
-            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) { updateIconPreview() }
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) { updatePhotoInfo(); updateIconPreview() }
         }
         colorSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
@@ -265,8 +265,10 @@ class DesktopShortcutActivity : AppCompatActivity() {
 
     private fun updatePhotoInfo() {
         if (!::photoNameView.isInitialized) return
-        photoNameView.text = originalPhotoName ?: "未选择自定义图片"
-        photoNameView.alpha = if (originalPhotoUri != null || photoFile != null) 1f else 0.55f
+        val hasCustomPhoto = iconSpinner.selectedItemPosition == iconNames.lastIndex &&
+            (originalPhotoUri != null || photoFile != null)
+        photoNameView.text = if (hasCustomPhoto) originalPhotoName ?: photoFile?.name ?: "已选择图片" else "未选择自定义图片"
+        photoNameView.alpha = if (hasCustomPhoto) 1f else 0.55f
     }
 
     private fun updateIconPreview() {
