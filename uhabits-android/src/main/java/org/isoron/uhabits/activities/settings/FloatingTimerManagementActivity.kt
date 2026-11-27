@@ -20,6 +20,7 @@ import org.isoron.uhabits.HabitsApplication
 import org.isoron.uhabits.R
 import org.isoron.uhabits.activities.AndroidThemeSwitcher
 import org.isoron.uhabits.utils.StyledResources
+import org.isoron.uhabits.notifications.BigClockAlarmReceiver
 import java.util.Locale
 
 /** Full-page controls for the independently running floating timer overlay. */
@@ -165,6 +166,7 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
                 .putLong(if (down) "down_anchor" else "up_anchor", SystemClock.elapsedRealtime())
                 .putBoolean(if (down) "down_running" else "up_running", false)
             edit.apply()
+            if (down) BigClockAlarmReceiver.cancel(this)
         } else state.edit().putString("mode", if (down) "down" else "up")
             .putLong("duration", duration).putLong("base", if (down) duration else 0L)
             .putLong("anchor", SystemClock.elapsedRealtime()).putBoolean("running", false).apply()
@@ -187,6 +189,8 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
             }
             p.edit().putString("mode", expectedMode).putLong(if (down) "down_anchor" else "up_anchor", SystemClock.elapsedRealtime())
                 .putBoolean(runningKey, true).apply()
+            if (down) BigClockAlarmReceiver.schedule(this, p.getLong("down_base", 0L))
+            else BigClockAlarmReceiver.cancel(this)
         } else {
             if (state.getBoolean("running", false)) { refreshStatus(); return }
             if (!state.contains("mode") || state.getString("mode", "down") != expectedMode) saveSettings()
@@ -220,6 +224,7 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
             val delta = (SystemClock.elapsedRealtime() - anchor).coerceAtLeast(0)
             val current = if (down) (base - delta).coerceAtLeast(0) else base + delta
             p.edit().putLong(baseKey, current).putBoolean(runningKey, false).apply()
+            if (down) BigClockAlarmReceiver.cancel(this)
         } else {
             if (!state.getBoolean("running", false)) { refreshStatus(); return }
             val isDown = state.getString("mode", "down") == "down"
@@ -242,6 +247,7 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
                 .putLong(if (down) "down_base" else "up_base", if (down) duration else 0L)
                 .putLong(if (down) "down_anchor" else "up_anchor", SystemClock.elapsedRealtime())
                 .putBoolean(if (down) "down_running" else "up_running", false).apply()
+            if (down) BigClockAlarmReceiver.cancel(this)
         } else state.edit().putString("mode", if (down) "down" else "up")
             .putLong("duration", duration).putLong("base", if (down) duration else 0L)
             .putLong("anchor", SystemClock.elapsedRealtime()).putBoolean("running", false).apply()
