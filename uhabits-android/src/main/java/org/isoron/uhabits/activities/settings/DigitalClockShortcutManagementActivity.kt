@@ -5,7 +5,7 @@ import android.content.SharedPreferences
 import android.graphics.Color
 import android.os.Bundle
 import android.view.Gravity
-import android.view.MotionEvent
+import android.content.ClipData
 import android.view.View
 import android.widget.CheckBox
 import android.widget.LinearLayout
@@ -91,6 +91,27 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(dp(10), dp(8), dp(8), dp(8))
                 background = cardBackground()
+                setOnDragListener { _, event ->
+                    when (event.action) {
+                        View.DRAG_STARTED -> event.localState is Int
+                        View.DRAG_ENTERED -> { alpha = 0.72f; true }
+                        View.DRAG_EXITED -> { alpha = 1f; true }
+                        View.DRAG_ENDED -> { alpha = 1f; true }
+                        View.DRAG_DROP -> {
+                            alpha = 1f
+                            val draggedSlot = event.localState as? Int
+                            val from = rows.indexOf(draggedSlot)
+                            if (from >= 0 && from != index) {
+                                val moved = rows.removeAt(from)
+                                rows.add(index.coerceIn(0, rows.size), moved)
+                                persistOrder()
+                                renderRows()
+                            }
+                            true
+                        }
+                        else -> true
+                    }
+                }
             }
             val check = CheckBox(this).apply {
                 buttonTintList = android.content.res.ColorStateList.valueOf(if (isChecked) PURPLE else resolveSecondaryText())
@@ -131,32 +152,14 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
                 setTextColor(resolveSecondaryText())
                 setPadding(dp(7), 0, dp(7), 0)
                 contentDescription = "拖动排序"
-                setOnTouchListener { v, event ->
-                    when (event.action) {
-                        MotionEvent.ACTION_DOWN -> { dragging = true; v.parent?.requestDisallowInterceptTouchEvent(true); true }
-                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { dragging = false; true }
-                        MotionEvent.ACTION_MOVE -> {
-                            val y = event.rawY
-                            val parent = list
-                            val targetIndex = (0 until parent.childCount).firstOrNull { i ->
-                                val child = parent.getChildAt(i)
-                                val location = IntArray(2)
-                                child.getLocationOnScreen(location)
-                                y >= location[1] && y <= location[1] + child.height
-                            }
-                            if (targetIndex != null) {
-                                val from = rows.indexOf(slot)
-                                if (from >= 0 && targetIndex != from) {
-                                    val moved = rows.removeAt(from)
-                                    rows.add(targetIndex.coerceIn(0, rows.size), moved)
-                                    persistOrder()
-                                    renderRows()
-                                }
-                            }
-                            true
-                        }
-                        else -> false
+                setOnLongClickListener {
+                    val clip = ClipData.newPlainText("shortcut-slot", slot.toString())
+                    if (android.os.Build.VERSION.SDK_INT >= 24) {
+                        startDragAndDrop(clip, View.DragShadowBuilder(this), slot, 0)
+                    } else {
+                        startDrag(clip, View.DragShadowBuilder(this), slot, 0)
                     }
+                    true
                 }
             }
             row.addView(handle, LinearLayout.LayoutParams(dp(38), dp(44)))
