@@ -207,8 +207,13 @@ class FloatingTimerService : Service() {
             val anchorKey = if (down) "down_anchor" else "up_anchor"
             val running = shared.getBoolean(runningKey, false)
             val current = if (down) remainingMs() else elapsedMs()
-            shared.edit().putLong(baseKey, current).putLong(anchorKey, SystemClock.elapsedRealtime())
-                .putBoolean(runningKey, !running).apply()
+            val resumeValue = if (down && !running && current <= 0L) shared.getLong("down_duration", 0L) else current
+            shared.edit().putLong(baseKey, resumeValue).putLong(anchorKey, SystemClock.elapsedRealtime())
+                .putBoolean(runningKey, !running && resumeValue > 0L).apply()
+            if (down) {
+                if (!running && resumeValue > 0L) org.isoron.uhabits.notifications.BigClockAlarmReceiver.schedule(this, resumeValue)
+                else org.isoron.uhabits.notifications.BigClockAlarmReceiver.cancel(this)
+            }
             updateText()
             BigClockWidgetProvider.updateAll(this)
             return
