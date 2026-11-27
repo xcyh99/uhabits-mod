@@ -33,10 +33,11 @@ object StatusBarDaysNotifier {
         val app = context.applicationContext
         val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(app)
         val mode = prefs.getString("status_bar_days_mode", "off") ?: "off"
+        val configured = prefs.getStringSet("status_bar_days_items", emptySet()).orEmpty()
         val manager = app.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val previousIds = prefs.getStringSet("status_bar_days_active_ids", emptySet())
             ?.mapNotNull { it.toIntOrNull() }.orEmpty().toSet()
-        if (mode == "off") {
+        if (mode == "off" && configured.isEmpty()) {
             previousIds.forEach { manager.cancel(it) }
             manager.cancel(NOTIFICATION_ID)
             prefs.edit().putStringSet("status_bar_days_active_ids", emptySet()).apply()
@@ -48,11 +49,11 @@ object StatusBarDaysNotifier {
             android.content.pm.PackageManager.PERMISSION_GRANTED) return
         if (!NotificationManagerCompat.from(app).areNotificationsEnabled()) return
 
-        // New multi-item configuration; if absent, retain compatibility with the old single-item setting.
-        val configured = prefs.getStringSet("status_bar_days_items", emptySet()).orEmpty()
-        val hiddenItems = prefs.getStringSet("status_bar_days_hidden_items", emptySet()).orEmpty()
-        val savedOrder = runCatching {
-            val array = org.json.JSONArray(prefs.getString("status_bar_days_order", "[]"))
+        // The three category switches only control visibility; configured habits and
+        // time records remain in their original store and can be shown again at any time.
+        val hiddenCategories = prefs.getStringSet("status_bar_days_hidden_categories", emptySet()).orEmpty()
+        val categoryOrder = runCatching {
+            val array = org.json.JSONArray(prefs.getString("status_bar_days_category_order", "[]"))
             (0 until array.length()).map { array.getString(it) }
         }.getOrDefault(emptyList())
         val items = (if (configured.isNotEmpty()) {
@@ -62,19 +63,19 @@ object StatusBarDaysNotifier {
                     split[0] to split[1]
                 } else null
             }
-        } else {
+        } else if (mode != "off") {
             listOf(mode to "")
-        }).filterNot { (itemMode, itemId) ->
-            itemId.isNotBlank() && "$itemMode:$itemId" in hiddenItems
-        }.sortedBy { (itemMode, itemId) ->
-            val key = "$itemMode:$itemId"
-            val index = savedOrder.indexOf(key)
+        } else emptyList()).filterNot { (itemMode, _) ->
+            itemMode in hiddenCategories
+        }.sortedWith(compareBy<Pair<String, String>> {
+            val index = categoryOrder.indexOf(it.first)
             if (index < 0) Int.MAX_VALUE else index
-        }
+        }.thenBy { it.second })
         if (items.isEmpty()) {
             previousIds.forEach { manager.cancel(it) }
             manager.cancel(NOTIFICATION_ID)
             prefs.edit().putStringSet("status_bar_days_active_ids", emptySet()).apply()
+            cancelDailyRefresh(app)
             return
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
