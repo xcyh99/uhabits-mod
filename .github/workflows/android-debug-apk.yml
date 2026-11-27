@@ -37,6 +37,7 @@ on:
       - test/remove-settings-backup
       - test/big-clock-time-center
       - fix/desktop-shortcut-reenable-verify
+      - fix/project-detail-description-notes-label
   pull_request:
     branches:
       - dev
