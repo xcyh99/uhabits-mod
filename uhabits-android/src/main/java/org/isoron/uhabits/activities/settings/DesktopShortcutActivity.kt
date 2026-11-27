@@ -276,7 +276,25 @@ class DesktopShortcutActivity : AppCompatActivity() {
 
     private fun updateIconPreview() {
         if (!::iconPreview.isInitialized) return
-        runCatching { iconPreview.setImageBitmap(buildIcon()) }
+        runCatching {
+            val customPhotoSelected = iconSpinner.selectedItemPosition == iconNames.lastIndex
+            val sourceFile = photoFile?.takeIf { it.exists() }
+            if (customPhotoSelected && sourceFile != null) {
+                // Preview the original rectangular image directly. Let ImageView apply
+                // the exact same three display semantics as the saved launcher bitmap.
+                val source = BitmapFactory.decodeFile(sourceFile.absolutePath)
+                    ?: throw IllegalStateException("无法读取自定义图片")
+                iconPreview.scaleType = when (photoScaleSpinner.selectedItemPosition.coerceIn(0, 2)) {
+                    0 -> ImageView.ScaleType.FIT_CENTER
+                    1 -> ImageView.ScaleType.FIT_XY
+                    else -> ImageView.ScaleType.CENTER_CROP
+                }
+                iconPreview.setImageBitmap(source)
+            } else {
+                iconPreview.scaleType = ImageView.ScaleType.FIT_CENTER
+                iconPreview.setImageBitmap(buildIcon())
+            }
+        }
     }
 
     private fun openOriginalPhoto() {
