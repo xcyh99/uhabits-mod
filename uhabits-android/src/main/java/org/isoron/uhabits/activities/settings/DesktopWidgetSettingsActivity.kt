@@ -26,7 +26,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         Slot("hour", "小时区域", "单独设置点击小时数字后打开的目标"),
         Slot("minute", "分钟区域", "单独设置点击分钟数字后打开的目标"),
         Slot("date", "日期星期区域", "点击日期或星期后打开")
-    ) + (1..8).map { Slot("shortcut$it", "快捷入口$it", "底部第${it}个位置") }
+    )
     private data class Slot(val key: String, val title: String, val hint: String)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -225,7 +225,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         actionCard("时间制式与日期格式", "设置12/24小时制和日期星期显示格式") { showTimeDateSettings() }
 
         section("快捷入口", "管理桌面组件第四行显示的快捷方式")
-        actionCard("快捷方式管理", "当前显示 ${store.getInt(KEY_SHORTCUT_COUNT, 4).coerceIn(4, 9)} 个；设置数量、排序、编辑、显示和删除") {
+        actionCard("快捷方式管理", "设置0～8个快捷方式，调整显示、排序、编辑和删除") {
             startActivity(Intent(this, DigitalClockShortcutManagementActivity::class.java))
         }
 
