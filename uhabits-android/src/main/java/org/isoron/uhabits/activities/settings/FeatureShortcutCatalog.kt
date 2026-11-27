@@ -63,7 +63,7 @@ object FeatureShortcutCatalog {
         BuiltIn("puzzleGames", "益智游戏", "功能"),
         BuiltIn("floatingTimer", "悬浮计时器", "功能"),
         BuiltIn("desktopDoodle", "桌面涂鸦", "功能"),
-        BuiltIn("widgetManager", "组件添加", "功能"),
+        BuiltIn("widgetManager", "添加组件", "功能"),
         BuiltIn("widgetRestore", "组件恢复向导", "功能"),
         BuiltIn("createFullBackup", "创建完整备份", "功能"),
         BuiltIn("restoreFullBackup", "恢复完整备份", "功能"),
