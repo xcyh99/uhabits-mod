@@ -168,6 +168,10 @@
             android:name="org.isoron.uhabits.activities.settings.ComponentAddActivity"
             android:exported="false"
             android:label="组件添加" />
+        <receiver
+            android:name="org.isoron.uhabits.notifications.BigClockAlarmReceiver"
+            android:exported="false" />
+
         <activity
             android:name="org.isoron.uhabits.activities.settings.BigClockActivity"
             android:exported="false"
