@@ -224,12 +224,13 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         section("时间与日期")
         actionCard("时间制式与日期格式", "设置12/24小时制和日期星期显示格式") { showTimeDateSettings() }
 
-        section("快捷入口", "设置桌面组件底部显示几个快捷入口")
-        actionCard("快捷入口数量", "当前显示 ${store.getInt(KEY_SHORTCUT_COUNT, 4).coerceIn(0, 8)} 个") { chooseShortcutCount() }
+        section("快捷入口", "管理桌面组件第四行显示的快捷方式")
+        actionCard("快捷方式管理", "当前显示 ${store.getInt(KEY_SHORTCUT_COUNT, 4).coerceIn(4, 9)} 个；设置数量、排序、编辑、显示和删除") {
+            startActivity(Intent(this, DigitalClockShortcutManagementActivity::class.java))
+        }
 
         section("点击区域", "点击组件不同区域时，打开对应功能或手机应用")
-        slots.forEach { slot ->
-            if (slot.key.startsWith("shortcut") && slot.key.removePrefix("shortcut").toInt() > store.getInt(KEY_SHORTCUT_COUNT, 4)) return@forEach
+        slots.filter { it.key == "hour" || it.key == "minute" || it.key == "date" }.forEach { slot ->
             val legacyTimeTarget = if (slot.key == "hour" || slot.key == "minute") store.getString("digital_clock_target_time", null) else null
             val current = (store.getString(key(slot.key), null) ?: legacyTimeTarget)?.let(::targetLabel) ?: "未设置"
             actionCard(slot.title, "当前：$current") { chooseTarget(slot) }
@@ -751,7 +752,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
 
     private fun chooseShortcutCount() {
         val values = (0..8).toList()
-        val current = store.getInt(KEY_SHORTCUT_COUNT, 4).coerceIn(0, 8)
+        val current = store.getInt(KEY_SHORTCUT_COUNT, 4).coerceIn(4, 9)
         val labels = values.map { if (it == 0) "不显示快捷入口" else "$it 个" }.toTypedArray()
         AlertDialog.Builder(this).setTitle("快捷入口数量")
             .setSingleChoiceItems(labels, current) { dialog, which ->
