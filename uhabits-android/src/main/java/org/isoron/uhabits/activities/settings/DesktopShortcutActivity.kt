@@ -17,6 +17,13 @@ import android.graphics.Typeface
 import android.graphics.drawable.Icon
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.CheckBox
+import android.widget.ImageView
+import android.widget.ScrollView
+import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
+import android.provider.OpenableColumns
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.Spinner
@@ -44,7 +51,11 @@ class DesktopShortcutActivity : AppCompatActivity() {
         val targetKey: String,
         val iconIndex: Int,
         val colorIndex: Int,
-        val photoPath: String?
+        val photoPath: String?,
+        val originalUri: String? = null,
+        val originalName: String? = null,
+        val originalLocation: String? = null,
+        val visible: Boolean = true
     )
 
     private val settings by lazy {
@@ -78,6 +89,13 @@ class DesktopShortcutActivity : AppCompatActivity() {
     private lateinit var photoStatus: TextView
     private lateinit var saveButton: Button
     private var photoFile: File? = null
+    private var originalPhotoUri: Uri? = null
+    private var originalPhotoName: String? = null
+    private var originalPhotoLocation: String? = null
+    private lateinit var iconPreview: ImageView
+    private lateinit var photoNameView: TextView
+    private lateinit var photoLocationView: TextView
+    private lateinit var shortcutsContainer: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Apply the selected app theme before Activity/AppCompat initializes views.
@@ -161,44 +179,144 @@ class DesktopShortcutActivity : AppCompatActivity() {
             setTextColor(secondaryText)
             setPadding(0, dp(6), 0, dp(6))
         }
-        content.addView(Button(this).apply {
-            text = "管理已有桌面快捷方式"
-            setOnClickListener { showShortcutManager() }
-        })
         content.addView(label("快捷方式名称"))
         content.addView(nameInput)
         content.addView(label("打开目标"))
         content.addView(targetButton)
-        content.addView(label("内置图标"))
-        content.addView(iconSpinner)
-        content.addView(label("图标底色"))
-        content.addView(colorSpinner)
-        content.addView(Button(this).apply {
-            text = "从手机相册选择图片"
+
+        val options = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val iconColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, -2, 1f) }
+        val colorColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, -2, 1f) }
+        iconColumn.addView(label("内置图标")); iconColumn.addView(iconSpinner)
+        colorColumn.addView(label("图标底色")); colorColumn.addView(colorSpinner)
+        options.addView(iconColumn); options.addView(colorColumn); content.addView(options)
+
+        val photoButtons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        photoButtons.addView(Button(this).apply {
+            text = "从手机相册选择图片"; setTextColor(Color.WHITE)
+            backgroundTintList = android.content.res.ColorStateList.valueOf(Color.rgb(126,87,194))
+            layoutParams = LinearLayout.LayoutParams(0, dp(50), 1f).apply { marginEnd = dp(4) }
             setOnClickListener { choosePhoto() }
         })
-        content.addView(Button(this).apply {
-            text = "清除已选图片，改用内置图标"
+        photoButtons.addView(Button(this).apply {
+            text = "清除图片，改用内置图标"; setTextColor(Color.rgb(103,80,164))
+            backgroundTintList = android.content.res.ColorStateList.valueOf(Color.rgb(238,231,247))
+            layoutParams = LinearLayout.LayoutParams(0, dp(50), 1f).apply { marginStart = dp(4) }
             setOnClickListener {
-                // Defer deleting the previous image until the edited shortcut is saved.
-                photoFile = null
-                photoStatus.text = "未选择相册图片（可选）"
-                iconSpinner.setSelection(0)
+                photoFile = null; originalPhotoUri = null; originalPhotoName = null; originalPhotoLocation = null
+                iconSpinner.setSelection(0); updatePhotoInfo(); updateIconPreview()
             }
         })
-        content.addView(photoStatus)
-        content.addView(TextView(this).apply {
-            text = "创建后，Android 桌面会弹出确认界面。确认后图标才会添加到桌面。你可以重复创建多个快捷方式。"
-            textSize = 12f
-            setTextColor(secondaryText)
-            setPadding(0, dp(10), 0, dp(14))
-        })
-        saveButton = Button(this).apply {
-            text = "创建并添加到桌面"
-            setOnClickListener { createShortcut() }
+        content.addView(photoButtons)
+
+        val previewRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(0,dp(8),0,dp(8)) }
+        iconPreview = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            layoutParams = LinearLayout.LayoutParams(0,dp(164),1f).apply { marginEnd = dp(8) }
         }
-        content.addView(saveButton)
-        setContentView(content)
+        val right = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0,dp(164),1f) }
+        val info = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL; layoutParams = LinearLayout.LayoutParams(-1,0,1f); setPadding(dp(6),0,0,0) }
+        photoNameView = TextView(this).apply {
+            textSize = 14f; setTextColor(Color.rgb(103,80,164)); setTypeface(typeface,Typeface.BOLD)
+            maxLines = 2; ellipsize = android.text.TextUtils.TruncateAt.END; setOnClickListener { openOriginalPhoto() }
+        }
+        photoLocationView = TextView(this).apply {
+            textSize = 11f; setTextColor(if (isDarkBackground) Color.LTGRAY else Color.rgb(135,127,145))
+            maxLines = 2; ellipsize = android.text.TextUtils.TruncateAt.END; setOnClickListener { openPhotoFolder() }
+        }
+        info.addView(photoNameView); info.addView(photoLocationView)
+        val createAction = Button(this).apply {
+            text = "创建并添加到桌面"; textSize = 13f; setTextColor(Color.WHITE)
+            backgroundTintList = android.content.res.ColorStateList.valueOf(Color.rgb(126,87,194))
+            layoutParams = LinearLayout.LayoutParams(-1,0,1f); setOnClickListener { createShortcut() }
+        }
+        right.addView(info); right.addView(createAction); previewRow.addView(iconPreview); previewRow.addView(right); content.addView(previewRow)
+        saveButton = createAction
+        iconSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) { updateIconPreview() }
+        }
+        colorSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) { updateIconPreview() }
+        }
+        updatePhotoInfo(); updateIconPreview()
+        content.addView(label("已有桌面快捷方式"))
+        shortcutsContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        content.addView(shortcutsContainer); refreshShortcutList()
+        val scroll = ScrollView(this).apply { isFillViewport = true; addView(content) }
+        setContentView(scroll)
+
+    }
+
+
+    private fun updatePhotoInfo() {
+        if (!::photoNameView.isInitialized) return
+        photoNameView.text = originalPhotoName ?: "未选择自定义图片"
+        photoLocationView.text = originalPhotoLocation ?: "原图位置暂不可读取"
+        photoNameView.alpha = if (originalPhotoUri != null) 1f else 0.55f
+        photoLocationView.alpha = if (originalPhotoLocation != null) 1f else 0.55f
+    }
+
+    private fun updateIconPreview() {
+        if (!::iconPreview.isInitialized) return
+        runCatching { iconPreview.setImageBitmap(buildIcon()) }
+    }
+
+    private fun openOriginalPhoto() {
+        val uri = originalPhotoUri ?: return
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, contentResolver.getType(uri) ?: "image/*")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        try { startActivity(Intent.createChooser(intent, "选择图片查看方式")) }
+        catch (_: Exception) { Toast.makeText(this, "没有可用的图片查看应用", Toast.LENGTH_SHORT).show() }
+    }
+
+    private fun openPhotoFolder() {
+        val location = originalPhotoLocation
+        if (location.isNullOrBlank()) {
+            Toast.makeText(this, "系统没有提供原始图片所在文件夹信息", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (android.os.Build.VERSION.SDK_INT >= 26) {
+            try { startActivity(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)) }
+            catch (_: Exception) { Toast.makeText(this, "原始图片位置：" + location, Toast.LENGTH_LONG).show() }
+        } else Toast.makeText(this, "原始图片位置：" + location, Toast.LENGTH_LONG).show()
+    }
+
+    private fun refreshShortcutList() {
+        if (!::shortcutsContainer.isInitialized) return
+        shortcutsContainer.removeAllViews()
+        val entries = readShortcuts()
+        if (entries.isEmpty()) {
+            shortcutsContainer.addView(TextView(this).apply { text = "暂无已创建的桌面快捷方式"; textSize = 12f; setTextColor(Color.GRAY) })
+            return
+        }
+        entries.forEach { entry ->
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(0,dp(4),0,dp(4)) }
+            val check = CheckBox(this).apply {
+                isChecked = entry.visible
+                setOnCheckedChangeListener { _, checked ->
+                    val updated = readShortcuts().map { if (it.id == entry.id) it.copy(visible = checked) else it }
+                    saveShortcuts(updated)
+                    val manager = getSystemService(ShortcutManager::class.java)
+                    if (!checked) {
+                        runCatching { manager?.disableShortcuts(listOf(entry.id), "已隐藏") }
+                        runCatching { manager?.unpinShortcut(entry.id) }
+                    } else Toast.makeText(this@DesktopShortcutActivity, "如需恢复桌面图标，请重新添加此快捷方式", Toast.LENGTH_SHORT).show()
+                }
+            }
+            val details = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0,-2,1f) }
+            details.addView(TextView(this).apply { text = entry.name; textSize = 13f; setTextColor(primaryText) })
+            val target = targets.firstOrNull { it.key == entry.targetKey }?.title ?: entry.targetKey
+            details.addView(TextView(this).apply { text = "打开：" + target.substringAfter("】",target); textSize = 10f; setTextColor(secondaryText); maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END })
+            row.addView(check); row.addView(details)
+            row.addView(TextView(this).apply { text = "编辑"; textSize = 12f; setTextColor(Color.rgb(126,87,194)); setPadding(dp(6),dp(10),dp(6),dp(10)); setOnClickListener { editShortcut(entry) } })
+            row.addView(TextView(this).apply { text = "删除"; textSize = 12f; setTextColor(Color.rgb(180,70,70)); setPadding(dp(6),dp(10),0,dp(10)); setOnClickListener { confirmDeleteShortcut(entry) } })
+            shortcutsContainer.addView(row)
+            shortcutsContainer.addView(View(this).apply { setBackgroundColor(if (isDarkBackground) Color.DKGRAY else 0xFFE5E1E8.toInt()) }, LinearLayout.LayoutParams(-1,dp(1)))
+        }
     }
 
     private fun selectedTargetTitle(): CharSequence {
@@ -236,13 +354,25 @@ class DesktopShortcutActivity : AppCompatActivity() {
             contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             val bitmap = contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
                 ?: throw IllegalStateException("无法读取这张图片")
+            originalPhotoUri = uri
+            originalPhotoName = runCatching {
+                contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                    if (c.moveToFirst()) c.getString(0) else null
+                }
+            }.getOrNull()
+            originalPhotoLocation = runCatching {
+                contentResolver.query(uri, arrayOf(android.provider.MediaStore.Images.Media.RELATIVE_PATH), null, null, null)?.use { c ->
+                    if (c.moveToFirst() && !c.isNull(0)) c.getString(0) else null
+                }
+            }.getOrNull()
             val file = File(filesDir, "desktop_shortcut_photo_${System.currentTimeMillis()}.png")
             FileOutputStream(file).use { out ->
                 cropSquare(bitmap, 512).compress(Bitmap.CompressFormat.PNG, 100, out)
             }
             photoFile = file
-            photoStatus.text = "已选择相册图片：${file.name}"
+            photoStatus.text = "已选择相册图片：${originalPhotoName ?: file.name}"
             iconSpinner.setSelection(iconNames.lastIndex)
+            updatePhotoInfo(); updateIconPreview()
         } catch (error: Exception) {
             Toast.makeText(this, error.message ?: "图片读取失败", Toast.LENGTH_LONG).show()
         }
@@ -298,7 +428,8 @@ class DesktopShortcutActivity : AppCompatActivity() {
                 } else null
                 val entry = ShortcutEntry(
                     id, name, target.key, iconSpinner.selectedItemPosition,
-                    colorSpinner.selectedItemPosition, selectedPhotoPath
+                    colorSpinner.selectedItemPosition, selectedPhotoPath,
+                    originalPhotoUri?.toString(), originalPhotoName, originalPhotoLocation, true
                 )
                 val oldIndex = entries.indexOfFirst { it.id == id }
                 val oldPhotoPath = entries.getOrNull(oldIndex)?.photoPath
@@ -332,7 +463,11 @@ class DesktopShortcutActivity : AppCompatActivity() {
                     item.optString("target"),
                     item.optInt("icon", 0),
                     item.optInt("color", 0),
-                    item.optString("photo").takeIf { it.isNotBlank() }
+                    item.optString("photo").takeIf { it.isNotBlank() },
+                    item.optString("originalUri").takeIf { it.isNotBlank() },
+                    item.optString("originalName").takeIf { it.isNotBlank() },
+                    item.optString("originalLocation").takeIf { it.isNotBlank() },
+                    item.optBoolean("visible", true)
                 ).takeIf { it.id.isNotBlank() }
             }
         }.getOrDefault(emptyList())
@@ -348,6 +483,10 @@ class DesktopShortcutActivity : AppCompatActivity() {
                 put("icon", entry.iconIndex)
                 put("color", entry.colorIndex)
                 put("photo", entry.photoPath ?: "")
+                put("originalUri", entry.originalUri ?: "")
+                put("originalName", entry.originalName ?: "")
+                put("originalLocation", entry.originalLocation ?: "")
+                put("visible", entry.visible)
             })
         }
         settings.edit().putString(KEY_SHORTCUTS, array.toString()).apply()
@@ -402,7 +541,11 @@ class DesktopShortcutActivity : AppCompatActivity() {
         iconSpinner.setSelection(entry.iconIndex.coerceIn(iconNames.indices))
         colorSpinner.setSelection(entry.colorIndex.coerceIn(colorNames.indices))
         photoFile = entry.photoPath?.let(::File)?.takeIf { it.exists() }
-        photoStatus.text = if (photoFile != null) "已选择相册图片：${photoFile!!.name}" else "未选择相册图片（可选）"
+        originalPhotoUri = entry.originalUri?.let(Uri::parse)
+        originalPhotoName = entry.originalName
+        originalPhotoLocation = entry.originalLocation
+        photoStatus.text = if (photoFile != null) "已选择相册图片：${originalPhotoName ?: photoFile!!.name}" else "未选择相册图片（可选）"
+        updatePhotoInfo(); updateIconPreview()
         saveButton.text = "保存修改并更新桌面图标"
         Toast.makeText(this, "已载入快捷方式，修改后点击下方按钮保存", Toast.LENGTH_LONG).show()
     }
