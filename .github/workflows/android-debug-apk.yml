@@ -35,6 +35,7 @@ on:
       - test/990B4
       - test/990B5
       - test/remove-settings-backup
+      - test/big-clock-time-center
   pull_request:
     branches:
       - dev
