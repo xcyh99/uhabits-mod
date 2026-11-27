@@ -85,6 +85,9 @@ class TimeCenterActivity : AppCompatActivity() {
             })
         }
 
+        item("大字钟", "时钟、时分秒正计时和倒计时；含独立桌面组件") {
+            startActivity(Intent(this, BigClockActivity::class.java))
+        }
         item("时间记录", "查看和管理时间记录") {
             startActivity(Intent(this, TimeRecordsActivity::class.java))
         }
