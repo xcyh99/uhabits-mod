@@ -33,6 +33,10 @@
             android:format24Hour="HH:mm:ss"
             android:textColor="#FFFFFFFF"
             android:textSize="42sp"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="18sp"
+            android:autoSizeMaxTextSize="42sp"
+            android:autoSizeStepGranularity="1sp"
             android:fontFamily="sans-serif-condensed"
             android:maxLines="1" />
         <Chronometer
