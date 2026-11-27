@@ -230,6 +230,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
         right.addView(TextView(this).apply { text = "图片显示方式"; textSize = 11f; setTextColor(secondaryText); setPadding(dp(2), dp(4), 0, 0) })
         photoScaleSpinner = spinner(listOf("完全适应", "拉伸填满", "居中裁剪"))
         right.addView(photoScaleSpinner, LinearLayout.LayoutParams(-1, dp(42)))
+        right.addView(android.widget.Space(this), LinearLayout.LayoutParams(-1, 0, 1f))
         previewRow.addView(iconPreview); previewRow.addView(right); content.addView(previewRow)
         val createAction = Button(this).apply {
             text = "创建并添加到桌面"; textSize = 13f; setTextColor(Color.WHITE)
