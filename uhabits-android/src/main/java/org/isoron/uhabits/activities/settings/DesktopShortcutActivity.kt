@@ -135,7 +135,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
                 this@DesktopShortcutActivity, android.R.layout.simple_spinner_item, items
             ) {
                 private fun style(view: TextView, dropdown: Boolean): TextView {
-                    view.setTextColor(listPrimaryText)
+                    view.setTextColor(primaryText)
                     view.textSize = 15f
                     view.setPadding(dp(12), dp(10), dp(12), dp(10))
                     view.setBackgroundColor(if (dropdown) pageBackground else Color.TRANSPARENT)
@@ -338,8 +338,13 @@ class DesktopShortcutActivity : AppCompatActivity() {
                 scaleType = ImageView.ScaleType.FIT_CENTER
                 setImageBitmap(runCatching { buildIcon(entry) }.getOrNull())
             }
+            val rowIcon = ImageView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(dp(34), dp(34)).apply { marginEnd = dp(7) }
+                scaleType = ImageView.ScaleType.FIT_CENTER
+                setImageBitmap(runCatching { buildIcon(entry) }.getOrNull())
+            }
             val details = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0,-2,1f) }
-            details.addView(TextView(this).apply { text = entry.name; textSize = 13f; setTextColor(primaryText) })
+            details.addView(TextView(this).apply { text = entry.name; textSize = 13f; setTextColor(listPrimaryText) })
             val target = targets.firstOrNull { it.key == entry.targetKey }?.title ?: entry.targetKey
             details.addView(TextView(this).apply { text = "打开：" + target.substringAfter("】",target); textSize = 10f; setTextColor(listSecondaryText); maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END })
             row.addView(check); row.addView(rowIcon); row.addView(details)
@@ -623,6 +628,20 @@ class DesktopShortcutActivity : AppCompatActivity() {
         // This order is the management-list order. The launcher's physical icon
         // placement remains user-controlled by Android.
         showShortcutManager()
+    }
+
+    private fun buildIcon(entry: ShortcutEntry): Bitmap {
+        val size = 192
+        if (entry.iconIndex == iconNames.lastIndex) {
+            entry.photoPath?.let { path -> BitmapFactory.decodeFile(path)?.let { return cropSquare(it, size) } }
+        }
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = iconColors[entry.colorIndex.coerceIn(iconColors.indices)] }
+        canvas.drawRoundRect(RectF(0f,0f,size.toFloat(),size.toFloat()),42f,42f,paint)
+        val drawable = getDrawable(iconResources[entry.iconIndex.coerceIn(iconResources.indices)])!!
+        drawable.setTint(Color.WHITE); drawable.setBounds(42,42,size-42,size-42); drawable.draw(canvas)
+        return bitmap
     }
 
     private fun buildIcon(entry: ShortcutEntry): Bitmap {
