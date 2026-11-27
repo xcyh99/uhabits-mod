@@ -247,6 +247,7 @@
     <string name="notes">Notes</string>
     <string name="history_notes">History notes</string>
     <string name="description_notes">Description notes</string>
+    <string name="show_description_notes">Description notes</string>
     <string name="category">Category</string>
     <string name="example_notes">(Optional)</string>
     <string name="yes_or_no_example">e.g. Did you wake up early today? Did you exercise? Did you play chess?</string>
