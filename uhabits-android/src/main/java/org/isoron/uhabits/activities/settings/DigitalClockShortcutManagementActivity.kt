@@ -27,6 +27,11 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
     private lateinit var list: LinearLayout
     private var dragging = false
 
+    override fun onResume() {
+        super.onResume()
+        if (::list.isInitialized) renderRows()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         title = "快捷方式管理"
