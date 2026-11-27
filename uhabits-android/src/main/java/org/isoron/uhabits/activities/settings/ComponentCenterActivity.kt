@@ -60,7 +60,7 @@ class ComponentCenterActivity : AppCompatActivity() {
             row.addView(TextView(this).apply { text = "›"; textSize = 26f; setTextColor(if (dark) Color.LTGRAY else Color.DKGRAY) })
             root.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
         }
-        card("添加组件", "选择并添加桌面组件") {
+        card("批量添加", "选择并添加桌面组件") {
             startActivity(Intent(this, ComponentAddActivity::class.java))
         }
 
@@ -118,7 +118,7 @@ class ComponentAddActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         (application as HabitsApplication).component.preferences.let { AndroidThemeSwitcher(this, it).apply() }
         super.onCreate(savedInstanceState)
-        title = "添加组件"
+        title = "批量添加"
         val d = resources.displayMetrics.density
         fun dp(v: Int) = (v * d).toInt()
         val dark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
