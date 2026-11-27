@@ -13,7 +13,8 @@ import java.util.Locale
 class FloatingTimerService : Service() {
     companion object {
         const val ACTION_SETUP = "org.isoron.uhabits.FLOAT_TIMER_SETUP"
-        private const val ACTION_STOP = "org.isoron.uhabits.FLOAT_TIMER_STOP"
+        const val ACTION_START = "org.isoron.uhabits.FLOAT_TIMER_START"
+        const val ACTION_STOP = "org.isoron.uhabits.FLOAT_TIMER_STOP"
         private const val CHANNEL = "floating_timer"
         private const val NOTIFICATION_ID = 7312
         private const val PREF = "floating_timer_state"
@@ -34,7 +35,7 @@ class FloatingTimerService : Service() {
     private val ticker = object : Runnable {
         override fun run() {
             updateText()
-            handler.postDelayed(this, 250)
+            handler.postDelayed(this, 1000)
         }
     }
 
@@ -176,25 +177,9 @@ class FloatingTimerService : Service() {
     }
 
     private fun showMenu() {
-        val choices = arrayOf("设置计时方式和时间", "重新开始", "清零", "关闭悬浮计时器")
-        AlertDialog.Builder(this)
-            .setTitle("悬浮计时器")
-            .setItems(choices) { _, which ->
-                when (which) {
-                    0 -> showSetupDialog()
-                    1 -> {
-                        val down = prefs.getString("mode", "down") == "down"
-                        val value = if (down) prefs.getLong("duration", 0) else 0L
-                        prefs.edit().putLong("base", value).putLong("anchor", SystemClock.elapsedRealtime()).putBoolean("running", true).apply()
-                        updateText()
-                    }
-                    2 -> {
-                        prefs.edit().putLong("base", 0).putBoolean("running", false).apply()
-                        updateText()
-                    }
-                    3 -> stopSelf()
-                }
-            }.showOverlayDialog()
+        // Long-press opens the full management page; the floating service keeps running.
+        startActivity(Intent(this, FloatingTimerManagementActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP))
     }
 
     private fun showSetupDialog() {
