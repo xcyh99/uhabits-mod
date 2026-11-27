@@ -956,25 +956,14 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     private fun showStatusBarDaysSettings() {
         val context = requireContext()
         val store = PreferenceManager.getDefaultSharedPreferences(context)
-        val modes = arrayOf("关闭", "距离上次打卡", "倒计天", "正计天")
-        val modeValues = arrayOf("off", "checkin", "countdown", "elapsed")
+        val modes = arrayOf("距离上次打卡", "倒计天", "正计天")
+        val modeValues = arrayOf("checkin", "countdown", "elapsed")
         val current = store.getString("status_bar_days_mode", "off") ?: "off"
         val selected = modeValues.indexOf(current).coerceAtLeast(0)
         AlertDialog.Builder(context)
             .setTitle("状态栏天数")
             .setSingleChoiceItems(modes, selected) { dialog, which ->
                 val mode = modeValues[which]
-                if (mode == "off") {
-                    store.edit()
-                        .putString("status_bar_days_mode", "off")
-                        .putStringSet("status_bar_days_items", emptySet())
-                        .apply()
-                    org.isoron.uhabits.notifications.StatusBarDaysNotifier.update(context)
-                    Toast.makeText(context, "状态栏项目已全部关闭", Toast.LENGTH_SHORT).show()
-                    dialog.dismiss()
-                    return@setSingleChoiceItems
-                }
-
                 val labels: List<String>
                 val ids: List<String>
                 val title: String
@@ -1023,7 +1012,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     ids.forEachIndexed { index, id ->
                         if (selectedNow[index]) updated.add("$mode:$id")
                     }
-                    val nextMode = if (updated.isEmpty()) "off" else mode
+                    val nextMode = updated.firstOrNull()?.substringBefore(":") ?: "off"
                     store.edit()
                         .putString("status_bar_days_mode", nextMode)
                         .putStringSet("status_bar_days_items", updated)
