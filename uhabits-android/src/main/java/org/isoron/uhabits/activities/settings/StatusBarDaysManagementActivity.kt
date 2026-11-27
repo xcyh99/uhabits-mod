@@ -143,14 +143,20 @@ class StatusBarDaysManagementActivity : AppCompatActivity() {
         inner class Holder(val check: CheckBox, val number: TextView, val title: TextView, val categoryLabel: TextView, val drag: TextView, val edit: TextView, val remove: TextView) : RecyclerView.ViewHolder(LinearLayout(this@StatusBarDaysManagementActivity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(4), dp(5), dp(4), dp(5))
+            setPadding(dp(10), dp(8), dp(8), dp(8))
+            val dark = androidx.core.graphics.ColorUtils.calculateLuminance(StyledResources(this@StatusBarDaysManagementActivity).getColor(R.attr.contrast0)) < .5
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(if (dark) Color.rgb(45, 48, 55) else Color.WHITE)
+                cornerRadius = dp(13).toFloat()
+                setStroke(dp(1), if (dark) Color.rgb(70, 74, 82) else Color.rgb(230, 233, 238))
+            }
             addView(check, LinearLayout.LayoutParams(dp(32), dp(44)))
             addView(number, LinearLayout.LayoutParams(dp(24), dp(44)))
             addView(title, LinearLayout.LayoutParams(0, dp(44), 1f))
             addView(categoryLabel, LinearLayout.LayoutParams(-2, dp(44)))
             addView(drag, LinearLayout.LayoutParams(dp(38), dp(44)))
             addView(edit, LinearLayout.LayoutParams(dp(42), dp(44)))
-            addView(remove, LinearLayout.LayoutParams(dp(42), dp(44)))
+            addView(remove, LinearLayout.LayoutParams(dp(42), dp(44)).apply { marginStart = dp(3) })
         })
         private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
         override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): Holder {
