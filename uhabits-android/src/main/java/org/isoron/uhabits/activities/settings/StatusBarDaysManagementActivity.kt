@@ -36,7 +36,20 @@ class StatusBarDaysManagementActivity : AppCompatActivity() {
         title = "状态栏天数"
         val store = PreferenceManager.getDefaultSharedPreferences(this)
         hidden.addAll(store.getStringSet(KEY_HIDDEN, emptySet()).orEmpty())
-        val selected = store.getStringSet(KEY_ITEMS, emptySet()).orEmpty()
+        var selected = store.getStringSet(KEY_ITEMS, emptySet()).orEmpty()
+        // Migrate the legacy single-project configuration into the new list without losing it.
+        if (selected.isEmpty()) {
+            val legacyMode = store.getString("status_bar_days_mode", "off") ?: "off"
+            val legacyId = if (legacyMode == "checkin") {
+                store.getLong("status_bar_days_habit_id", -1L).takeIf { it >= 0 }?.toString()
+            } else if (legacyMode == "countdown" || legacyMode == "elapsed") {
+                store.getString("status_bar_days_record_id", null)
+            } else null
+            if (legacyId != null) {
+                selected = setOf("$legacyMode:$legacyId")
+                store.edit().putStringSet(KEY_ITEMS, selected).apply()
+            }
+        }
         val savedOrder = runCatching {
             val array = JSONArray(store.getString(KEY_ORDER, "[]"))
             (0 until array.length()).map { array.getString(it) }
