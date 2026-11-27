@@ -149,7 +149,22 @@ class DigitalClockShortcutIconActivity : AppCompatActivity() {
         val bitmap = selectedUri?.let { uri ->
             runCatching { contentResolver.openInputStream(uri)?.use { stream -> BitmapFactory.decodeStream(stream) } }.getOrNull()
         }
-        if (bitmap != null) preview.setImageBitmap(bitmap) else preview.setImageResource(android.R.drawable.ic_menu_view)
+        if (bitmap != null) {
+            preview.setImageBitmap(bitmap)
+        } else {
+            val target = store.getString("digital_clock_target_shortcut$slot", null)
+            val drawable = when {
+                target?.startsWith("feature:") == true ->
+                    FeatureShortcutCatalog.getCachedEntry(this, target.removePrefix("feature:"))?.icon
+                target?.startsWith("app:") == true -> {
+                    val component = android.content.ComponentName.unflattenFromString(target.removePrefix("app:"))
+                    component?.let { runCatching { packageManager.getActivityInfo(it, 0).loadIcon(packageManager) }.getOrNull() }
+                }
+                target == "system:settings" -> getDrawable(android.R.drawable.ic_menu_manage)
+                else -> getDrawable(android.R.drawable.ic_menu_view)
+            }
+            preview.setImageDrawable(drawable ?: getDrawable(android.R.drawable.ic_menu_view))
+        }
     }
 
     private fun updateWidget() {
