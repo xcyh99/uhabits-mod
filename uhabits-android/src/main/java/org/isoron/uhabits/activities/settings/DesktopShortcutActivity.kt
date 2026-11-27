@@ -178,7 +178,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
         photoStatus = TextView(this).apply {
             text = "未选择相册图片（可选）"
             textSize = 12f
-            setTextColor(if (ColorUtils.calculateLuminance(StyledResources(this).getColor(R.attr.contrast0)) < 0.5) Color.LTGRAY else Color.DKGRAY)
+            setTextColor(if (ColorUtils.calculateLuminance(StyledResources(this@DesktopShortcutActivity).getColor(R.attr.contrast0)) < 0.5) Color.LTGRAY else Color.DKGRAY)
             setPadding(0, dp(6), 0, dp(6))
         }
         content.addView(label("快捷方式名称"))
