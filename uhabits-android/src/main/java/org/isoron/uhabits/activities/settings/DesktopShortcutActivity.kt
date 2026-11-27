@@ -44,6 +44,8 @@ import java.io.FileOutputStream
 import java.util.UUID
 
 class DesktopShortcutActivity : AppCompatActivity() {
+    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+
     private data class Target(val key: String, val title: String)
     private data class ShortcutEntry(
         val id: String,
@@ -126,7 +128,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
         fun label(value: String) = TextView(this).apply {
             text = value
             textSize = 14f
-            setTextColor(if (ColorUtils.calculateLuminance(StyledResources(this).getColor(R.attr.contrast0)) < 0.5) Color.WHITE else Color.BLACK)
+            setTextColor(if (ColorUtils.calculateLuminance(StyledResources(this@DesktopShortcutActivity).getColor(R.attr.contrast0)) < 0.5) Color.WHITE else Color.BLACK)
             setTypeface(typeface, Typeface.BOLD)
             setPadding(0, dp(12), 0, dp(5))
         }
@@ -317,7 +319,6 @@ class DesktopShortcutActivity : AppCompatActivity() {
                     val manager = getSystemService(ShortcutManager::class.java)
                     if (!checked) {
                         runCatching { manager?.disableShortcuts(listOf(entry.id), "已隐藏") }
-                        runCatching { manager?.unpinShortcut(entry.id) }
                     } else {
                         runCatching {
                             val launch = Intent(this@DesktopShortcutActivity, org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java).apply {
@@ -332,11 +333,6 @@ class DesktopShortcutActivity : AppCompatActivity() {
                         }
                     }
                 }
-            }
-            val rowIcon = ImageView(this).apply {
-                layoutParams = LinearLayout.LayoutParams(dp(34), dp(34)).apply { marginEnd = dp(7) }
-                scaleType = ImageView.ScaleType.FIT_CENTER
-                setImageBitmap(runCatching { buildIcon(entry) }.getOrNull())
             }
             val rowIcon = ImageView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(dp(34), dp(34)).apply { marginEnd = dp(7) }
@@ -628,20 +624,6 @@ class DesktopShortcutActivity : AppCompatActivity() {
         // This order is the management-list order. The launcher's physical icon
         // placement remains user-controlled by Android.
         showShortcutManager()
-    }
-
-    private fun buildIcon(entry: ShortcutEntry): Bitmap {
-        val size = 192
-        if (entry.iconIndex == iconNames.lastIndex) {
-            entry.photoPath?.let { path -> BitmapFactory.decodeFile(path)?.let { return cropSquare(it, size) } }
-        }
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = iconColors[entry.colorIndex.coerceIn(iconColors.indices)] }
-        canvas.drawRoundRect(RectF(0f,0f,size.toFloat(),size.toFloat()),42f,42f,paint)
-        val drawable = getDrawable(iconResources[entry.iconIndex.coerceIn(iconResources.indices)])!!
-        drawable.setTint(Color.WHITE); drawable.setBounds(42,42,size-42,size-42); drawable.draw(canvas)
-        return bitmap
     }
 
     private fun buildIcon(entry: ShortcutEntry): Bitmap {
