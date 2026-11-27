@@ -1,0 +1,266 @@
+package org.isoron.uhabits.activities.settings
+
+import android.content.ComponentName
+import android.content.SharedPreferences
+import android.graphics.Color
+import android.os.Bundle
+import android.view.Gravity
+import android.view.MotionEvent
+import android.view.View
+import android.widget.CheckBox
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.preference.PreferenceManager
+
+/** Manages the fourth-row shortcuts of the digital-clock widget. */
+class DigitalClockShortcutManagementActivity : AppCompatActivity() {
+    private val store by lazy { PreferenceManager.getDefaultSharedPreferences(this) }
+    private val rows = (1..9).toMutableList()
+    private var maxCount = 4
+    private lateinit var list: LinearLayout
+    private var dragging = false
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        title = "快捷方式管理"
+        maxCount = store.getInt(KEY_COUNT, 4).coerceIn(4, 9)
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(10), dp(16), dp(24))
+            setBackgroundColor(resolvePageBackground())
+        }
+        root.addView(TextView(this).apply {
+            text = "快捷方式数量"
+            textSize = 17f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(resolvePrimaryText())
+            setPadding(dp(2), dp(12), dp(2), dp(8))
+        })
+        val countCard = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(14), dp(12), dp(14), dp(12))
+            background = cardBackground()
+        }
+        val countLabel = TextView(this).apply {
+            text = "最多显示"
+            textSize = 15f
+            setTextColor(resolvePrimaryText())
+        }
+        countCard.addView(countLabel, LinearLayout.LayoutParams(0, -2, 1f))
+        val countValue = TextView(this).apply {
+            text = "$maxCount 个  ›"
+            textSize = 15f
+            setTextColor(resolvePrimaryText())
+            setPadding(dp(8), dp(6), dp(4), dp(6))
+            setOnClickListener { chooseCount { maxCount = it; store.edit().putInt(KEY_COUNT, it).apply(); text = "$it 个  ›"; renderRows() } }
+        }
+        countCard.addView(countValue)
+        countCard.setOnClickListener { countValue.performClick() }
+        root.addView(countCard)
+        root.addView(TextView(this).apply {
+            text = "勾选要显示的快捷方式，最多不能超过上面的数量。按住右侧手柄拖动排序。"
+            textSize = 12f
+            setTextColor(resolveSecondaryText())
+            setPadding(dp(2), dp(8), dp(2), dp(10))
+        })
+        list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(list)
+        setContentView(android.widget.ScrollView(this).apply { isFillViewport = true; addView(root) })
+        ensureDefaults()
+        renderRows()
+    }
+
+    private fun ensureDefaults() {
+        if (!store.contains(KEY_ENABLED + "1")) {
+            val e = store.edit()
+            for (i in 1..9) e.putBoolean(KEY_ENABLED + i, i <= 4)
+            e.apply()
+        }
+    }
+
+    private fun renderRows() {
+        list.removeAllViews()
+        rows.forEachIndexed { index, slot ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(10), dp(8), dp(8), dp(8))
+                background = cardBackground()
+            }
+            val check = CheckBox(this).apply {
+                buttonTintList = android.content.res.ColorStateList.valueOf(if (isChecked) PURPLE else resolveSecondaryText())
+                isChecked = store.getBoolean(KEY_ENABLED + slot, slot <= 4)
+                text = ""
+                setOnCheckedChangeListener { _, checked ->
+                    val selected = rows.count { store.getBoolean(KEY_ENABLED + it, it <= 4) }
+                    if (checked && !store.getBoolean(KEY_ENABLED + slot, slot <= 4) && selected >= maxCount) {
+                        isChecked = false
+                        Toast.makeText(this@DigitalClockShortcutManagementActivity, "已达到${maxCount}个快捷方式上限，请先取消其他项目。", Toast.LENGTH_SHORT).show()
+                    } else {
+                        store.edit().putBoolean(KEY_ENABLED + slot, checked).apply()
+                        updateWidget()
+                    }
+                }
+            }
+            row.addView(check, LinearLayout.LayoutParams(dp(32), dp(44)))
+            row.addView(TextView(this).apply {
+                text = (index + 1).toString()
+                textSize = 13f
+                setTextColor(PURPLE)
+                gravity = Gravity.CENTER
+                width = dp(24)
+            })
+            val target = store.getString(targetKey(slot), null)
+            val name = target?.let(::targetLabel) ?: "未设置"
+            row.addView(TextView(this).apply {
+                text = name
+                textSize = 15f
+                setTextColor(resolvePrimaryText())
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(5), 0, dp(4), 0)
+            }, LinearLayout.LayoutParams(0, dp(44), 1f))
+            val handle = TextView(this).apply {
+                text = "☷"
+                textSize = 23f
+                gravity = Gravity.CENTER
+                setTextColor(resolveSecondaryText())
+                setPadding(dp(7), 0, dp(7), 0)
+                contentDescription = "拖动排序"
+                setOnTouchListener { v, event ->
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> { dragging = true; v.parent?.requestDisallowInterceptTouchEvent(true); true }
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { dragging = false; true }
+                        MotionEvent.ACTION_MOVE -> {
+                            val y = event.rawY
+                            val parent = list
+                            val targetIndex = (0 until parent.childCount).firstOrNull { i ->
+                                val child = parent.getChildAt(i)
+                                y >= child.y && y <= child.y + child.height
+                            }
+                            if (targetIndex != null && targetIndex != index) {
+                                val from = rows.indexOf(slot)
+                                val moved = rows.removeAt(from)
+                                rows.add(targetIndex.coerceIn(0, rows.size), moved)
+                                persistOrder()
+                                renderRows()
+                            }
+                            true
+                        }
+                        else -> false
+                    }
+                }
+            }
+            row.addView(handle, LinearLayout.LayoutParams(dp(38), dp(44)))
+            row.addView(actionText("编辑") { editTarget(slot) })
+            row.addView(actionText("删除") { confirmDelete(slot) })
+            list.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(7) })
+        }
+    }
+
+    private fun actionText(label: String, action: () -> Unit) = TextView(this).apply {
+        text = label
+        textSize = 13f
+        setTextColor(PURPLE)
+        gravity = Gravity.CENTER
+        setPadding(dp(7), dp(8), dp(7), dp(8))
+        setOnClickListener { action() }
+    }
+
+    private fun chooseCount(onSelected: (Int) -> Unit) {
+        val values = (4..9).toList()
+        AlertDialog.Builder(this).setTitle("快捷方式数量")
+            .setSingleChoiceItems(values.map { "$it 个" }.toTypedArray(), values.indexOf(maxCount)) { dialog, which ->
+                val next = values[which]
+                val selected = rows.count { store.getBoolean(KEY_ENABLED + it, it <= 4) }
+                if (selected > next) {
+                    AlertDialog.Builder(this).setMessage("当前已勾选$selected个。请先取消多余项目，再将数量调整为$next个。")
+                        .setPositiveButton("知道了", null).show()
+                } else {
+                    onSelected(next)
+                    dialog.dismiss()
+                }
+            }.setNegativeButton("取消", null).show()
+    }
+
+    private fun editTarget(slot: Int) {
+        FeatureShortcutPicker.show(
+            context = this,
+            title = "选择快捷方式",
+            entries = FeatureShortcutCatalog.getSelectedEntries(this),
+            includeNone = false
+        ) { selectedKey ->
+            store.edit().putString(targetKey(slot), selectedKey).apply()
+            renderRows()
+            updateWidget()
+        }
+    }
+
+    private fun confirmDelete(slot: Int) {
+        AlertDialog.Builder(this).setTitle("删除快捷方式")
+            .setMessage("只从桌面快捷方式列表中移除，不删除对应的时间项目或应用。")
+            .setNegativeButton("取消", null)
+            .setPositiveButton("删除") { _, _ ->
+                store.edit().remove(targetKey(slot)).putBoolean(KEY_ENABLED + slot, false).apply()
+                renderRows()
+                updateWidget()
+            }.show()
+    }
+
+    private fun persistOrder() {
+        val e = store.edit()
+        val targets = rows.map { store.getString(targetKey(it), null) }
+        val enabled = rows.map { store.getBoolean(KEY_ENABLED + it, it <= 4) }
+        rows.forEachIndexed { index, slot ->
+            val key = targetKey(slot)
+            if (targets[index] == null) e.remove(key) else e.putString(key, targets[index])
+            e.putBoolean(KEY_ENABLED + slot, enabled[index])
+        }
+        e.putString(KEY_ORDER, rows.joinToString(","))
+        e.apply()
+    }
+
+    private fun loadOrder() {
+        val saved = store.getString(KEY_ORDER, null)?.split(",")?.mapNotNull { it.toIntOrNull() } ?: return
+        if (saved.size == 9 && saved.toSet() == (1..9).toSet()) {
+            rows.clear()
+            rows.addAll(saved)
+        }
+    }
+
+    private fun targetKey(slot: Int) = "digital_clock_target_shortcut$slot"
+    private fun targetLabel(value: String): String = when {
+        value.startsWith("feature:") -> FeatureShortcutCatalog.getCachedEntry(this, value.removePrefix("feature:"))?.name ?: "十字习惯功能"
+        value.startsWith("app:") -> {
+            val c = ComponentName.unflattenFromString(value.removePrefix("app:"))
+            if (c == null) "手机应用" else runCatching { packageManager.getApplicationLabel(packageManager.getApplicationInfo(c.packageName, 0)).toString() }.getOrDefault("手机应用")
+        }
+        value == "system:settings" -> "系统设置"
+        else -> "快捷方式"
+    }
+
+    private fun updateWidget() {
+        val manager = android.appwidget.AppWidgetManager.getInstance(this)
+        val ids = manager.getAppWidgetIds(ComponentName(this, org.isoron.uhabits.widgets.DigitalClockWidgetProvider::class.java))
+        if (ids.isNotEmpty()) org.isoron.uhabits.widgets.DigitalClockWidgetProvider.updateAll(this, manager, ids)
+    }
+    private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+    private fun cardBackground() = android.graphics.drawable.GradientDrawable().apply {
+        setColor(if (isDark()) Color.rgb(45, 48, 55) else Color.WHITE)
+        cornerRadius = dp(13).toFloat()
+        setStroke(dp(1), if (isDark()) Color.rgb(70, 74, 82) else Color.rgb(230, 233, 238))
+    }
+    private fun resolvePageBackground() = org.isoron.uhabits.utils.StyledResources(this).getColor(org.isoron.uhabits.R.attr.contrast0)
+    private fun resolvePrimaryText(): Int = if (isDark()) Color.WHITE else Color.BLACK
+    private fun resolveSecondaryText(): Int = if (isDark()) Color.LTGRAY else Color.DKGRAY
+    private fun isDark() = androidx.core.graphics.ColorUtils.calculateLuminance(resolvePageBackground()) < 0.5
+    companion object {
+        private const val KEY_COUNT = "digital_clock_shortcut_count"
+        private const val KEY_ENABLED = "digital_clock_shortcut_enabled_"
+        private const val KEY_ORDER = "digital_clock_shortcut_order"
+        private val PURPLE = Color.rgb(149, 117, 205)
+    }
+}
