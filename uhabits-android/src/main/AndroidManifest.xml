@@ -147,6 +147,11 @@
         </activity>
 
         <activity
+            android:name="org.isoron.uhabits.activities.settings.DigitalClockShortcutManagementActivity"
+            android:exported="false"
+            android:label="快捷方式管理" />
+
+        <activity
             android:name="org.isoron.uhabits.activities.settings.DesktopWidgetSettingsActivity"
             android:exported="false"
             android:label="数字时钟组件设置" />
