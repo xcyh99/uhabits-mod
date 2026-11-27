@@ -70,6 +70,12 @@ class DigitalClockShortcutIconActivity : AppCompatActivity() {
             ellipsize = android.text.TextUtils.TruncateAt.END
             setPadding(dp(2), dp(6), dp(2), dp(4))
         }
+        controls.addView(TextView(this).apply {
+            text = "图片文件名"
+            textSize = 11f
+            setTextColor(secondary)
+            setPadding(dp(2), dp(3), 0, 0)
+        })
         controls.addView(fileName)
         controls.addView(TextView(this).apply {
             text = "图片显示方式"
