@@ -74,7 +74,7 @@ class FloatingTimerManagementActivity : AppCompatActivity() {
             textSize = 16f
             setTextColor(primary)
             setPadding(dp(12), dp(12), dp(12), dp(12))
-            background = android.graphics.drawable.GradientDrawable().apply {
+            this.background = android.graphics.drawable.GradientDrawable().apply {
                 setColor(if (dark) Color.rgb(45, 48, 55) else Color.WHITE)
                 cornerRadius = dp(12).toFloat()
             }
