@@ -166,7 +166,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 setPadding(dp(2), 0, dp(2), dp(9))
             })
         }
-        fun actionCard(title: String, summary: String, action: () -> Unit) {
+        fun actionCard(title: String, summary: String, rightText: String? = null, action: () -> Unit) {
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = android.view.Gravity.CENTER_VERTICAL
@@ -194,6 +194,12 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 setPadding(0, dp(3), 0, 0)
             })
             card.addView(textColumn, LinearLayout.LayoutParams(0, -2, 1f))
+            if (!rightText.isNullOrBlank()) card.addView(TextView(this).apply {
+                text = rightText
+                textSize = 12f
+                setTextColor(Color.rgb(76, 175, 80))
+                setPadding(dp(4), 0, dp(6), 0)
+            })
             card.addView(TextView(this).apply {
                 text = "›"
                 textSize = 27f
@@ -225,7 +231,11 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         actionCard("时间制式与日期格式", "设置12/24小时制和日期星期显示格式") { showTimeDateSettings() }
 
         section("快捷入口", "管理桌面组件第四行显示的快捷方式")
-        actionCard("快捷方式管理", "设置0～8个快捷方式，调整显示、排序、编辑和删除") {
+        val shortcutLimit = store.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
+        val shortcutVisibleCount = (1..8).count { slot ->
+            store.getBoolean("digital_clock_shortcut_enabled_$slot", slot <= 4)
+        }.coerceAtMost(shortcutLimit)
+        actionCard("快捷方式管理", "设置0～8个快捷方式，调整显示、排序、编辑和删除", rightText = "${shortcutVisibleCount}个快捷") {
             startActivity(Intent(this, DigitalClockShortcutManagementActivity::class.java))
         }
 
