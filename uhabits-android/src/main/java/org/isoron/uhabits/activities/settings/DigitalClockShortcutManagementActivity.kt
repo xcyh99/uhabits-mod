@@ -263,7 +263,13 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
             .setMessage("确定删除「$name」快捷方式吗？删除后只从快捷方式列表和桌面第四行移除，不会删除原始时间记录及其数据。")
             .setNegativeButton("取消", null)
             .setPositiveButton("删除") { _, _ ->
-                store.edit().remove(targetKey(slot)).putBoolean(KEY_ENABLED + slot, false).apply()
+                store.edit()
+                    .remove(targetKey(slot))
+                    .remove(iconUriKey(slot))
+                    .remove(iconNameKey(slot))
+                    .remove(iconModeKey(slot))
+                    .putBoolean(KEY_ENABLED + slot, false)
+                    .apply()
                 renderRows()
                 updateWidget()
             }.show()
@@ -285,6 +291,7 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
     private fun targetKey(slot: Int) = "digital_clock_target_shortcut$slot"
     private fun iconUriKey(slot: Int) = "digital_clock_shortcut_icon_uri_$slot"
     private fun iconModeKey(slot: Int) = "digital_clock_shortcut_icon_mode_$slot"
+    private fun iconNameKey(slot: Int) = "digital_clock_shortcut_icon_name_$slot"
     private fun targetLabel(value: String): String = when {
         value.startsWith("feature:") -> FeatureShortcutCatalog.getCachedEntry(this, value.removePrefix("feature:"))?.name ?: "十字习惯功能"
         value.startsWith("app:") -> {
