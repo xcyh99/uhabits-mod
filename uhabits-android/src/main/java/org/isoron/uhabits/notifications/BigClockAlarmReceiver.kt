@@ -21,7 +21,7 @@ class BigClockAlarmReceiver : BroadcastReceiver() {
         if (!prefs.getBoolean("down_running", false)) return
         val base = prefs.getLong("down_base", prefs.getLong("down_duration", 0L))
         val remaining = (base - (SystemClock.elapsedRealtime() - prefs.getLong("down_anchor", 0L))).coerceAtLeast(0L)
-        if (remaining > 1500L) return
+        if (remaining > 1500L) { schedule(context, remaining); return }
         prefs.edit().putLong("down_base", 0L).putBoolean("down_running", false).apply()
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= 26) {
@@ -44,7 +44,7 @@ class BigClockAlarmReceiver : BroadcastReceiver() {
                 .setAutoCancel(true)
                 .build()
         }
-        manager.notify(NOTIFICATION_ID, notification)
+        runCatching { manager.notify(NOTIFICATION_ID, notification) }
         try {
             val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
             if (Build.VERSION.SDK_INT >= 26) vibrator.vibrate(android.os.VibrationEffect.createOneShot(700, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
