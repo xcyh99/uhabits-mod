@@ -88,6 +88,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
     private var selectedTargetKey: String? = null
     private lateinit var iconSpinner: Spinner
     private lateinit var colorSpinner: Spinner
+    private lateinit var photoScaleSpinner: Spinner
     private lateinit var photoStatus: TextView
     private lateinit var saveButton: Button
     private var photoFile: File? = null
@@ -193,52 +194,66 @@ class DesktopShortcutActivity : AppCompatActivity() {
         colorColumn.addView(label("图标底色")); colorColumn.addView(colorSpinner)
         options.addView(iconColumn); options.addView(colorColumn); content.addView(options)
 
-        val photoButtons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        photoButtons.addView(Button(this).apply {
-            text = "从手机相册选择图片"; setTextColor(Color.WHITE)
-            backgroundTintList = android.content.res.ColorStateList.valueOf(Color.rgb(126,87,194))
-            layoutParams = LinearLayout.LayoutParams(0, dp(50), 1f).apply { marginEnd = dp(4) }
-            setOnClickListener { choosePhoto() }
-        })
-        photoButtons.addView(Button(this).apply {
-            text = "清除图片，改用内置图标"; setTextColor(Color.rgb(103,80,164))
-            backgroundTintList = android.content.res.ColorStateList.valueOf(Color.rgb(238,231,247))
-            layoutParams = LinearLayout.LayoutParams(0, dp(50), 1f).apply { marginStart = dp(4) }
+        val options = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        val iconColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(4) } }
+        val colorColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) } }
+        val restoreColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) } }
+        iconColumn.addView(label("内置图标")); iconColumn.addView(iconSpinner)
+        colorColumn.addView(label("图标底色")); colorColumn.addView(colorSpinner)
+        restoreColumn.addView(label(" "))
+        restoreColumn.addView(Button(this).apply {
+            text = "恢复默认图标"; textSize = 11f; setTextColor(primaryText)
+            backgroundTintList = android.content.res.ColorStateList.valueOf(if (isDarkBackground) Color.rgb(55,58,65) else Color.rgb(235,237,240))
             setOnClickListener {
                 photoFile = null; originalPhotoUri = null; originalPhotoName = null; originalPhotoLocation = null
                 iconSpinner.setSelection(0); updatePhotoInfo(); updateIconPreview()
             }
         })
-        content.addView(photoButtons)
+        options.addView(iconColumn); options.addView(colorColumn); options.addView(restoreColumn)
+        content.addView(options)
 
         val previewRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(0,dp(8),0,dp(8)) }
         iconPreview = ImageView(this).apply {
             scaleType = ImageView.ScaleType.FIT_CENTER
             layoutParams = LinearLayout.LayoutParams(0,dp(164),1f).apply { marginEnd = dp(8) }
+            setBackgroundColor(if (isDarkBackground) Color.rgb(38,40,45) else Color.rgb(238,239,242))
         }
-        val right = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0,dp(164),1f) }
-        val info = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL; layoutParams = LinearLayout.LayoutParams(-1,0,1f); setPadding(dp(6),0,0,0) }
+        val right = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.TOP; layoutParams = LinearLayout.LayoutParams(0,dp(164),1f) }
+        right.addView(Button(this).apply {
+            text = "选择图片"; textSize = 13f; setTextColor(Color.WHITE)
+            backgroundTintList = android.content.res.ColorStateList.valueOf(Color.rgb(126,87,194))
+            layoutParams = LinearLayout.LayoutParams(-1, dp(44))
+            setOnClickListener { choosePhoto() }
+        })
         photoNameView = TextView(this).apply {
-            textSize = 14f; setTextColor(Color.rgb(103,80,164)); setTypeface(typeface,Typeface.BOLD)
-            maxLines = 2; ellipsize = android.text.TextUtils.TruncateAt.END; setOnClickListener { openOriginalPhoto() }
+            textSize = 12f; setTextColor(primaryText); maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            setPadding(dp(2), dp(5), dp(2), dp(3))
+            setOnClickListener { openOriginalPhoto() }
         }
-        photoLocationView = TextView(this).apply {
-            textSize = 11f; setTextColor(if (isDarkBackground) Color.LTGRAY else Color.rgb(135,127,145))
-            maxLines = 2; ellipsize = android.text.TextUtils.TruncateAt.END; setOnClickListener { openPhotoFolder() }
-        }
-        info.addView(photoNameView); info.addView(photoLocationView)
+        photoLocationView = TextView(this).apply { visibility = View.GONE }
+        right.addView(photoNameView)
+        right.addView(TextView(this).apply { text = "图片显示方式"; textSize = 11f; setTextColor(secondaryText); setPadding(dp(2), dp(4), 0, 0) })
+        photoScaleSpinner = spinner(listOf("完全适应", "拉伸填满", "居中裁剪"))
+        right.addView(photoScaleSpinner, LinearLayout.LayoutParams(-1, dp(42)))
+        previewRow.addView(iconPreview); previewRow.addView(right); content.addView(previewRow)
         val createAction = Button(this).apply {
             text = "创建并添加到桌面"; textSize = 13f; setTextColor(Color.WHITE)
             backgroundTintList = android.content.res.ColorStateList.valueOf(Color.rgb(126,87,194))
-            layoutParams = LinearLayout.LayoutParams(-1,0,1f); setOnClickListener { createShortcut() }
+            layoutParams = LinearLayout.LayoutParams(-1, dp(82)).apply { topMargin = dp(4) }
+            setOnClickListener { createShortcut() }
         }
-        right.addView(info); right.addView(createAction); previewRow.addView(iconPreview); previewRow.addView(right); content.addView(previewRow)
+        content.addView(createAction)
         saveButton = createAction
         iconSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) { updateIconPreview() }
         }
         colorSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) { updateIconPreview() }
+        }
+        photoScaleSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) { updateIconPreview() }
         }
@@ -255,9 +270,8 @@ class DesktopShortcutActivity : AppCompatActivity() {
     private fun updatePhotoInfo() {
         if (!::photoNameView.isInitialized) return
         photoNameView.text = originalPhotoName ?: "未选择自定义图片"
-        photoLocationView.text = originalPhotoLocation ?: "原图位置暂不可读取"
-        photoNameView.alpha = if (originalPhotoUri != null) 1f else 0.55f
-        photoLocationView.alpha = if (originalPhotoLocation != null) 1f else 0.55f
+        photoNameView.text = originalPhotoName ?: "未选择自定义图片"
+        photoNameView.alpha = if (originalPhotoUri != null || photoFile != null) 1f else 0.55f
     }
 
     private fun updateIconPreview() {
