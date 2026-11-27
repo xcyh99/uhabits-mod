@@ -49,11 +49,10 @@ object StatusBarDaysNotifier {
             android.content.pm.PackageManager.PERMISSION_GRANTED) return
         if (!NotificationManagerCompat.from(app).areNotificationsEnabled()) return
 
-        // The three category switches only control visibility; configured habits and
-        // time records remain in their original store and can be shown again at any time.
-        val hiddenCategories = prefs.getStringSet("status_bar_days_hidden_categories", emptySet()).orEmpty()
-        val categoryOrder = runCatching {
-            val array = org.json.JSONArray(prefs.getString("status_bar_days_category_order", "[]"))
+        // Each selected habit/time record has its own visibility and position.
+        val hiddenItems = prefs.getStringSet("status_bar_days_hidden_items", emptySet()).orEmpty()
+        val savedOrder = runCatching {
+            val array = org.json.JSONArray(prefs.getString("status_bar_days_item_order", "[]"))
             (0 until array.length()).map { array.getString(it) }
         }.getOrDefault(emptyList())
         val items = (if (configured.isNotEmpty()) {
@@ -65,12 +64,12 @@ object StatusBarDaysNotifier {
             }
         } else if (mode != "off") {
             listOf(mode to "")
-        } else emptyList()).filterNot { (itemMode, _) ->
-            itemMode in hiddenCategories
-        }.sortedWith(compareBy<Pair<String, String>> {
-            val index = categoryOrder.indexOf(it.first)
+        } else emptyList()).filterNot { (itemMode, itemId) ->
+            itemId.isNotBlank() && "$itemMode:$itemId" in hiddenItems
+        }.sortedBy { (itemMode, itemId) ->
+            val index = savedOrder.indexOf("$itemMode:$itemId")
             if (index < 0) Int.MAX_VALUE else index
-        }.thenBy { it.second })
+        }
         if (items.isEmpty()) {
             previousIds.forEach { manager.cancel(it) }
             manager.cancel(NOTIFICATION_ID)
