@@ -60,7 +60,7 @@ object FeatureShortcutCatalog {
         BuiltIn("system:settings", "手机系统设置", "系统"),
 
         BuiltIn("timeRecords", "时间记录", "功能"),
-        BuiltIn("puzzleGames", "益智游戏", "功能"),
+        BuiltIn("puzzleGames", "游戏中心", "功能"),
         BuiltIn("floatingTimer", "悬浮计时器", "功能"),
         BuiltIn("desktopDoodle", "桌面涂鸦", "功能"),
         BuiltIn("widgetManager", "添加组件", "功能"),
