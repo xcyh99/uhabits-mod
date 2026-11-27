@@ -57,7 +57,8 @@ class DesktopShortcutActivity : AppCompatActivity() {
         val originalUri: String? = null,
         val originalName: String? = null,
         val originalLocation: String? = null,
-        val visible: Boolean = true
+        val visible: Boolean = true,
+        val photoScaleMode: Int = 0
     )
 
     private val settings by lazy {
@@ -482,7 +483,8 @@ class DesktopShortcutActivity : AppCompatActivity() {
                 val entry = ShortcutEntry(
                     id, name, target.key, iconSpinner.selectedItemPosition,
                     colorSpinner.selectedItemPosition, selectedPhotoPath,
-                    originalPhotoUri?.toString(), originalPhotoName, originalPhotoLocation, true
+                    originalPhotoUri?.toString(), originalPhotoName, originalPhotoLocation, true,
+                    photoScaleSpinner.selectedItemPosition
                 )
                 val oldIndex = entries.indexOfFirst { it.id == id }
                 val oldPhotoPath = entries.getOrNull(oldIndex)?.photoPath
@@ -527,7 +529,8 @@ class DesktopShortcutActivity : AppCompatActivity() {
                     item.optString("originalUri").takeIf { it.isNotBlank() },
                     item.optString("originalName").takeIf { it.isNotBlank() },
                     item.optString("originalLocation").takeIf { it.isNotBlank() },
-                    item.optBoolean("visible", true)
+                    item.optBoolean("visible", true),
+                    item.optInt("photoScaleMode", 0)
                 ).takeIf { it.id.isNotBlank() }
             }
         }.getOrDefault(emptyList())
@@ -547,6 +550,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
                 put("originalName", entry.originalName ?: "")
                 put("originalLocation", entry.originalLocation ?: "")
                 put("visible", entry.visible)
+                put("photoScaleMode", entry.photoScaleMode)
             })
         }
         settings.edit().putString(KEY_SHORTCUTS, array.toString()).apply()
@@ -604,6 +608,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
         originalPhotoUri = entry.originalUri?.let(Uri::parse)
         originalPhotoName = entry.originalName
         originalPhotoLocation = entry.originalLocation
+        photoScaleSpinner.setSelection(entry.photoScaleMode.coerceIn(0, 2))
         photoStatus.text = if (photoFile != null) "已选择相册图片：${originalPhotoName ?: photoFile!!.name}" else "未选择相册图片（可选）"
         updatePhotoInfo(); updateIconPreview()
         saveButton.text = "保存修改并更新桌面图标"
@@ -640,10 +645,34 @@ class DesktopShortcutActivity : AppCompatActivity() {
         showShortcutManager()
     }
 
+    private fun scalePhoto(source: Bitmap, size: Int, mode: Int): Bitmap {
+        val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(output)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        val src = Rect(0, 0, source.width, source.height)
+        val dst = when (mode.coerceIn(0, 2)) {
+            0 -> {
+                val scale = minOf(size.toFloat() / source.width, size.toFloat() / source.height)
+                val width = (source.width * scale).toInt().coerceAtLeast(1)
+                val height = (source.height * scale).toInt().coerceAtLeast(1)
+                Rect((size - width) / 2, (size - height) / 2, (size + width) / 2, (size + height) / 2)
+            }
+            1 -> Rect(0, 0, size, size)
+            else -> {
+                val side = minOf(source.width, source.height)
+                val left = (source.width - side) / 2
+                val top = (source.height - side) / 2
+                src.set(left, top, left + side, top + side)
+                Rect(0, 0, size, size)
+            }
+        }
+        canvas.drawBitmap(source, src, dst, paint)
+        return output
+    }
     private fun buildIcon(entry: ShortcutEntry): Bitmap {
         val size = 192
         if (entry.iconIndex == iconNames.lastIndex) {
-            entry.photoPath?.let { path -> BitmapFactory.decodeFile(path)?.let { return cropSquare(it, size) } }
+            entry.photoPath?.let { path -> BitmapFactory.decodeFile(path)?.let { return scalePhoto(it, size, entry.photoScaleMode) } }
         }
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
@@ -657,7 +686,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
     private fun buildIcon(): Bitmap {
         if (iconSpinner.selectedItemPosition == iconNames.lastIndex) {
             photoFile?.takeIf { it.exists() }?.let {
-                BitmapFactory.decodeFile(it.absolutePath)?.let { bitmap -> return cropSquare(bitmap, 192) }
+                BitmapFactory.decodeFile(it.absolutePath)?.let { bitmap -> return scalePhoto(bitmap, 192, photoScaleSpinner.selectedItemPosition) }
             }
         }
         val size = 192
