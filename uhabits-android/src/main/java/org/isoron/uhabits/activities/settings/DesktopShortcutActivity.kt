@@ -199,8 +199,11 @@ class DesktopShortcutActivity : AppCompatActivity() {
             text = "恢复默认图标"; textSize = 11f; setTextColor(primaryText)
             backgroundTintList = android.content.res.ColorStateList.valueOf(if (isDarkBackground) Color.rgb(55,58,65) else Color.rgb(235,237,240))
             setOnClickListener {
+                photoFile?.let { runCatching { it.delete() } }
                 photoFile = null; originalPhotoUri = null; originalPhotoName = null; originalPhotoLocation = null
-                iconSpinner.setSelection(0); updatePhotoInfo(); updateIconPreview()
+                iconSpinner.setSelection(0)
+                photoStatus.text = "未选择相册图片（可选）"
+                updatePhotoInfo(); updateIconPreview()
             }
         })
         options.addView(iconColumn); options.addView(colorColumn); options.addView(restoreColumn)
@@ -376,6 +379,8 @@ class DesktopShortcutActivity : AppCompatActivity() {
         ) { key ->
             selectedTargetKey = key
             targetButton.text = selectedTargetTitle()
+            // A selected installed app supplies its own launcher icon unless a custom photo is active.
+            updateIconPreview()
         }
     }
 
@@ -665,11 +670,38 @@ class DesktopShortcutActivity : AppCompatActivity() {
         canvas.drawBitmap(source, src, dst, paint)
         return output
     }
+    private fun appTargetDrawable(targetKey: String): Drawable? {
+        if (!targetKey.startsWith("app:")) return null
+        val component = runCatching {
+            android.content.ComponentName.unflattenFromString(targetKey.removePrefix("app:"))
+        }.getOrNull() ?: return null
+        return runCatching { packageManager.getActivityIcon(component) }.getOrElse {
+            runCatching { packageManager.getApplicationIcon(component.packageName) }.getOrNull()
+        }
+    }
+
+    /** Render a package-provided launcher icon without tinting, adding a backing plate, or applying photo scale modes. */
+    private fun renderNativeAppIcon(targetKey: String, size: Int): Bitmap? {
+        val drawable = appTargetDrawable(targetKey) ?: return null
+        val icon = drawable.constantState?.newDrawable(resources)?.mutate() ?: drawable
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val intrinsicWidth = icon.intrinsicWidth.takeIf { it > 0 } ?: size
+        val intrinsicHeight = icon.intrinsicHeight.takeIf { it > 0 } ?: size
+        val scale = minOf(size.toFloat() / intrinsicWidth, size.toFloat() / intrinsicHeight)
+        val width = (intrinsicWidth * scale).toInt().coerceAtLeast(1)
+        val height = (intrinsicHeight * scale).toInt().coerceAtLeast(1)
+        icon.setBounds((size - width) / 2, (size - height) / 2, (size + width) / 2, (size + height) / 2)
+        icon.draw(canvas)
+        return bitmap
+    }
+
     private fun buildIcon(entry: ShortcutEntry): Bitmap {
         val size = 192
         if (entry.iconIndex == iconNames.lastIndex) {
             entry.photoPath?.let { path -> BitmapFactory.decodeFile(path)?.let { return scalePhoto(it, size, entry.photoScaleMode) } }
         }
+        renderNativeAppIcon(entry.targetKey, size)?.let { return it }
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = iconColors[entry.colorIndex.coerceIn(iconColors.indices)] }
@@ -680,12 +712,13 @@ class DesktopShortcutActivity : AppCompatActivity() {
     }
 
     private fun buildIcon(): Bitmap {
+        val size = 192
         if (iconSpinner.selectedItemPosition == iconNames.lastIndex) {
             photoFile?.takeIf { it.exists() }?.let {
-                BitmapFactory.decodeFile(it.absolutePath)?.let { bitmap -> return scalePhoto(bitmap, 192, photoScaleSpinner.selectedItemPosition) }
+                BitmapFactory.decodeFile(it.absolutePath)?.let { bitmap -> return scalePhoto(bitmap, size, photoScaleSpinner.selectedItemPosition) }
             }
         }
-        val size = 192
+        selectedTargetKey?.let { renderNativeAppIcon(it, size) }?.let { return it }
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val color = iconColors[colorSpinner.selectedItemPosition.coerceIn(iconColors.indices)]
