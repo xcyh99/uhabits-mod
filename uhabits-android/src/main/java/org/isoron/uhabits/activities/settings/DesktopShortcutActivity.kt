@@ -126,7 +126,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
         fun label(value: String) = TextView(this).apply {
             text = value
             textSize = 14f
-            setTextColor(primaryText)
+            setTextColor(if (ColorUtils.calculateLuminance(StyledResources(this).getColor(R.attr.contrast0)) < 0.5) Color.WHITE else Color.BLACK)
             setTypeface(typeface, Typeface.BOLD)
             setPadding(0, dp(12), 0, dp(5))
         }
@@ -176,7 +176,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
         photoStatus = TextView(this).apply {
             text = "未选择相册图片（可选）"
             textSize = 12f
-            setTextColor(secondaryText)
+            setTextColor(if (ColorUtils.calculateLuminance(StyledResources(this).getColor(R.attr.contrast0)) < 0.5) Color.LTGRAY else Color.DKGRAY)
             setPadding(0, dp(6), 0, dp(6))
         }
         content.addView(label("快捷方式名称"))
@@ -315,7 +315,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
             row.addView(TextView(this).apply { text = "编辑"; textSize = 12f; setTextColor(Color.rgb(126,87,194)); setPadding(dp(6),dp(10),dp(6),dp(10)); setOnClickListener { editShortcut(entry) } })
             row.addView(TextView(this).apply { text = "删除"; textSize = 12f; setTextColor(Color.rgb(180,70,70)); setPadding(dp(6),dp(10),0,dp(10)); setOnClickListener { confirmDeleteShortcut(entry) } })
             shortcutsContainer.addView(row)
-            shortcutsContainer.addView(View(this).apply { setBackgroundColor(if (isDarkBackground) Color.DKGRAY else 0xFFE5E1E8.toInt()) }, LinearLayout.LayoutParams(-1,dp(1)))
+            shortcutsContainer.addView(View(this).apply { setBackgroundColor(if (ColorUtils.calculateLuminance(StyledResources(this).getColor(R.attr.contrast0)) < 0.5) Color.DKGRAY else 0xFFE5E1E8.toInt()) }, LinearLayout.LayoutParams(-1,dp(1)))
         }
     }
 
@@ -441,7 +441,14 @@ class DesktopShortcutActivity : AppCompatActivity() {
                 Toast.makeText(this, if (existing) "桌面快捷方式已更新" else "已提交桌面添加请求，请在桌面确认", Toast.LENGTH_LONG).show()
                 editingShortcutId = null
                 saveButton.text = "创建并添加到桌面"
-                finish()
+                refreshShortcutList()
+                nameInput.text.clear()
+                photoFile = null
+                originalPhotoUri = null
+                originalPhotoName = null
+                originalPhotoLocation = null
+                updatePhotoInfo()
+                updateIconPreview()
             } else {
                 Toast.makeText(this, "桌面没有接受添加请求。", Toast.LENGTH_LONG).show()
             }
@@ -564,7 +571,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
                 saveShortcuts(readShortcuts().filterNot { it.id == entry.id })
                 entry.photoPath?.let { runCatching { File(it).delete() } }
                 Toast.makeText(this, "已从管理列表删除", Toast.LENGTH_SHORT).show()
-                showShortcutManager()
+                refreshShortcutList()
             }
             .show()
     }
