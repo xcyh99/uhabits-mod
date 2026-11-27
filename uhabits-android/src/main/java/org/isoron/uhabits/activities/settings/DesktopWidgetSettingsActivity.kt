@@ -752,7 +752,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
 
     private fun chooseShortcutCount() {
         val values = (0..8).toList()
-        val current = store.getInt(KEY_SHORTCUT_COUNT, 4).coerceIn(4, 9)
+        val current = store.getInt(KEY_SHORTCUT_COUNT, 4).coerceIn(0, 8)
         val labels = values.map { if (it == 0) "不显示快捷入口" else "$it 个" }.toTypedArray()
         AlertDialog.Builder(this).setTitle("快捷入口数量")
             .setSingleChoiceItems(labels, current) { dialog, which ->
