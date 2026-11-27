@@ -188,13 +188,6 @@ class DesktopShortcutActivity : AppCompatActivity() {
         content.addView(label("打开目标"))
         content.addView(targetButton)
 
-        val options = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val iconColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, -2, 1f) }
-        val colorColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, -2, 1f) }
-        iconColumn.addView(label("内置图标")); iconColumn.addView(iconSpinner)
-        colorColumn.addView(label("图标底色")); colorColumn.addView(colorSpinner)
-        options.addView(iconColumn); options.addView(colorColumn); content.addView(options)
-
         val options = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         val iconColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(4) } }
         val colorColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) } }
@@ -270,7 +263,6 @@ class DesktopShortcutActivity : AppCompatActivity() {
 
     private fun updatePhotoInfo() {
         if (!::photoNameView.isInitialized) return
-        photoNameView.text = originalPhotoName ?: "未选择自定义图片"
         photoNameView.text = originalPhotoName ?: "未选择自定义图片"
         photoNameView.alpha = if (originalPhotoUri != null || photoFile != null) 1f else 0.55f
     }
