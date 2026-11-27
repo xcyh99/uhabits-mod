@@ -20,7 +20,6 @@
 -keep class io.socket.** { *; }
 -keep class okhttp3.** { *; }
 -keep class okio.** { *; }
--keep class org.isoron.** { *; }
 -keep class sun.misc.Unsafe { *; }
 -keep class android.support.test.** { *; }
 -keep class org.junit.** { *; }
