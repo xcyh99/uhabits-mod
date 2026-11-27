@@ -80,8 +80,8 @@ class StatusBarDaysManagementActivity : AppCompatActivity() {
         list.adapter = adapter
         val callback = object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
             override fun onMove(rv: RecyclerView, vh: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
-                val from = vh.bindingAdapterPosition
-                val to = target.bindingAdapterPosition
+                val from = vh.adapterPosition
+                val to = target.adapterPosition
                 if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION) return false
                 val moved = rows.removeAt(from)
                 rows.add(to, moved)
