@@ -956,7 +956,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
     private fun showStatusBarDaysSettings() {
         val context = requireContext()
         val store = PreferenceManager.getDefaultSharedPreferences(context)
-        val modes = arrayOf("关闭", "距离上次打卡", "倒计时", "正计时")
+        val modes = arrayOf("关闭", "距离上次打卡", "倒计天", "正计天")
         val modeValues = arrayOf("off", "checkin", "countdown", "elapsed")
         val current = store.getString("status_bar_days_mode", "off") ?: "off"
         val selected = modeValues.indexOf(current).coerceAtLeast(0)
@@ -1002,8 +1002,8 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     }
                     labels = records.map { it.title }
                     ids = records.map { it.id }
-                    title = if (mode == "countdown") "勾选要显示的倒计时项目（可多选）"
-                        else "勾选要显示的正计时项目（可多选）"
+                    title = if (mode == "countdown") "勾选要显示的倒计天项目（可多选）"
+                        else "勾选要显示的正计天项目（可多选）"
                 }
 
                 val configured = store.getStringSet("status_bar_days_items", emptySet()).orEmpty()
