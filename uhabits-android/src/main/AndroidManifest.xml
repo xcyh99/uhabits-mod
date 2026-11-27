@@ -169,6 +169,14 @@
             android:exported="false"
             android:label="组件添加" />
         <activity
+            android:name="org.isoron.uhabits.activities.settings.BigClockActivity"
+            android:exported="false"
+            android:label="大字钟">
+            <meta-data android:name="org.isoron.uhabits.shortcut.key" android:value="bigClock" />
+            <meta-data android:name="org.isoron.uhabits.shortcut.title" android:value="大字钟" />
+            <meta-data android:name="org.isoron.uhabits.shortcut.category" android:value="功能" />
+        </activity>
+        <activity
             android:name="org.isoron.uhabits.activities.settings.FloatingTimerManagementActivity"
             android:exported="false"
             android:label="悬浮计时器管理">
@@ -291,6 +299,18 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_score_info" />
+        </receiver>
+
+        <receiver
+            android:name="org.isoron.uhabits.widgets.BigClockWidgetProvider"
+            android:exported="true"
+            android:label="大字钟">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_big_clock_info" />
         </receiver>
 
         <receiver
