@@ -8,6 +8,7 @@ import android.os.*
 import android.provider.Settings
 import android.view.*
 import android.widget.*
+import androidx.preference.PreferenceManager
 import java.util.Locale
 
 class FloatingTimerService : Service() {
@@ -63,7 +64,7 @@ class FloatingTimerService : Service() {
             return START_NOT_STICKY
         }
         if (timerView == null) showOverlay()
-        if (intent?.action == ACTION_SETUP || !prefs.contains("mode")) showSetupDialog()
+        if (intent?.action == ACTION_SETUP || (!prefs.contains("mode") && !syncEnabled())) showSetupDialog()
         handler.removeCallbacks(ticker)
         handler.post(ticker)
         return START_STICKY
@@ -137,7 +138,19 @@ class FloatingTimerService : Service() {
         updateText()
     }
 
+    private fun syncEnabled() =
+        PreferenceManager.getDefaultSharedPreferences(this).getBoolean("big_clock_sync_floating", false)
+
+    private fun bigClockPrefs() = getSharedPreferences("big_clock_state", MODE_PRIVATE)
+
     private fun elapsedMs(): Long {
+        if (syncEnabled()) {
+            val shared = bigClockPrefs()
+            val running = shared.getBoolean("up_running", false)
+            val base = shared.getLong("up_base", 0L)
+            val anchor = shared.getLong("up_anchor", 0L)
+            return (base + if (running) (SystemClock.elapsedRealtime() - anchor).coerceAtLeast(0) else 0).coerceAtLeast(0)
+        }
         val running = prefs.getBoolean("running", false)
         val base = prefs.getLong("base", 0L)
         val anchor = prefs.getLong("anchor", 0L)
@@ -145,6 +158,13 @@ class FloatingTimerService : Service() {
     }
 
     private fun remainingMs(): Long {
+        if (syncEnabled()) {
+            val shared = bigClockPrefs()
+            val running = shared.getBoolean("down_running", false)
+            val base = shared.getLong("down_base", shared.getLong("down_duration", 0L))
+            val anchor = shared.getLong("down_anchor", 0L)
+            return (base - if (running) (SystemClock.elapsedRealtime() - anchor).coerceAtLeast(0) else 0).coerceAtLeast(0)
+        }
         val running = prefs.getBoolean("running", false)
         val base = prefs.getLong("base", prefs.getLong("duration", 0L))
         val anchor = prefs.getLong("anchor", 0L)
@@ -152,21 +172,46 @@ class FloatingTimerService : Service() {
     }
 
     private fun updateText() {
-        val countdown = prefs.getString("mode", "down") == "down"
+        val sharedMode = if (syncEnabled()) bigClockPrefs().getString("mode", "clock") else null
+        if (syncEnabled() && sharedMode == "clock") {
+            timerView?.text = java.text.SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(java.util.Date())
+            return
+        }
+        val countdown = if (syncEnabled()) sharedMode == "down" else prefs.getString("mode", "down") == "down"
+        val running = if (syncEnabled()) {
+            val shared = bigClockPrefs()
+            shared.getBoolean(if (countdown) "down_running" else "up_running", false)
+        } else prefs.getBoolean("running", false)
         val ms = if (countdown) remainingMs() else elapsedMs()
         val total = ms / 1000
         val h = total / 3600
         val m = (total % 3600) / 60
         val s = total % 60
-        val state = if (prefs.getBoolean("running", false)) "" else " Ⅱ"
-        timerView?.text = String.format(Locale.getDefault(), "%02d:%02d:%02d%s", h, m, s, state)
-        if (countdown && ms == 0L && prefs.getBoolean("running", false)) {
-            prefs.edit().putBoolean("running", false).putLong("base", 0).apply()
+        val pauseMark = if (running) "" else " Ⅱ"
+        timerView?.text = String.format(Locale.getDefault(), "%02d:%02d:%02d%s", h, m, s, pauseMark)
+        if (countdown && ms == 0L && running) {
+            if (syncEnabled()) bigClockPrefs().edit().putBoolean("down_running", false).putLong("down_base", 0L).apply()
+            else prefs.edit().putBoolean("running", false).putLong("base", 0L).apply()
             timerView?.text = "00:00:00"
         }
     }
 
     private fun togglePause() {
+        if (syncEnabled()) {
+            val shared = bigClockPrefs()
+            val mode = shared.getString("mode", "clock")
+            if (mode == "clock") return
+            val down = mode == "down"
+            val runningKey = if (down) "down_running" else "up_running"
+            val baseKey = if (down) "down_base" else "up_base"
+            val anchorKey = if (down) "down_anchor" else "up_anchor"
+            val running = shared.getBoolean(runningKey, false)
+            val current = if (down) remainingMs() else elapsedMs()
+            shared.edit().putLong(baseKey, current).putLong(anchorKey, SystemClock.elapsedRealtime())
+                .putBoolean(runningKey, !running).apply()
+            updateText()
+            return
+        }
         val running = prefs.getBoolean("running", false)
         val down = prefs.getString("mode", "down") == "down"
         val base = if (down) remainingMs() else elapsedMs()
