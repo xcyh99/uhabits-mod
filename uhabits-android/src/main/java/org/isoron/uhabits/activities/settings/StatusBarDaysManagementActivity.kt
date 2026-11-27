@@ -143,6 +143,7 @@ class StatusBarDaysManagementActivity : AppCompatActivity() {
         inner class Holder(val check: CheckBox, val number: TextView, val title: TextView, val categoryLabel: TextView, val drag: TextView, val edit: TextView, val remove: TextView) : RecyclerView.ViewHolder(LinearLayout(this@StatusBarDaysManagementActivity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
+            layoutParams = RecyclerView.LayoutParams(-1, -2).apply { bottomMargin = dp(7) }
             setPadding(dp(10), dp(8), dp(8), dp(8))
             val dark = androidx.core.graphics.ColorUtils.calculateLuminance(StyledResources(this@StatusBarDaysManagementActivity).getColor(R.attr.contrast0)) < .5
             background = android.graphics.drawable.GradientDrawable().apply {
@@ -166,7 +167,7 @@ class StatusBarDaysManagementActivity : AppCompatActivity() {
             val category = TextView(this@StatusBarDaysManagementActivity).apply { textSize = 10f; setTextColor(if (androidx.core.graphics.ColorUtils.calculateLuminance(StyledResources(this@StatusBarDaysManagementActivity).getColor(R.attr.contrast0)) < .5) Color.LTGRAY else Color.DKGRAY); setPadding(dp(3), 0, dp(3), 0); maxLines = 1 }
             val drag = TextView(this@StatusBarDaysManagementActivity).apply { text = "☷"; textSize = 23f; gravity = Gravity.CENTER; setTextColor(if (androidx.core.graphics.ColorUtils.calculateLuminance(StyledResources(this@StatusBarDaysManagementActivity).getColor(R.attr.contrast0)) < .5) Color.LTGRAY else Color.DKGRAY); contentDescription = "拖动排序" }
             val edit = TextView(this@StatusBarDaysManagementActivity).apply { text = "编辑"; textSize = 12f; setTextColor(0xFF9575CD.toInt()); gravity = Gravity.CENTER; setPadding(dp(3), dp(10), dp(3), dp(10)) }
-            val remove = TextView(this@StatusBarDaysManagementActivity).apply { text = "删除"; textSize = 12f; setTextColor(0xFF9575CD.toInt()); gravity = Gravity.CENTER; setPadding(dp(3), dp(10), dp(3), dp(10)) }
+            val remove = TextView(this@StatusBarDaysManagementActivity).apply { text = "删除"; textSize = 12f; setTextColor(Color.rgb(211, 76, 76)); gravity = Gravity.CENTER; setPadding(dp(3), dp(10), dp(3), dp(10)) }
             return Holder(check, number, title, category, drag, edit, remove)
         }
         override fun getItemCount() = rows.size
