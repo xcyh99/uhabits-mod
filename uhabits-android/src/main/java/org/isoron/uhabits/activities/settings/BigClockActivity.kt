@@ -7,6 +7,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.view.Gravity
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -14,6 +15,7 @@ import android.widget.TextClock
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.preference.PreferenceManager
 import org.isoron.uhabits.HabitsApplication
 import org.isoron.uhabits.R
 import org.isoron.uhabits.activities.AndroidThemeSwitcher
@@ -81,6 +83,23 @@ class BigClockActivity : AppCompatActivity() {
             }, LinearLayout.LayoutParams(0, dp(48), 1f))
         }
         root.addView(modes)
+        val syncCheck = CheckBox(this).apply {
+            text = "与悬浮计时器同步计时"
+            textSize = 13f
+            setTextColor(secondary)
+            isChecked = PreferenceManager.getDefaultSharedPreferences(this@BigClockActivity)
+                .getBoolean("big_clock_sync_floating", false)
+        }
+        syncCheck.setOnCheckedChangeListener { _, checked ->
+            PreferenceManager.getDefaultSharedPreferences(this@BigClockActivity).edit()
+                .putBoolean("big_clock_sync_floating", checked).apply()
+            if (checked && android.provider.Settings.canDrawOverlays(this@BigClockActivity)) {
+                val serviceIntent = android.content.Intent(this@BigClockActivity, FloatingTimerService::class.java)
+                    .setAction(FloatingTimerService.ACTION_START)
+                if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(serviceIntent) else startService(serviceIntent)
+            }
+        }
+        root.addView(syncCheck)
 
         clock = TextClock(this).apply {
             format12Hour = "h:mm:ss a"
