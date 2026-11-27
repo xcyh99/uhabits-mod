@@ -280,8 +280,19 @@ class DesktopShortcutActivity : AppCompatActivity() {
             return
         }
         if (android.os.Build.VERSION.SDK_INT >= 26) {
-            try { startActivity(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)) }
-            catch (_: Exception) { Toast.makeText(this, "原始图片位置：" + location, Toast.LENGTH_LONG).show() }
+            try {
+                val relative = location.trimStart('/').trimEnd('/')
+                val documentId = if (relative.startsWith("primary:")) relative else "primary:$relative"
+                val initialUri = android.provider.DocumentsContract.buildTreeDocumentUri(
+                    "com.android.externalstorage.documents", documentId
+                )
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                    putExtra(android.provider.DocumentsContract.EXTRA_INITIAL_URI, initialUri)
+                }
+                startActivity(intent)
+            } catch (_: Exception) {
+                Toast.makeText(this, "原始图片位置：" + location, Toast.LENGTH_LONG).show()
+            }
         } else Toast.makeText(this, "原始图片位置：" + location, Toast.LENGTH_LONG).show()
     }
 
@@ -381,8 +392,15 @@ class DesktopShortcutActivity : AppCompatActivity() {
                 }
             }.getOrNull()
             originalPhotoLocation = runCatching {
-                contentResolver.query(uri, arrayOf(android.provider.MediaStore.Images.Media.RELATIVE_PATH), null, null, null)?.use { c ->
-                    if (c.moveToFirst() && !c.isNull(0)) c.getString(0) else null
+                val columns = arrayOf(android.provider.MediaStore.Images.Media.RELATIVE_PATH, android.provider.MediaStore.Images.Media.DATA)
+                contentResolver.query(uri, columns, null, null, null)?.use { c ->
+                    if (!c.moveToFirst()) null else {
+                        val relativeIndex = c.getColumnIndex(android.provider.MediaStore.Images.Media.RELATIVE_PATH)
+                        val dataIndex = c.getColumnIndex(android.provider.MediaStore.Images.Media.DATA)
+                        val relative = if (relativeIndex >= 0) c.getString(relativeIndex) else null
+                        val data = if (dataIndex >= 0) c.getString(dataIndex) else null
+                        relative?.takeIf { it.isNotBlank() } ?: data?.let { File(it).parent }
+                    }
                 }
             }.getOrNull()
             val file = File(filesDir, "desktop_shortcut_photo_${System.currentTimeMillis()}.png")
