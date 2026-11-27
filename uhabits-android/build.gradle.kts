@@ -31,10 +31,8 @@ tasks.compileLint {
 
 /*
 Added on top of kotlinOptions to work around this issue:
-https://youtrack.jetbrains.com/issue/KTIJ-24311/task-current-target-is-17-and-kaptGenerateStubsProductionDebugKotlin-task-current-target-is-1.8-jvm-target-compatibility-should#focus=Comments-27-6798448.0-0
-Updating gradle might fix this, so try again in the future to remove this and run:
-./gradlew --rerun-tasks :uhabits-android:kaptGenerateStubsReleaseKotlin
-If this doesn't produce any warning, try to remove it.
+https://youtrack.jetbrains.com/issue/KTIJ-24311/task-current-target-is-17-and-kaptGenerateStubsProductionKotlin-task-current-target-is-1.8-jvm-target-compatibility-should#focus=Comments-27-6798448.0-0
+Updating gradle might fix this, so try again in the future to remove it.
  */
 kotlin {
     jvmToolchain(17)
@@ -47,6 +45,9 @@ android {
     sourceSets {
         getByName("main") {
             assets.srcDirs("src/main/assets", "../uhabits-core/assets/main")
+            // Android loads FontAwesome from fontawesome-webfont.ttf.
+            // Keep the core copy for JVM rendering, but do not package that duplicate in the APK.
+            assets.exclude("fonts/FontAwesome.ttf")
         }
     }
 
