@@ -392,6 +392,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
                 setOnCheckedChangeListener { _, checked ->
                     val updated = readShortcuts().map { if (it.id == entry.id) it.copy(visible = checked) else it }
                     saveShortcuts(updated)
+                    shortcutCountView.text = "已显示 ${updated.count { it.visible }}/${updated.size}"
                     val manager = getSystemService(ShortcutManager::class.java)
                     if (!checked) {
                         runCatching { manager?.disableShortcuts(listOf(entry.id), "已隐藏") }
