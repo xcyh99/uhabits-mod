@@ -199,7 +199,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
             text = "恢复默认图标"; textSize = 11f; setTextColor(primaryText)
             backgroundTintList = android.content.res.ColorStateList.valueOf(if (isDarkBackground) Color.rgb(55,58,65) else Color.rgb(235,237,240))
             setOnClickListener {
-                photoFile?.let { runCatching { it.delete() } }
+                // Defer deleting the previously saved image until the edited shortcut is actually saved.
                 photoFile = null; originalPhotoUri = null; originalPhotoName = null; originalPhotoLocation = null
                 iconSpinner.setSelection(0)
                 photoStatus.text = "未选择相册图片（可选）"
