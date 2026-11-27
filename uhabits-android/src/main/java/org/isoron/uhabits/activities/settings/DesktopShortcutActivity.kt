@@ -135,7 +135,7 @@ class DesktopShortcutActivity : AppCompatActivity() {
                 this@DesktopShortcutActivity, android.R.layout.simple_spinner_item, items
             ) {
                 private fun style(view: TextView, dropdown: Boolean): TextView {
-                    view.setTextColor(primaryText)
+                    view.setTextColor(listPrimaryText)
                     view.textSize = 15f
                     view.setPadding(dp(12), dp(10), dp(12), dp(10))
                     view.setBackgroundColor(if (dropdown) pageBackground else Color.TRANSPARENT)
@@ -289,6 +289,9 @@ class DesktopShortcutActivity : AppCompatActivity() {
         if (!::shortcutsContainer.isInitialized) return
         shortcutsContainer.removeAllViews()
         val entries = readShortcuts()
+        val darkMode = ColorUtils.calculateLuminance(StyledResources(this).getColor(R.attr.contrast0)) < 0.5
+        val listPrimaryText = if (darkMode) Color.WHITE else Color.BLACK
+        val listSecondaryText = if (darkMode) Color.LTGRAY else Color.DKGRAY
         if (entries.isEmpty()) {
             shortcutsContainer.addView(TextView(this).apply { text = "暂无已创建的桌面快捷方式"; textSize = 12f; setTextColor(Color.GRAY) })
             return
@@ -304,18 +307,35 @@ class DesktopShortcutActivity : AppCompatActivity() {
                     if (!checked) {
                         runCatching { manager?.disableShortcuts(listOf(entry.id), "已隐藏") }
                         runCatching { manager?.unpinShortcut(entry.id) }
-                    } else Toast.makeText(this@DesktopShortcutActivity, "如需恢复桌面图标，请重新添加此快捷方式", Toast.LENGTH_SHORT).show()
+                    } else {
+                        runCatching {
+                            val launch = Intent(this@DesktopShortcutActivity, org.isoron.uhabits.activities.habits.list.ListHabitsActivity::class.java).apply {
+                                action = ACTION_OPEN_DESKTOP_SHORTCUT
+                                putExtra(EXTRA_TARGET, entry.targetKey)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                            }
+                            val info = ShortcutInfo.Builder(this@DesktopShortcutActivity, entry.id)
+                                .setShortLabel(entry.name.take(25)).setLongLabel(entry.name.take(40))
+                                .setIcon(Icon.createWithBitmap(buildIcon(entry))).setIntent(launch).build()
+                            manager?.requestPinShortcut(info, null)
+                        }
+                    }
                 }
+            }
+            val rowIcon = ImageView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(dp(34), dp(34)).apply { marginEnd = dp(7) }
+                scaleType = ImageView.ScaleType.FIT_CENTER
+                setImageBitmap(runCatching { buildIcon(entry) }.getOrNull())
             }
             val details = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0,-2,1f) }
             details.addView(TextView(this).apply { text = entry.name; textSize = 13f; setTextColor(primaryText) })
             val target = targets.firstOrNull { it.key == entry.targetKey }?.title ?: entry.targetKey
-            details.addView(TextView(this).apply { text = "打开：" + target.substringAfter("】",target); textSize = 10f; setTextColor(secondaryText); maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END })
-            row.addView(check); row.addView(details)
+            details.addView(TextView(this).apply { text = "打开：" + target.substringAfter("】",target); textSize = 10f; setTextColor(listSecondaryText); maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END })
+            row.addView(check); row.addView(rowIcon); row.addView(details)
             row.addView(TextView(this).apply { text = "编辑"; textSize = 12f; setTextColor(Color.rgb(126,87,194)); setPadding(dp(6),dp(10),dp(6),dp(10)); setOnClickListener { editShortcut(entry) } })
             row.addView(TextView(this).apply { text = "删除"; textSize = 12f; setTextColor(Color.rgb(180,70,70)); setPadding(dp(6),dp(10),0,dp(10)); setOnClickListener { confirmDeleteShortcut(entry) } })
             shortcutsContainer.addView(row)
-            shortcutsContainer.addView(View(this).apply { setBackgroundColor(if (ColorUtils.calculateLuminance(StyledResources(this).getColor(R.attr.contrast0)) < 0.5) Color.DKGRAY else 0xFFE5E1E8.toInt()) }, LinearLayout.LayoutParams(-1,dp(1)))
+            shortcutsContainer.addView(View(this).apply { setBackgroundColor(if (darkMode) Color.DKGRAY else 0xFFE5E1E8.toInt()) }, LinearLayout.LayoutParams(-1,dp(1)))
         }
     }
 
@@ -585,6 +605,20 @@ class DesktopShortcutActivity : AppCompatActivity() {
         // This order is the management-list order. The launcher's physical icon
         // placement remains user-controlled by Android.
         showShortcutManager()
+    }
+
+    private fun buildIcon(entry: ShortcutEntry): Bitmap {
+        val size = 192
+        if (entry.iconIndex == iconNames.lastIndex) {
+            entry.photoPath?.let { path -> BitmapFactory.decodeFile(path)?.let { return cropSquare(it, size) } }
+        }
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = iconColors[entry.colorIndex.coerceIn(iconColors.indices)] }
+        canvas.drawRoundRect(RectF(0f,0f,size.toFloat(),size.toFloat()),42f,42f,paint)
+        val drawable = getDrawable(iconResources[entry.iconIndex.coerceIn(iconResources.indices)])!!
+        drawable.setTint(Color.WHITE); drawable.setBounds(42,42,size-42,size-42); drawable.draw(canvas)
+        return bitmap
     }
 
     private fun buildIcon(): Bitmap {
