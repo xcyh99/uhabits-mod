@@ -141,6 +141,11 @@ class DigitalClockShortcutIconActivity : AppCompatActivity() {
 
     private fun updatePreview() {
         fileName.text = selectedName ?: "使用默认图标"
+        preview.scaleType = when (mode.selectedItemPosition) {
+            1 -> ImageView.ScaleType.FIT_XY
+            2 -> ImageView.ScaleType.CENTER_CROP
+            else -> ImageView.ScaleType.FIT_CENTER
+        }
         val bitmap = selectedUri?.let { uri ->
             runCatching { contentResolver.openInputStream(uri)?.use { stream -> BitmapFactory.decodeStream(stream) } }.getOrNull()
         }
