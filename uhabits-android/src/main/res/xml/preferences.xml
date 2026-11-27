@@ -157,11 +157,7 @@
                 android:summary="集中管理各项可调运行参数；点击后进入参数列表。"
                 app:iconSpaceReserved="false" />
 
-        <Preference
-                android:key="startupPage"
-                android:title="启动首页设置"
-                android:summary="设置每次打开十字习惯 APP 时首先显示的页面。"
-                app:iconSpaceReserved="false" />
+
 
 
         <Preference
