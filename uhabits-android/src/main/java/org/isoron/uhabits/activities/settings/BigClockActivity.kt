@@ -19,6 +19,7 @@ import org.isoron.uhabits.R
 import org.isoron.uhabits.activities.AndroidThemeSwitcher
 import org.isoron.uhabits.utils.StyledResources
 import org.isoron.uhabits.widgets.BigClockWidgetProvider
+import org.isoron.uhabits.notifications.BigClockAlarmReceiver
 import org.json.JSONArray
 import java.util.Locale
 
@@ -178,23 +179,28 @@ class BigClockActivity : AppCompatActivity() {
         return ((h.coerceAtMost(99) * 3600 + m.coerceAtMost(59) * 60 + s.coerceAtMost(59)) * 1000L)
     }
     private fun setCountdown() {
+        BigClockAlarmReceiver.cancel(this)
         val duration = countdownDuration()
         state.edit().putLong("down_duration", duration).putLong("down_base", duration).putLong("down_anchor", SystemClock.elapsedRealtime()).putBoolean("down_running", false).apply()
         lastCountdownFinished = false
         sync()
     }
     private fun toggleCountdown() {
-        if (state.getBoolean("down_running", false)) state.edit().putLong("down_base", remaining()).putBoolean("down_running", false).apply()
-        else {
+        if (state.getBoolean("down_running", false)) {
+            state.edit().putLong("down_base", remaining()).putBoolean("down_running", false).apply()
+            BigClockAlarmReceiver.cancel(this)
+        } else {
             val current = state.getLong("down_base", state.getLong("down_duration", 0L))
             val start = if (current <= 0L) countdownDuration() else current
             if (start <= 0L) { Toast.makeText(this, "请先设置倒计时时长", Toast.LENGTH_SHORT).show(); return }
             state.edit().putLong("down_base", start).putLong("down_duration", maxOf(start, state.getLong("down_duration", 0L))).putLong("down_anchor", SystemClock.elapsedRealtime()).putBoolean("down_running", true).apply()
+            BigClockAlarmReceiver.schedule(this, start)
         }
         lastCountdownFinished = false
         sync()
     }
     private fun resetCountdown() {
+        BigClockAlarmReceiver.cancel(this)
         val duration = state.getLong("down_duration", countdownDuration())
         state.edit().putLong("down_base", duration).putLong("down_anchor", SystemClock.elapsedRealtime()).putBoolean("down_running", false).apply()
         lastCountdownFinished = false
@@ -221,6 +227,7 @@ class BigClockActivity : AppCompatActivity() {
                 if (state.getBoolean("down_running", false) && ms == 0L && !lastCountdownFinished) {
                     lastCountdownFinished = true
                     state.edit().putBoolean("down_running", false).putLong("down_base", 0L).apply()
+                    BigClockAlarmReceiver.cancel(this)
                     try { (getSystemService(VIBRATOR_SERVICE) as android.os.Vibrator).vibrate(android.os.VibrationEffect.createOneShot(500, android.os.VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Exception) {}
                     Toast.makeText(this, "倒计时结束", Toast.LENGTH_LONG).show()
                     BigClockWidgetProvider.updateAll(this)
