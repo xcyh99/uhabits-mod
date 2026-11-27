@@ -140,21 +140,37 @@ class StatusBarDaysManagementActivity : AppCompatActivity() {
 
     private inner class RowsAdapter : RecyclerView.Adapter<RowsAdapter.Holder>() {
         var startDrag: ((RecyclerView.ViewHolder) -> Unit)? = null
-        inner class Holder(val number: TextView, val check: CheckBox, val categoryLabel: TextView, val edit: TextView, val remove: TextView, val drag: TextView) : RecyclerView.ViewHolder(LinearLayout(this@StatusBarDaysManagementActivity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(6), dp(7), dp(6), dp(7)); addView(number, LinearLayout.LayoutParams(dp(20), -2)); addView(check, LinearLayout.LayoutParams(0, -2, 1f)); addView(categoryLabel, LinearLayout.LayoutParams(-2, -2)); addView(edit, LinearLayout.LayoutParams(-2, -2)); addView(remove, LinearLayout.LayoutParams(-2, -2)); addView(drag, LinearLayout.LayoutParams(-2, -2)) })
+        inner class Holder(val check: CheckBox, val number: TextView, val title: TextView, val categoryLabel: TextView, val drag: TextView, val edit: TextView, val remove: TextView) : RecyclerView.ViewHolder(LinearLayout(this@StatusBarDaysManagementActivity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(4), dp(5), dp(4), dp(5))
+            addView(check, LinearLayout.LayoutParams(dp(32), dp(44)))
+            addView(number, LinearLayout.LayoutParams(dp(24), dp(44)))
+            addView(title, LinearLayout.LayoutParams(0, dp(44), 1f))
+            addView(categoryLabel, LinearLayout.LayoutParams(-2, dp(44)))
+            addView(drag, LinearLayout.LayoutParams(dp(38), dp(44)))
+            addView(edit, LinearLayout.LayoutParams(dp(42), dp(44)))
+            addView(remove, LinearLayout.LayoutParams(dp(42), dp(44)))
+        })
         private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
         override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): Holder {
-            val number = TextView(this@StatusBarDaysManagementActivity).apply { textSize = 11f; gravity = Gravity.CENTER; setTextColor(0xFF9575CD.toInt()); includeFontPadding = false }
-            val check = CheckBox(this@StatusBarDaysManagementActivity).apply { textSize = 15f; setPadding(0, dp(4), dp(5), dp(4)) }
-            val category = TextView(this@StatusBarDaysManagementActivity).apply { textSize = 11f; setTextColor(if (androidx.core.graphics.ColorUtils.calculateLuminance(StyledResources(this@StatusBarDaysManagementActivity).getColor(R.attr.contrast0)) < .5) Color.LTGRAY else Color.DKGRAY); setPadding(dp(6), 0, dp(4), 0); maxLines = 1 }
-            val drag = TextView(this@StatusBarDaysManagementActivity).apply { text = "☰"; textSize = 22f; gravity = Gravity.CENTER; setPadding(dp(10), dp(4), dp(4), dp(4)); contentDescription = "按住拖动排序" }
-            check.maxLines = 1; check.isSingleLine = true; check.ellipsize = android.text.TextUtils.TruncateAt.END
-            val edit = TextView(this@StatusBarDaysManagementActivity).apply { text = "编辑"; textSize = 12f; setTextColor(0xFF8050C8.toInt()); gravity = Gravity.CENTER; setPadding(dp(5), dp(10), dp(5), dp(10)) }
-            val remove = TextView(this@StatusBarDaysManagementActivity).apply { text = "删除"; textSize = 12f; setTextColor(0xFF8050C8.toInt()); gravity = Gravity.CENTER; setPadding(dp(5), dp(10), dp(5), dp(10)) }
-            return Holder(number, check, category, edit, remove, drag)
+            val check = CheckBox(this@StatusBarDaysManagementActivity).apply { text = ""; buttonTintList = android.content.res.ColorStateList.valueOf(0xFF9575CD.toInt()) }
+            val number = TextView(this@StatusBarDaysManagementActivity).apply { textSize = 13f; gravity = Gravity.CENTER; setTextColor(0xFF9575CD.toInt()); includeFontPadding = false }
+            val title = TextView(this@StatusBarDaysManagementActivity).apply { textSize = 14f; gravity = Gravity.CENTER_VERTICAL; setTextColor(if (androidx.core.graphics.ColorUtils.calculateLuminance(StyledResources(this@StatusBarDaysManagementActivity).getColor(R.attr.contrast0)) < .5) Color.WHITE else Color.BLACK); setPadding(dp(5), 0, dp(4), 0); maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END }
+            val category = TextView(this@StatusBarDaysManagementActivity).apply { textSize = 10f; setTextColor(if (androidx.core.graphics.ColorUtils.calculateLuminance(StyledResources(this@StatusBarDaysManagementActivity).getColor(R.attr.contrast0)) < .5) Color.LTGRAY else Color.DKGRAY); setPadding(dp(3), 0, dp(3), 0); maxLines = 1 }
+            val drag = TextView(this@StatusBarDaysManagementActivity).apply { text = "☷"; textSize = 23f; gravity = Gravity.CENTER; setTextColor(if (androidx.core.graphics.ColorUtils.calculateLuminance(StyledResources(this@StatusBarDaysManagementActivity).getColor(R.attr.contrast0)) < .5) Color.LTGRAY else Color.DKGRAY); contentDescription = "拖动排序" }
+            val edit = TextView(this@StatusBarDaysManagementActivity).apply { text = "编辑"; textSize = 12f; setTextColor(0xFF9575CD.toInt()); gravity = Gravity.CENTER; setPadding(dp(3), dp(10), dp(3), dp(10)) }
+            val remove = TextView(this@StatusBarDaysManagementActivity).apply { text = "删除"; textSize = 12f; setTextColor(0xFF9575CD.toInt()); gravity = Gravity.CENTER; setPadding(dp(3), dp(10), dp(3), dp(10)) }
+            return Holder(check, number, title, category, drag, edit, remove)
         }
         override fun getItemCount() = rows.size
         override fun onBindViewHolder(holder: Holder, position: Int) {
-            val row = rows[position]; holder.number.text = (position + 1).toString(); holder.check.setOnCheckedChangeListener(null); holder.check.text = row.title; holder.categoryLabel.text = row.category; holder.check.isChecked = row.key !in hidden
+            val row = rows[position]
+            holder.number.text = (position + 1).toString()
+            holder.title.text = row.title
+            holder.categoryLabel.text = row.category
+            holder.check.setOnCheckedChangeListener(null)
+            holder.check.isChecked = row.key !in hidden
             holder.check.setOnCheckedChangeListener { _, checked -> setVisible(row, checked) }
             holder.edit.setOnClickListener { editRow(row) }
             holder.remove.setOnClickListener { removeRow(row) }
