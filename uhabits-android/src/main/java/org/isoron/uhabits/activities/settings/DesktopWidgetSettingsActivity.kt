@@ -22,6 +22,7 @@ import org.isoron.uhabits.widgets.DigitalClockWidgetProvider
 /** Central settings page for all home-screen widgets; individual widget settings live here. */
 class DesktopWidgetSettingsActivity : AppCompatActivity() {
     private val store by lazy { PreferenceManager.getDefaultSharedPreferences(this) }
+    private var shortcutCountLabel: TextView? = null
     private val slots = listOf(
         Slot("hour", "小时区域", "单独设置点击小时数字后打开的目标"),
         Slot("minute", "分钟区域", "单独设置点击分钟数字后打开的目标"),
@@ -141,6 +142,12 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateWidget()
+        shortcutCountLabel?.text = visibleShortcutCount().toString() + "个快捷"
+    }
+
+    private fun visibleShortcutCount(): Int {
+        val limit = store.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
+        return (1..8).count { slot -> store.getBoolean("digital_clock_shortcut_enabled_$slot", slot <= 4) }.coerceAtMost(limit)
     }
 
     private fun render() {
@@ -194,12 +201,16 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
                 setPadding(0, dp(3), 0, 0)
             })
             card.addView(textColumn, LinearLayout.LayoutParams(0, -2, 1f))
-            if (!rightText.isNullOrBlank()) card.addView(TextView(this).apply {
-                text = rightText
-                textSize = 12f
-                setTextColor(Color.rgb(76, 175, 80))
-                setPadding(dp(4), 0, dp(6), 0)
-            })
+            if (!rightText.isNullOrBlank()) {
+                val countView = TextView(this).apply {
+                    text = rightText
+                    textSize = 12f
+                    setTextColor(Color.rgb(76, 175, 80))
+                    setPadding(dp(4), 0, dp(6), 0)
+                }
+                if (title == "快捷方式管理") shortcutCountLabel = countView
+                card.addView(countView)
+            }
             card.addView(TextView(this).apply {
                 text = "›"
                 textSize = 27f
@@ -231,11 +242,7 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
         actionCard("时间制式与日期格式", "设置12/24小时制和日期星期显示格式") { showTimeDateSettings() }
 
         section("快捷入口", "管理桌面组件第四行显示的快捷方式")
-        val shortcutLimit = store.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
-        val shortcutVisibleCount = (1..8).count { slot ->
-            store.getBoolean("digital_clock_shortcut_enabled_$slot", slot <= 4)
-        }.coerceAtMost(shortcutLimit)
-        actionCard("快捷方式管理", "设置0～8个快捷方式，调整显示、排序、编辑和删除", rightText = "${shortcutVisibleCount}个快捷") {
+        actionCard("快捷方式管理", "设置0～8个快捷方式，调整显示、排序、编辑和删除", rightText = visibleShortcutCount().toString() + "个快捷") {
             startActivity(Intent(this, DigitalClockShortcutManagementActivity::class.java))
         }
 
