@@ -104,7 +104,7 @@ class StatusBarDaysManagementActivity : AppCompatActivity() {
             "checkin" -> {
                 val id = parts[1].toLongOrNull() ?: return
                 val habit = (application as HabitsApplication).component.habitList.getById(id) ?: return
-                startActivity(org.isoron.uhabits.intents.IntentFactory().startShowHabitActivity(this, habit))
+                startActivity(org.isoron.uhabits.intents.IntentFactory().startEditActivity(this, habit))
             }
         }
     }
