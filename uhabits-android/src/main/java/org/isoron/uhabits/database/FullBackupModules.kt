@@ -181,6 +181,7 @@ internal object FullBackupModuleRegistry {
                     val bottomRight = prefs.getString("${id}_bottomRight", right ?: "feature:__settings")
                     configs[id] = JSONObject()
                         .put("sourceWidgetId", id)
+                        .put("sourceUri", prefs.getString("${id}_sourceUri", null))
                         .put("left", left ?: topLeft)
                         .put("right", right ?: topRight)
                         .put("split", prefs.getInt("${id}_split", 5).coerceIn(1, 9))
@@ -216,6 +217,7 @@ internal object FullBackupModuleRegistry {
                         .put("bottomLeft", item.pictureBottomLeft ?: left)
                         .put("bottomRight", item.pictureBottomRight ?: right)
                         .put("imageMode", item.pictureImageMode)
+                        .put("sourceUri", item.pictureSourceUri)
                 }
             val array = JSONArray()
             configs.values.forEach { array.put(it) }
@@ -238,6 +240,7 @@ internal object FullBackupModuleRegistry {
                     item.opt("left") !is String || item.opt("right") !is String ||
                     split !in 1..9 || splitY !in 1..9 ||
                     item.optString("imageMode") !in setOf("fit", "stretch", "crop") ||
+                    (item.has("sourceUri") && item.opt("sourceUri") !is String && item.opt("sourceUri") != JSONObject.NULL) ||
                     listOf("topLeft", "topRight", "bottomLeft", "bottomRight").any { key ->
                         item.has(key) && item.opt(key) !is String
                     }
@@ -267,7 +270,8 @@ internal object FullBackupModuleRegistry {
                     pictureTopLeft = if (item.has("topLeft")) item.optString("topLeft") else left,
                     pictureTopRight = if (item.has("topRight")) item.optString("topRight") else right,
                     pictureBottomLeft = if (item.has("bottomLeft")) item.optString("bottomLeft") else left,
-                    pictureBottomRight = if (item.has("bottomRight")) item.optString("bottomRight") else right
+                    pictureBottomRight = if (item.has("bottomRight")) item.optString("bottomRight") else right,
+                    pictureSourceUri = item.optString("sourceUri").takeIf { it.isNotBlank() }
                 )
             }
             org.isoron.uhabits.widgets.WidgetRestoreStore.replaceType(context, "picture", restored)
@@ -629,7 +633,10 @@ internal object FullBackupModuleRegistry {
         val values = JSONObject()
         preferences.all.toSortedMap().forEach { (key, value) ->
             if (excludeDeviceLocal && isDeviceLocalPreference(key)) return@forEach
-            encodeValue(value)?.let { values.put(key, it) }
+            val portableValue = if (key == "desktop_shortcut_entries_v1" && value is String) {
+                stripDesktopShortcutPhotoPaths(value)
+            } else value
+            encodeValue(portableValue)?.let { values.put(key, it) }
         }
         return JSONObject()
             .put("format", "SHIZI_PREFERENCES")
@@ -656,7 +663,10 @@ internal object FullBackupModuleRegistry {
         values.keys().forEach { key ->
             if (skipDeviceLocal && isDeviceLocalPreference(key)) return@forEach
             val item = values.getJSONObject(key)
-            val value = item.get("value")
+            val rawValue = item.get("value")
+            val value = if (key == "desktop_shortcut_entries_v1" && rawValue is String) {
+                stripDesktopShortcutPhotoPaths(rawValue)
+            } else rawValue
             when (item.getString("type")) {
                 "boolean" -> editor.putBoolean(key, value as Boolean)
                 "int" -> editor.putInt(key, (value as Number).toInt())
@@ -688,6 +698,17 @@ internal object FullBackupModuleRegistry {
             else -> return null
         }
         return result
+    }
+
+    /** Remove only the device-local cached image path; retain URI, display name, location and scale mode. */
+    private fun stripDesktopShortcutPhotoPaths(raw: String): String = try {
+        val array = JSONArray(raw)
+        for (index in 0 until array.length()) {
+            array.optJSONObject(index)?.put("photo", "")
+        }
+        array.toString()
+    } catch (_: Exception) {
+        raw
     }
 
     private fun isDeviceLocalPreference(key: String): Boolean =

@@ -319,12 +319,14 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             splitX = restored.pictureSplit
             splitY = restored.pictureSplitY
             imageMode = restored.pictureImageMode
+            imageUri = restored.pictureSourceUri?.let { runCatching { Uri.parse(it) }.getOrNull() }
             imageFile = null
             modeSpinner.setSelection(when (imageMode) { "stretch" -> 1; "crop" -> 2; else -> 0 })
             updatePreviewScaleType()
             editorView.splitX = splitX
             editorView.splitY = splitY
-            imageStatus.text = "设置已载入；轻量备份不含图片，请重新选择原图片后保存"
+            imageStatus.text = "设置已载入；备份保留了原图来源，但不含图片文件，请重新选择原图片后保存"
+            imageAddress.text = imageUri?.toString().orEmpty()
         }
         legacyRestoredConfig?.let { restored ->
             restoreSourceWidgetId = restored.sourceWidgetId

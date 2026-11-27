@@ -35,7 +35,8 @@ internal object WidgetRestoreStore {
         val pictureTopLeft: String? = null,
         val pictureTopRight: String? = null,
         val pictureBottomLeft: String? = null,
-        val pictureBottomRight: String? = null
+        val pictureBottomRight: String? = null,
+        val pictureSourceUri: String? = null
     )
 
     private fun preferences(context: Context) =
@@ -72,7 +73,8 @@ internal object WidgetRestoreStore {
                     if (item.has("pictureTopLeft")) item.optString("pictureTopLeft") else null,
                     if (item.has("pictureTopRight")) item.optString("pictureTopRight") else null,
                     if (item.has("pictureBottomLeft")) item.optString("pictureBottomLeft") else null,
-                    if (item.has("pictureBottomRight")) item.optString("pictureBottomRight") else null
+                    if (item.has("pictureBottomRight")) item.optString("pictureBottomRight") else null,
+                    item.optString("pictureSourceUri").takeIf { it.isNotBlank() }
                 )
             }
         }.getOrDefault(emptyList())
@@ -98,7 +100,8 @@ internal object WidgetRestoreStore {
                 .put("pictureTopLeft", item.pictureTopLeft)
                 .put("pictureTopRight", item.pictureTopRight)
                 .put("pictureBottomLeft", item.pictureBottomLeft)
-                .put("pictureBottomRight", item.pictureBottomRight))
+                .put("pictureBottomRight", item.pictureBottomRight)
+                .put("pictureSourceUri", item.pictureSourceUri))
         }
         preferences(context).edit()
             .putString(PENDING, array.toString())
