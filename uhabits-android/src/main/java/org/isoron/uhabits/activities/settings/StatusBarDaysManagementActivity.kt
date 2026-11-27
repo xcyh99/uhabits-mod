@@ -74,8 +74,8 @@ class StatusBarDaysManagementActivity : AppCompatActivity() {
             val mode = split[0]; val id = split[1]
             val pair = when (mode) {
                 "checkin" -> { val habit = app.component.habitList.getById(id.toLongOrNull() ?: return@mapNotNull null) ?: return@mapNotNull null; "距离上次打卡" to habit.name }
-                "elapsed" -> { val record = TimeRecordStore.get(this, id) ?: return@mapNotNull null; "正计天" to record.title }
-                "countdown" -> { val record = TimeRecordStore.get(this, id) ?: return@mapNotNull null; "倒计天" to record.title }
+                "elapsed" -> { val record = TimeRecordStore.get(this, id) ?: return@mapNotNull null; if (record.type != org.isoron.uhabits.activities.timerecords.TimeRecord.ELAPSED) return@mapNotNull null; "正计天" to record.title }
+                "countdown" -> { val record = TimeRecordStore.get(this, id) ?: return@mapNotNull null; if (record.type != org.isoron.uhabits.activities.timerecords.TimeRecord.COUNTDOWN) return@mapNotNull null; "倒计天" to record.title }
                 else -> return@mapNotNull null
             }
             Row(key, pair.first, pair.second)
