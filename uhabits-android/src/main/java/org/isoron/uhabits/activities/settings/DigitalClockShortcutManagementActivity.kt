@@ -140,14 +140,18 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
                             val parent = list
                             val targetIndex = (0 until parent.childCount).firstOrNull { i ->
                                 val child = parent.getChildAt(i)
-                                y >= child.y && y <= child.y + child.height
+                                val location = IntArray(2)
+                                child.getLocationOnScreen(location)
+                                y >= location[1] && y <= location[1] + child.height
                             }
-                            if (targetIndex != null && targetIndex != index) {
+                            if (targetIndex != null) {
                                 val from = rows.indexOf(slot)
-                                val moved = rows.removeAt(from)
-                                rows.add(targetIndex.coerceIn(0, rows.size), moved)
-                                persistOrder()
-                                renderRows()
+                                if (from >= 0 && targetIndex != from) {
+                                    val moved = rows.removeAt(from)
+                                    rows.add(targetIndex.coerceIn(0, rows.size), moved)
+                                    persistOrder()
+                                    renderRows()
+                                }
                             }
                             true
                         }
