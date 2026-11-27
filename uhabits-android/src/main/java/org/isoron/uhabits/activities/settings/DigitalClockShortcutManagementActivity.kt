@@ -9,6 +9,9 @@ import android.content.ClipData
 import android.view.View
 import android.view.DragEvent
 import android.widget.CheckBox
+import android.widget.ImageView
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -139,6 +142,17 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
             })
             val target = store.getString(targetKey(slot), null)
             val name = target?.let(::targetLabel) ?: "未设置"
+            val rowIcon = ImageView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(dp(34), dp(34)).apply { marginEnd = dp(7) }
+                scaleType = ImageView.ScaleType.FIT_CENTER
+                val uri = store.getString(iconUriKey(slot), null)?.let(Uri::parse)
+                val bitmap = uri?.let { runCatching { contentResolver.openInputStream(it)?.use(BitmapFactory::decodeStream) }.getOrNull() }
+                setImageBitmap(bitmap)
+                if (bitmap == null) setImageResource(android.R.drawable.ic_menu_view)
+                isClickable = true
+                setOnClickListener { startActivity(Intent(this@DigitalClockShortcutManagementActivity, DigitalClockShortcutIconActivity::class.java).putExtra(EXTRA_SLOT, slot)) }
+            }
+            row.addView(rowIcon)
             row.addView(TextView(this).apply {
                 text = name
                 textSize = 15f
@@ -164,10 +178,16 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
                 }
             }
             row.addView(handle, LinearLayout.LayoutParams(dp(38), dp(44)))
-            row.addView(actionIcon(android.R.drawable.ic_menu_edit, "编辑", PURPLE) { editTarget(slot) },
-                LinearLayout.LayoutParams(dp(48), dp(48)).apply { marginStart = dp(6) })
-            row.addView(actionIcon(android.R.drawable.ic_menu_delete, "删除", Color.rgb(211, 76, 76)) { confirmDelete(slot) },
-                LinearLayout.LayoutParams(dp(48), dp(48)).apply { marginStart = dp(10) })
+            row.addView(TextView(this).apply {
+                text = "编辑"; textSize = 12f; gravity = Gravity.CENTER
+                setTextColor(PURPLE); setPadding(dp(3), dp(10), dp(3), dp(10))
+                setOnClickListener { editTarget(slot) }
+            }, LinearLayout.LayoutParams(dp(42), dp(44)).apply { marginStart = dp(2) })
+            row.addView(TextView(this).apply {
+                text = "删除"; textSize = 12f; gravity = Gravity.CENTER
+                setTextColor(Color.rgb(211, 76, 76)); setPadding(dp(3), dp(10), dp(3), dp(10))
+                setOnClickListener { confirmDelete(slot) }
+            }, LinearLayout.LayoutParams(dp(42), dp(44)).apply { marginStart = dp(3) })
             list.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(7) })
         }
     }
@@ -238,6 +258,10 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
     }
 
     private fun targetKey(slot: Int) = "digital_clock_target_shortcut$slot"
+    private fun iconUriKey(slot: Int) = "digital_clock_shortcut_icon_uri_$slot"
+    companion object {
+        const val EXTRA_SLOT = "digital_clock_shortcut_icon_slot"
+    }
     private fun targetLabel(value: String): String = when {
         value.startsWith("feature:") -> FeatureShortcutCatalog.getCachedEntry(this, value.removePrefix("feature:"))?.name ?: "十字习惯功能"
         value.startsWith("app:") -> {
