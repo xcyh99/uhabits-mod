@@ -151,9 +151,22 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
                 layoutParams = LinearLayout.LayoutParams(dp(34), dp(34)).apply { marginEnd = dp(7) }
                 scaleType = ImageView.ScaleType.FIT_CENTER
                 val uri = store.getString(iconUriKey(slot), null)?.let(Uri::parse)
-                val bitmap = uri?.let { runCatching { contentResolver.openInputStream(it)?.use(BitmapFactory::decodeStream) }.getOrNull() }
-                setImageBitmap(bitmap)
-                if (bitmap == null) setImageResource(android.R.drawable.ic_menu_view)
+                val bitmap = uri?.let { runCatching { contentResolver.openInputStream(it)?.use { stream -> BitmapFactory.decodeStream(stream) } }.getOrNull() }
+                if (bitmap != null) {
+                    setImageBitmap(bitmap)
+                } else {
+                    val drawable = when {
+                        target?.startsWith("feature:") == true ->
+                            FeatureShortcutCatalog.getCachedEntry(this@DigitalClockShortcutManagementActivity, target.removePrefix("feature:"))?.icon
+                        target?.startsWith("app:") == true -> {
+                            val component = ComponentName.unflattenFromString(target.removePrefix("app:"))
+                            component?.let { runCatching { packageManager.getActivityInfo(it, 0).loadIcon(packageManager) }.getOrNull() }
+                        }
+                        target == "system:settings" -> getDrawable(android.R.drawable.ic_menu_manage)
+                        else -> getDrawable(android.R.drawable.ic_menu_view)
+                    }
+                    setImageDrawable(drawable ?: getDrawable(android.R.drawable.ic_menu_view))
+                }
                 isClickable = true
                 setOnClickListener { startActivity(Intent(this@DigitalClockShortcutManagementActivity, DigitalClockShortcutIconActivity::class.java).putExtra(EXTRA_SLOT, slot)) }
             }
