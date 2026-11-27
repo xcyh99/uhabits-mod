@@ -47,7 +47,7 @@ class StatusBarDaysManagementActivity : AppCompatActivity() {
             override fun onMove(rv: RecyclerView, vh: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
                 val from = vh.adapterPosition; val to = target.adapterPosition
                 if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION) return false
-                val item = rows.removeAt(from); rows.add(to, item); adapter.notifyItemMoved(from, to); persistOrder(); return true
+                val item = rows.removeAt(from); rows.add(to, item); adapter.notifyItemMoved(from, to); adapter.notifyItemRangeChanged(minOf(from, to), kotlin.math.abs(to - from) + 1); persistOrder(); return true
             }
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) = Unit
             override fun isLongPressDragEnabled() = false
@@ -128,6 +128,10 @@ class StatusBarDaysManagementActivity : AppCompatActivity() {
                     .putStringSet(KEY_HIDDEN, hidden.toSet())
                     .putString(KEY_ORDER, JSONArray(order).toString())
                     .apply()
+                if (configured.isEmpty()) {
+                    // Prevent the legacy single-item setting from being migrated back into the list.
+                    prefs.edit().putString("status_bar_days_mode", "off").apply()
+                }
                 reloadRows()
                 StatusBarDaysNotifier.update(this)
             }
