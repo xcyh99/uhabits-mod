@@ -18,6 +18,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
+import org.isoron.uhabits.HabitsApplication
+import org.isoron.uhabits.activities.AndroidThemeSwitcher
 
 /** Manages the fourth-row shortcuts of the digital-clock widget. */
 class DigitalClockShortcutManagementActivity : AppCompatActivity() {
@@ -33,6 +35,7 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        (application as HabitsApplication).component.preferences.let { AndroidThemeSwitcher(this, it).apply() }
         super.onCreate(savedInstanceState)
         title = "快捷方式管理"
         maxCount = store.getInt(KEY_COUNT, 4).coerceIn(0, 8)
