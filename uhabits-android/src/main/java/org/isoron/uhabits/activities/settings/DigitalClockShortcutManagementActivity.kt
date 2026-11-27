@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.Gravity
 import android.content.ClipData
 import android.view.View
+import android.view.DragEvent
 import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -93,11 +94,11 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
                 background = cardBackground()
                 setOnDragListener { _, event ->
                     when (event.action) {
-                        View.DRAG_STARTED -> event.localState is Int
-                        View.DRAG_ENTERED -> { alpha = 0.72f; true }
-                        View.DRAG_EXITED -> { alpha = 1f; true }
-                        View.DRAG_ENDED -> { alpha = 1f; true }
-                        View.DRAG_DROP -> {
+                        DragEvent.ACTION_DRAG_STARTED -> event.localState is Int
+                        DragEvent.ACTION_DRAG_ENTERED -> { alpha = 0.72f; true }
+                        DragEvent.ACTION_DRAG_EXITED -> { alpha = 1f; true }
+                        DragEvent.ACTION_DRAG_ENDED -> { alpha = 1f; true }
+                        DragEvent.ACTION_DROP -> {
                             alpha = 1f
                             val draggedSlot = event.localState as? Int
                             val from = rows.indexOf(draggedSlot)
@@ -185,7 +186,7 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
                 val next = values[which]
                 val selected = rows.count { store.getBoolean(KEY_ENABLED + it, it <= 4) }
                 if (selected > next) {
-                    AlertDialog.Builder(this).setMessage("当前已勾选$selected个。请先取消多余项目，再将数量调整为$next个。")
+                    AlertDialog.Builder(this).setMessage("当前已勾选${selected}个。请先取消多余项目，再将数量调整为${next}个。")
                         .setPositiveButton("知道了", null).show()
                 } else {
                     onSelected(next)
