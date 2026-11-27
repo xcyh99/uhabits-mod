@@ -73,7 +73,8 @@ class PictureShortcutWidgetConfigureActivity : AppCompatActivity() {
             setPadding(dp(20), dp(16), dp(20), dp(20))
         }
         preview = ImageView(this).apply {
-            scaleType = ImageView.ScaleType.CENTER_CROP
+            // Match the default mode (完全适应) from the first frame; do not preview as CENTER_CROP.
+            scaleType = ImageView.ScaleType.FIT_CENTER
             setBackgroundColor(0xFF30343B.toInt())
         }
         imageStatus = TextView(this).apply {
