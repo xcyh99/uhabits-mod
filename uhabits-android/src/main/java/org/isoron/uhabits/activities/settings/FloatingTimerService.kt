@@ -65,7 +65,10 @@ class FloatingTimerService : Service() {
             return START_NOT_STICKY
         }
         if (timerView == null) showOverlay()
-        if (intent?.action == ACTION_SETUP || (!prefs.contains("mode") && !syncEnabled())) showSetupDialog()
+        if (intent?.action == ACTION_SETUP || (!prefs.contains("mode") && !syncEnabled())) {
+            startActivity(Intent(this, FloatingTimerManagementActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP))
+        }
         handler.removeCallbacks(ticker)
         handler.post(ticker)
         return START_STICKY
