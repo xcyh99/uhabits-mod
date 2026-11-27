@@ -31,8 +31,8 @@
         <item name="cardBackground">@drawable/card_light_background</item>
         <item name="cardBgColor">@color/grey_50</item>
         <item name="colorAccent">?aboutScreenColor</item>
-        <item name="colorPrimary">#363636</item>
-        <item name="colorPrimaryDark">#303030</item>
+        <item name="colorPrimary">@color/shizi_purple</item>
+        <item name="colorPrimaryDark">@color/deep_purple_700</item>
         <item name="dialogIconChangeColor">@drawable/ic_action_color_light</item>
         <item name="headerBackgroundColor">@color/grey_200</item>
         <item name="highlightedBackgroundColor">@color/grey_100</item>
