@@ -10,7 +10,9 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import org.isoron.uhabits.HabitsApplication
+import org.isoron.uhabits.R
 import org.isoron.uhabits.activities.AndroidThemeSwitcher
+import org.isoron.uhabits.utils.StyledResources
 
 class ParameterCenterActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -18,14 +20,13 @@ class ParameterCenterActivity : AppCompatActivity() {
         AndroidThemeSwitcher(this, preferences).apply()
         super.onCreate(savedInstanceState)
         title = "参数中心"
-        window.statusBarColor = Color.rgb(20, 22, 26)
-        window.navigationBarColor = Color.rgb(20, 22, 26)
 
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
-        val background = Color.rgb(25, 27, 31)
-        val primary = Color.WHITE
-        val secondary = Color.LTGRAY
+        val background = StyledResources(this).getColor(R.attr.contrast0)
+        val dark = androidx.core.graphics.ColorUtils.calculateLuminance(background) < 0.5
+        val primary = if (dark) Color.WHITE else Color.BLACK
+        val secondary = if (dark) Color.LTGRAY else Color.DKGRAY
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(12), dp(16), dp(24))
@@ -51,9 +52,9 @@ class ParameterCenterActivity : AppCompatActivity() {
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(dp(16), dp(16), dp(14), dp(16))
                 background = GradientDrawable().apply {
-                    setColor(Color.rgb(45, 48, 55))
+                    setColor(if (dark) Color.rgb(45, 48, 55) else Color.WHITE)
                     cornerRadius = dp(13).toFloat()
-                    setStroke(dp(1), Color.rgb(75, 78, 86))
+                    setStroke(dp(1), if (dark) Color.rgb(75, 78, 86) else Color.rgb(225, 228, 233))
                 }
                 isClickable = true
                 isFocusable = true
