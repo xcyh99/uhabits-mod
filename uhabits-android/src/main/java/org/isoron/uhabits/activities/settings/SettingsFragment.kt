@@ -207,6 +207,10 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                     showWhiteOutlineTargets()
                     return@post
                 }
+                if (targetPreference == "whiteTextWeightTargets") {
+                    showWhiteTextWeightTargets()
+                    return@post
+                }
                 val key = when (targetPreference) {
                     "autoBackupNow", "autoBackupStatus", "publicBackupFolder" -> "autoBackup"
                     else -> targetPreference ?: "featureCenterCategory"
@@ -286,7 +290,7 @@ class SettingsFragment : PreferenceFragmentCompat(), OnSharedPreferenceChangeLis
                 return true
             }
             "parameterCenter" -> {
-                showParameterCenter()
+                startActivity(Intent(requireContext(), ParameterCenterActivity::class.java))
                 return true
             }
             "parameterEmergencyReset" -> {
