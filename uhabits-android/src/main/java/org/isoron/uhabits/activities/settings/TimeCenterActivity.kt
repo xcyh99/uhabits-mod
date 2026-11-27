@@ -92,8 +92,7 @@ class TimeCenterActivity : AppCompatActivity() {
             startActivity(Intent(this, StatusBarDaysManagementActivity::class.java))
         }
         item("悬浮计时器", "启动和设置悬浮计时器") {
-            startActivity(Intent(this, SettingsActivity::class.java)
-                .putExtra("open_preference_key", "floatingTimer"))
+            startActivity(Intent(this, FloatingTimerManagementActivity::class.java))
         }
 
         setContentView(ScrollView(this).apply {
