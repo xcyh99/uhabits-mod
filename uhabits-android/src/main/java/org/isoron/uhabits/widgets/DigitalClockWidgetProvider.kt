@@ -29,11 +29,11 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
     companion object {
         private val containers = intArrayOf(
             R.id.digital_clock_shortcut1, R.id.digital_clock_shortcut2, R.id.digital_clock_shortcut3, R.id.digital_clock_shortcut4,
-            R.id.digital_clock_shortcut5, R.id.digital_clock_shortcut6, R.id.digital_clock_shortcut7, R.id.digital_clock_shortcut8, R.id.digital_clock_shortcut9
+            R.id.digital_clock_shortcut5, R.id.digital_clock_shortcut6, R.id.digital_clock_shortcut7, R.id.digital_clock_shortcut8
         )
         private val icons = intArrayOf(
             R.id.digital_clock_shortcut1_icon, R.id.digital_clock_shortcut2_icon, R.id.digital_clock_shortcut3_icon, R.id.digital_clock_shortcut4_icon,
-            R.id.digital_clock_shortcut5_icon, R.id.digital_clock_shortcut6_icon, R.id.digital_clock_shortcut7_icon, R.id.digital_clock_shortcut8_icon, R.id.digital_clock_shortcut9_icon
+            R.id.digital_clock_shortcut5_icon, R.id.digital_clock_shortcut6_icon, R.id.digital_clock_shortcut7_icon, R.id.digital_clock_shortcut8_icon
         )
         fun updateAll(context: Context, manager: AppWidgetManager, ids: IntArray) {
             ids.forEach { updateWidget(context, manager, it) }
@@ -179,10 +179,13 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     views.setViewPadding(viewId, 0, extraPaddingPx + offsetTopPadding, 0, extraPaddingPx + offsetBottomPadding)
                 }
             }
-            val configuredCount = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(4, 9)
+            val configuredCount = shortcutCount
             val savedOrder = prefs.getString("digital_clock_shortcut_order", null)
                 ?.split(",")?.mapNotNull { it.toIntOrNull() }
-                ?.takeIf { it.size == 9 && it.toSet() == (1..9).toSet() } ?: (1..9).toList()
+                ?.let { saved ->
+                    val valid = saved.filter { it in 1..8 }.distinct()
+                    if (valid.size == 8) valid + (1..8).filterNot { it in valid } else (1..8).toList()
+                } ?: (1..8).toList()
             val visibleSlots = savedOrder.filter { slot ->
                 prefs.getBoolean("digital_clock_shortcut_enabled_$slot", slot <= 4)
             }.take(configuredCount)
