@@ -29,11 +29,11 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
     companion object {
         private val containers = intArrayOf(
             R.id.digital_clock_shortcut1, R.id.digital_clock_shortcut2, R.id.digital_clock_shortcut3, R.id.digital_clock_shortcut4,
-            R.id.digital_clock_shortcut5, R.id.digital_clock_shortcut6, R.id.digital_clock_shortcut7, R.id.digital_clock_shortcut8
+            R.id.digital_clock_shortcut5, R.id.digital_clock_shortcut6, R.id.digital_clock_shortcut7, R.id.digital_clock_shortcut8, R.id.digital_clock_shortcut9
         )
         private val icons = intArrayOf(
             R.id.digital_clock_shortcut1_icon, R.id.digital_clock_shortcut2_icon, R.id.digital_clock_shortcut3_icon, R.id.digital_clock_shortcut4_icon,
-            R.id.digital_clock_shortcut5_icon, R.id.digital_clock_shortcut6_icon, R.id.digital_clock_shortcut7_icon, R.id.digital_clock_shortcut8_icon
+            R.id.digital_clock_shortcut5_icon, R.id.digital_clock_shortcut6_icon, R.id.digital_clock_shortcut7_icon, R.id.digital_clock_shortcut8_icon, R.id.digital_clock_shortcut9_icon
         )
         fun updateAll(context: Context, manager: AppWidgetManager, ids: IntArray) {
             ids.forEach { updateWidget(context, manager, it) }
@@ -179,7 +179,14 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     views.setViewPadding(viewId, 0, extraPaddingPx + offsetTopPadding, 0, extraPaddingPx + offsetBottomPadding)
                 }
             }
-            val count = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(0, 8)
+            val configuredCount = prefs.getInt("digital_clock_shortcut_count", 4).coerceIn(4, 9)
+            val savedOrder = prefs.getString("digital_clock_shortcut_order", null)
+                ?.split(",")?.mapNotNull { it.toIntOrNull() }
+                ?.takeIf { it.size == 9 && it.toSet() == (1..9).toSet() } ?: (1..9).toList()
+            val visibleSlots = savedOrder.filter { slot ->
+                prefs.getBoolean("digital_clock_shortcut_enabled_$slot", slot <= 4)
+            }.take(configuredCount)
+            val count = visibleSlots.size
             views.setViewVisibility(R.id.digital_clock_shortcut_row, if (count == 0) android.view.View.GONE else android.view.View.VISIBLE)
             if (android.os.Build.VERSION.SDK_INT >= 31 && count > 0) {
                 val options = manager.getAppWidgetOptions(widgetId)
@@ -191,25 +198,21 @@ class DigitalClockWidgetProvider : AppWidgetProvider() {
                     views.setViewLayoutHeight(iconId, iconDp.toFloat(), android.util.TypedValue.COMPLEX_UNIT_DIP)
                 }
             }
-            for (i in containers.indices) {
-                val container = containers[i]
-                if (i >= count) {
-                    views.setViewVisibility(container, android.view.View.GONE)
-                    continue
-                }
+            containers.forEach { views.setViewVisibility(it, android.view.View.GONE) }
+            visibleSlots.forEachIndexed { position, slot ->
+                val container = containers[position]
+                val icon = icons[position]
                 views.setViewVisibility(container, android.view.View.VISIBLE)
-                val gravity = when (i) {
+                val gravity = when (position) {
                     0 -> android.view.Gravity.CENTER_VERTICAL or android.view.Gravity.START
                     count - 1 -> android.view.Gravity.CENTER_VERTICAL or android.view.Gravity.END
                     else -> android.view.Gravity.CENTER
                 }
                 views.setInt(container, "setGravity", gravity)
-                val target = prefs.getString("digital_clock_target_shortcut" + (i + 1), null)
-                val resolved = resolveShortcut(context, target, i + 1)
-                resolved.second?.let { views.setImageViewBitmap(icons[i], it) }
-                if (target != "none") {
-                    views.setOnClickPendingIntent(container, createTargetPendingIntent(context, widgetId, i + 2, target))
-                }
+                val target = prefs.getString("digital_clock_target_shortcut$slot", null)
+                val resolved = resolveShortcut(context, target, slot)
+                resolved.second?.let { views.setImageViewBitmap(icon, it) }
+                views.setOnClickPendingIntent(container, createTargetPendingIntent(context, widgetId, slot + 1, target))
             }
             // Keep the former shared time target as a fallback for existing installations.
             val legacyTimeTarget = prefs.getString("digital_clock_target_time", null)
