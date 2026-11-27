@@ -79,7 +79,7 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
     private fun ensureDefaults() {
         if (!store.contains(KEY_ENABLED + "1")) {
             val e = store.edit()
-            for (i in 1..8) e.putBoolean(KEY_ENABLED + i, i <= 4)
+            for (i in 1..8) e.putBoolean(KEY_ENABLED + i, i <= minOf(4, maxCount))
             e.apply()
         }
     }
@@ -116,10 +116,10 @@ class DigitalClockShortcutManagementActivity : AppCompatActivity() {
             }
             val check = CheckBox(this).apply {
                 buttonTintList = android.content.res.ColorStateList.valueOf(if (isChecked) PURPLE else resolveSecondaryText())
-                isChecked = store.getBoolean(KEY_ENABLED + slot, slot <= 4)
+                isChecked = store.getBoolean(KEY_ENABLED + slot, slot <= minOf(4, maxCount))
                 text = ""
                 setOnCheckedChangeListener { _, checked ->
-                    val selected = rows.count { store.getBoolean(KEY_ENABLED + it, it <= 4) }
+                    val selected = rows.count { store.getBoolean(KEY_ENABLED + it, it <= minOf(4, maxCount)) }
                     if (checked && !store.getBoolean(KEY_ENABLED + slot, slot <= 4) && selected >= maxCount) {
                         isChecked = false
                         Toast.makeText(this@DigitalClockShortcutManagementActivity, "已达到${maxCount}个快捷方式上限，请先取消其他项目。", Toast.LENGTH_SHORT).show()
