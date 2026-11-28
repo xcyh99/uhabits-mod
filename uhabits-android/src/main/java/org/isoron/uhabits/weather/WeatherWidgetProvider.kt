@@ -246,10 +246,14 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             if (hd != 0) {
                 views.setViewVisibility(hd, View.VISIBLE)
                 views.setFloat(hd, "setTranslationY", highY[i] - heightPx / 2f)
+                views.setFloat(hd, "setScaleX", 3f * chartScale / density)
+                views.setFloat(hd, "setScaleY", 3f * chartScale / density)
             }
             if (ld != 0) {
                 views.setViewVisibility(ld, View.VISIBLE)
                 views.setFloat(ld, "setTranslationY", lowY[i] - heightPx / 2f)
+                views.setFloat(ld, "setScaleX", 3f * chartScale / density)
+                views.setFloat(ld, "setScaleY", 3f * chartScale / density)
             }
             placeLabel("weather_high_label_$i", "${visible[i].high}°", highY[i], true)
             placeLabel("weather_low_label_$i", "${visible[i].low}°", lowY[i], false)
@@ -264,6 +268,9 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                     val angle = Math.toDegrees(kotlin.math.atan2((ys[i + 1] - ys[i]).toDouble(), step.toDouble())).toFloat()
                     views.setFloat(id, "setRotation", angle)
                     views.setFloat(id, "setTranslationX", step / 2f)
+                    val dy = ys[i + 1] - ys[i]
+                    views.setFloat(id, "setScaleX", kotlin.math.sqrt(step * step + dy * dy) / step)
+                    views.setFloat(id, "setScaleY", 1.5f * chartScale / density)
                     views.setFloat(id, "setTranslationY", (ys[i] + ys[i + 1]) / 2f - heightPx / 2f)
                 }
             }
