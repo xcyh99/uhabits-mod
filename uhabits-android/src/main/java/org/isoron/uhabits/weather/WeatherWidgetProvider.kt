@@ -55,29 +55,30 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     }
 
     /**
-     * The fixed-width widget uses its height to select the number of visible
-     * diagonal glyph segments. Dimensions supplied by AppWidgetOptions are dp.
+     * Select visible diagonal strokes from the widget's horizontal size.
+     * AppWidgetOptions dimensions are supplied in dp.
      */
     private fun applyResponsiveLineCount(views: RemoteViews, options: Bundle) {
-        val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
-        val maxHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT)
-        val widgetHeightDp = when {
-            minHeight > 0 -> minHeight
-            maxHeight > 0 -> maxHeight
+        val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
+        val maxWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH)
+        val widgetWidthDp = when {
+            minWidth > 0 -> minWidth
+            maxWidth > 0 -> maxWidth
             else -> 50
         }
 
-        // Typical launcher row sizing: roughly 70dp per row minus 30dp spacing.
+        // Width-based tiers; the maximum is six strokes for seven forecast days.
         val visibleSegments = when {
-            widgetHeightDp < 85 -> 1   // 2x1
-            widgetHeightDp < 155 -> 2  // 2x2
-            widgetHeightDp < 225 -> 4  // 2x3
-            widgetHeightDp < 295 -> 5  // 2x4
-            else -> 7                  // 2x5
+            widgetWidthDp < 85 -> 1
+            widgetWidthDp < 155 -> 2
+            widgetWidthDp < 225 -> 4
+            widgetWidthDp < 295 -> 5
+            else -> 6
         }
 
-        val high = "╱╲╱╱╲╱╲"
-        val low = "╲╱╲╲╱╲╱"
+        // Seven forecast days form six intervals, so the trend has at most six strokes.
+        val high = "╱╲╱╱╲╱"
+        val low = "╲╱╲╲╱╲"
         views.setTextViewText(R.id.weather_high_line, sampleLine(high, visibleSegments))
         views.setTextViewText(R.id.weather_low_line, sampleLine(low, visibleSegments))
     }
