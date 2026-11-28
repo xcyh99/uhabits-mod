@@ -60,7 +60,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val oneCellSide = (widthDp < 100 && heightDp >= 100) || (heightDp < 100 && widthDp >= 100)
         val showChart = (widthDp >= 120 && heightDp >= 130) || oneCellSide
         val showUpdated = widthDp >= 160 && heightDp >= 145
-        val showBottom = widthDp >= 210 && heightDp >= 175
+        val showDetails = widthDp >= 180 && heightDp >= 100
 
         // Use the full widget canvas: no artificial inset around the weather content.
         val padding = 0
@@ -72,13 +72,17 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         views.setViewVisibility(R.id.weather_updated, if (showUpdated && !tinyCell) View.VISIBLE else View.GONE)
         views.setViewVisibility(R.id.weather_day_desc_row, if (showDays && !tinyCell) View.VISIBLE else View.GONE)
         views.setViewVisibility(R.id.weather_chart, if (showChart && !tinyCell) View.VISIBLE else View.GONE)
-        views.setViewVisibility(R.id.weather_bottom_info, if (showBottom && !tinyCell) View.VISIBLE else View.GONE)
+        views.setViewVisibility(R.id.weather_bottom_info, View.GONE)
+        views.setViewVisibility(R.id.weather_detail_info, if (showDetails && !tinyCell) View.VISIBLE else View.GONE)
 
         val cityText = snapshot?.city ?: "天气"
         val tempText = snapshot?.let { "${it.currentTemperature}°" } ?: "--°"
         val conditionText = snapshot?.let { WeatherRepository.weatherText(it.currentCode) } ?: "获取中"
         views.setTextViewText(R.id.weather_city, cityText)
         views.setTextViewText(R.id.weather_current_temp, tempText)
+        views.setTextViewText(R.id.weather_detail_info,
+            snapshot?.let { "湿度 ${it.humidity}%  │  风速 ${it.wind} km/h  │  降水 ${it.days.firstOrNull()?.rain ?: 0}%" }
+                ?: "湿度 --%  │  风速 --  │  降水 --%")
         views.setTextViewText(R.id.weather_current_desc, conditionText)
         views.setTextViewText(R.id.weather_tiny_city, cityText)
         views.setTextViewText(R.id.weather_tiny_desc, conditionText)
@@ -95,7 +99,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val headerTextSize = when {
             tiny -> 21f
             widthDp < 160 || heightDp < 130 -> 20f
-            else -> 22f
+            else -> 26f
         }
         views.setTextViewTextSize(
             R.id.weather_current_temp,
@@ -166,18 +170,16 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                 val chartWidth = max(1, ((widthDp - padding * 2) * density).toInt())
                 // The city and update timestamp share the 34dp header.
                 // The chart fills the remaining weighted FrameLayout height.
-                val reservedHeightDp = 34 +
-                    (if (showDays) 63 else 0) +
-                    (if (showBottom) 17 else 0) + 4
+                val reservedHeightDp = 40 +
+                    (if (showDays) 63 else 0) + 4
                 val chartHeight = max(1, ((heightDp - reservedHeightDp) * density).toInt())
-                views.setImageViewBitmap(R.id.weather_chart, drawChart(context, snapshot.days, chartWidth, chartHeight, 9f))
+                views.setImageViewBitmap(R.id.weather_chart, drawChart(context, snapshot.days, chartWidth, chartHeight, 7f))
             }
-            views.setTextViewText(
-                R.id.weather_bottom_info,
-                "湿度 ${snapshot.humidity}%   风速 ${snapshot.wind} km/h   今日降水 ${snapshot.days.first().rain}%"
-            )
+            // Weather details now live in the compact right-hand header column.
+            views.setViewVisibility(R.id.weather_bottom_info, View.GONE)
         } else {
-            views.setTextViewText(R.id.weather_bottom_info, "天气数据暂不可用，点击查看")
+            views.setViewVisibility(R.id.weather_bottom_info, View.GONE)
+            views.setTextViewText(R.id.weather_detail_info, "天气详情暂不可用")
         }
 
         // A tap anywhere on the widget opens the full forecast page.
@@ -237,7 +239,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val cellWidth = width / 7f
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFE8EDF5.toInt()
-            textSize = 9f * chartScale * density
+            textSize = labelSizeSp * chartScale * density
             textAlign = Paint.Align.CENTER
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         }
