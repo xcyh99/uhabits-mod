@@ -8,9 +8,11 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
+import android.text.InputType
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
 import org.isoron.uhabits.HabitsApplication
@@ -21,13 +23,14 @@ class WeatherWidgetSettingsActivity : AppCompatActivity() {
     companion object {
         const val PREF_CURVE_GAIN = "weather_widget_curve_gain"
         const val DEFAULT_CURVE_GAIN = 1.45f
-        private const val MIN_GAIN = 0.8f
-        private const val MAX_GAIN = 2.2f
-        private const val STEPS = 28
+        const val MIN_GAIN = 0.8f
+        const val MAX_GAIN = 10.0f
+        private const val STEPS = 92
     }
 
     private val store by lazy { PreferenceManager.getDefaultSharedPreferences(this) }
     private var valueLabel: TextView? = null
+    private var gainInput: EditText? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val preferences = (application as HabitsApplication).component.preferences
@@ -96,6 +99,39 @@ class WeatherWidgetSettingsActivity : AppCompatActivity() {
         card.addView(seek, LinearLayout.LayoutParams(-1, -2).apply {
             topMargin = dp(4)
         })
+
+        val inputRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(10), 0, 0)
+        }
+        gainInput = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setSingleLine(true)
+            textSize = 14f
+            setTextColor(primary)
+            hint = "输入倍数，如 3.5"
+            setText(String.format(java.util.Locale.US, "%.2f", store.getFloat(PREF_CURVE_GAIN, DEFAULT_CURVE_GAIN)))
+            setSelectAllOnFocus(true)
+        }
+        inputRow.addView(gainInput, LinearLayout.LayoutParams(0, dp(48), 1f).apply {
+            rightMargin = dp(8)
+        })
+        inputRow.addView(Button(this).apply {
+            text = "应用数值"
+            setOnClickListener {
+                val typed = gainInput?.text?.toString()?.trim()?.toFloatOrNull()
+                if (typed == null || typed < MIN_GAIN || typed > MAX_GAIN) {
+                    gainInput?.error = "请输入 0.8～10.0 之间的数值"
+                } else {
+                    seek.progress = gainToProgress(typed)
+                    valueLabel?.text = String.format(java.util.Locale.CHINA, "%.2f 倍", typed)
+                    saveGain(typed)
+                    gainInput?.setText(String.format(java.util.Locale.US, "%.2f", typed))
+                }
+            }
+        }, LinearLayout.LayoutParams(-2, dp(48)))
+        card.addView(inputRow)
         card.addView(LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             addView(TextView(this@WeatherWidgetSettingsActivity).apply {
@@ -123,7 +159,7 @@ class WeatherWidgetSettingsActivity : AppCompatActivity() {
         }
         root.addView(reset, LinearLayout.LayoutParams(-1, -2))
         root.addView(TextView(this).apply {
-            text = "默认值：1.45 倍。可在 0.8～2.2 倍之间调整。"
+            text = "默认值：1.45 倍。滑块可调 0.8～10 倍，也可以在上方直接输入数值。"
             textSize = 12f
             setTextColor(secondary)
             setPadding(dp(2), dp(10), dp(2), 0)
@@ -133,6 +169,9 @@ class WeatherWidgetSettingsActivity : AppCompatActivity() {
             override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val gain = progressToGain(progress)
                 valueLabel?.text = String.format(java.util.Locale.CHINA, "%.2f 倍", gain)
+                if (fromUser && gainInput?.hasFocus() != true) {
+                    gainInput?.setText(String.format(java.util.Locale.US, "%.2f", gain))
+                }
                 if (fromUser) store.edit().putFloat(PREF_CURVE_GAIN, gain).apply()
             }
             override fun onStartTrackingTouch(bar: SeekBar?) = Unit
