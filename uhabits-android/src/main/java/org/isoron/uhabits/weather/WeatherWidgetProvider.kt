@@ -127,7 +127,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             )
             val compactForecast = widthDp < 180 || heightDp < 150
             val dayTextSize = if (compactForecast) 8f else 10f
-            val iconTextSize = if (compactForecast) 14f else 18f
+            val iconTextSize = if (compactForecast) 17f else 22f
             val forecastTempSize = if (compactForecast) 7f else 9f
             val cellWidthPx = (widthDp / 7f - 4f).coerceAtLeast(1f) * density
             val measurePaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -165,11 +165,11 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             if (showChart) {
                 val chartWidth = max(1, ((widthDp - padding * 2) * density).toInt())
                 // Match the compact rows in widget_weather.xml:
-                // header 34dp, update line ~11dp, seven-day row 59dp, footer ~17dp.
+                // header 34dp, update line ~11dp, seven-day row 63dp, footer ~17dp.
                 // The chart fills the remaining weighted FrameLayout height.
                 val reservedHeightDp = 34 +
                     (if (showUpdated) 11 else 0) +
-                    (if (showDays) 59 else 0) +
+                    (if (showDays) 63 else 0) +
                     (if (showBottom) 17 else 0) + 4
                 val chartHeight = max(1, ((heightDp - reservedHeightDp) * density).toInt())
                 views.setImageViewBitmap(R.id.weather_chart, drawChart(context, snapshot.days, chartWidth, chartHeight, 9f))
