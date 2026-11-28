@@ -56,7 +56,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_weather_line_test)
         val widgetWidthDp = getWidgetWidthDp(options)
-        applyResponsiveLineScale(views, widgetWidthDp)
+        applyResponsiveLineScale(context, views, widgetWidthDp)
 
         val openDetails = Intent(context, WeatherDetailActivity::class.java)
         val clickIntent = PendingIntent.getActivity(
@@ -121,8 +121,8 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                 height = CHART_ROW_HEIGHT_DP,
                 leftInset = widgetWidthDp / 14f
             )
-            applyChartText(views, R.id.weather_high_line, highChart, widgetWidthDp)
-            applyChartText(views, R.id.weather_low_line, lowChart, widgetWidthDp)
+            applyChartText(context, views, R.id.weather_high_line, highChart, widgetWidthDp)
+            applyChartText(context, views, R.id.weather_low_line, lowChart, widgetWidthDp)
         } else {
             clearChartText(views)
         }
@@ -135,13 +135,16 @@ class WeatherWidgetProvider : AppWidgetProvider() {
      * per day interval, with each day node located at the center of its column.
      */
     private fun applyChartText(
+        context: Context,
         views: RemoteViews,
         viewId: Int,
         chart: WeatherLineGeometry.Chart,
         widgetWidthDp: Int
     ) {
         views.setTextViewText(viewId, WeatherLineTextRenderer.render(chart))
-        val cellWidthDp = LINE_TEXT_SIZE_SP * MONOSPACE_WIDTH_FACTOR
+        val metrics = context.resources.displayMetrics
+        val fontScale = metrics.scaledDensity / metrics.density
+        val cellWidthDp = LINE_TEXT_SIZE_SP * fontScale * MONOSPACE_WIDTH_FACTOR
         val scaleX = widgetWidthDp / (WeatherLineTextRenderer.COLUMN_COUNT * cellWidthDp)
         views.setFloat(viewId, "setTextScaleX", scaleX.coerceAtLeast(0.1f))
     }
@@ -161,8 +164,10 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    private fun applyResponsiveLineScale(views: RemoteViews, widgetWidthDp: Int) {
-        val cellWidthDp = LINE_TEXT_SIZE_SP * MONOSPACE_WIDTH_FACTOR
+    private fun applyResponsiveLineScale(context: Context, views: RemoteViews, widgetWidthDp: Int) {
+        val metrics = context.resources.displayMetrics
+        val fontScale = metrics.scaledDensity / metrics.density
+        val cellWidthDp = LINE_TEXT_SIZE_SP * fontScale * MONOSPACE_WIDTH_FACTOR
         val scaleX = widgetWidthDp / (WeatherLineTextRenderer.COLUMN_COUNT * cellWidthDp)
         views.setFloat(R.id.weather_high_line, "setTextScaleX", scaleX.coerceAtLeast(0.1f))
         views.setFloat(R.id.weather_low_line, "setTextScaleX", scaleX.coerceAtLeast(0.1f))
