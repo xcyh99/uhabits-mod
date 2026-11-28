@@ -94,8 +94,8 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         )
         val headerTextSize = when {
             tiny -> 21f
-            widthDp < 160 || heightDp < 130 -> 25f
-            else -> 30f
+            widthDp < 160 || heightDp < 130 -> 20f
+            else -> 22f
         }
         views.setTextViewTextSize(
             R.id.weather_current_temp,
@@ -164,12 +164,12 @@ class WeatherWidgetProvider : AppWidgetProvider() {
 
             if (showChart) {
                 val chartWidth = max(1, ((widthDp - padding * 2) * density).toInt())
-                // Match the actual fixed-height rows in widget_weather.xml:
-                // header 42dp, update line ~13dp, seven-day row 74dp, footer ~17dp.
+                // Match the compact rows in widget_weather.xml:
+                // header 34dp, update line ~11dp, seven-day row 59dp, footer ~17dp.
                 // The chart fills the remaining weighted FrameLayout height.
-                val reservedHeightDp = 42 +
-                    (if (showUpdated) 13 else 0) +
-                    (if (showDays) 74 else 0) +
+                val reservedHeightDp = 34 +
+                    (if (showUpdated) 11 else 0) +
+                    (if (showDays) 59 else 0) +
                     (if (showBottom) 17 else 0) + 4
                 val chartHeight = max(1, ((heightDp - reservedHeightDp) * density).toInt())
                 views.setImageViewBitmap(R.id.weather_chart, drawChart(context, snapshot.days, chartWidth, chartHeight, 9f))
@@ -214,7 +214,9 @@ class WeatherWidgetProvider : AppWidgetProvider() {
 
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-        val chartScale = min(1f, min(width / 240f, height / 64f)).coerceAtLeast(0f)
+        // Scale every chart element together. The lower bound keeps labels legible
+        // in narrow one-cell widgets; the upper bound avoids oversized strokes.
+        val chartScale = min(width / 240f, height / 64f).coerceIn(0.45f, 2f)
         val highPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFFFA34A.toInt(); style = Paint.Style.STROKE; strokeWidth = 1.5f * chartScale
             strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
@@ -255,7 +257,10 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             canvas.drawCircle(x(i), y(day.low), 3f * chartScale, dotLow)
         }
 
-        // Fixed 9sp text; only its anchor position follows the curve.
+        // Labels scale uniformly with the chart and are always drawn. Reserve
+        // enough vertical room so the extreme points' labels stay inside the bitmap.
+        val cellWidth = width / 7f
+        val labelSizeSp = (9f * chartScale).coerceIn(5f, 14f)
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFE8EDF5.toInt()
             textSize = labelSizeSp * density
@@ -263,37 +268,45 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         }
         val metrics = labelPaint.fontMetrics
-        val gap = 2f * density
-        val cellWidth = width / 7f
-        data class LabelRect(val left: Float, val top: Float, val right: Float, val bottom: Float)
-        val occupied = mutableListOf<LabelRect>()
+        val gap = 1.5f * density * chartScale
+        val labelHalfHeight = (metrics.descent - metrics.ascent) / 2f
+        val top = labelHalfHeight + gap + 2f * chartScale
+        val bottom = top
+        fun x(i: Int) = width * (i + 0.5f) / 7f
+        fun y(temp: Int) = height - bottom - (emphasized(temp) - minTemp) * (height - top - bottom) / range
 
-        fun drawTemperatureLabel(text: String, pointX: Float, pointY: Float, preferAbove: Boolean) {
-            val textWidth = labelPaint.measureText(text)
-            if (textWidth + gap * 2f > cellWidth) return
-            val left = pointX - textWidth / 2f
-            val right = pointX + textWidth / 2f
-            for (above in listOf(preferAbove, !preferAbove)) {
-                val baseline = if (above) pointY - gap - metrics.descent else pointY + gap - metrics.ascent
-                val labelTop = baseline + metrics.ascent
-                val labelBottom = baseline + metrics.descent
-                if (labelTop < 0f || labelBottom > height) continue
-                val overlaps = occupied.any { other ->
-                    left < other.right + gap && right > other.left - gap &&
-                        labelTop < other.bottom + gap && labelBottom > other.top - gap
-                }
-                if (overlaps) continue
-                canvas.drawText(text, pointX, baseline, labelPaint)
-                occupied.add(LabelRect(left, labelTop, right, labelBottom))
-                return
+        val highPath = Path()
+        val lowPath = Path()
+        days.take(7).forEachIndexed { i, day ->
+            if (i == 0) {
+                highPath.moveTo(x(i), y(day.high))
+                lowPath.moveTo(x(i), y(day.low))
+            } else {
+                highPath.lineTo(x(i), y(day.high))
+                lowPath.lineTo(x(i), y(day.low))
             }
-            // If there is not enough room, omit only the label; keep both curves.
+        }
+        canvas.drawPath(highPath, highPaint)
+        canvas.drawPath(lowPath, lowPaint)
+        days.take(7).forEachIndexed { i, day ->
+            canvas.drawCircle(x(i), y(day.high), 3f * chartScale, dotHigh)
+            canvas.drawCircle(x(i), y(day.low), 3f * chartScale, dotLow)
         }
 
         days.take(7).forEachIndexed { i, day ->
             val pointX = x(i)
-            drawTemperatureLabel("${day.high}°", pointX, y(day.high), true)
-            drawTemperatureLabel("${day.low}°", pointX, y(day.low), false)
+            val highY = y(day.high)
+            val lowY = y(day.low)
+            val highText = "${day.high}°"
+            val lowText = "${day.low}°"
+            // Keep both labels visible, placing them on opposite sides of their
+            // corresponding points. Slight horizontal separation prevents clashes.
+            canvas.drawText(highText, pointX - cellWidth * 0.16f,
+                (highY - gap - metrics.descent).coerceIn(-metrics.ascent, height - metrics.descent),
+                labelPaint)
+            canvas.drawText(lowText, pointX + cellWidth * 0.16f,
+                (lowY + gap - metrics.ascent).coerceIn(-metrics.ascent, height - metrics.descent),
+                labelPaint)
         }
 
         WeatherChartBitmapCache.put(cacheKey, bitmap)
