@@ -13,7 +13,6 @@ import android.graphics.Path
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.View
-import android.view.Gravity
 import android.widget.RemoteViews
 import android.util.LruCache
 import androidx.preference.PreferenceManager
@@ -173,9 +172,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                     (if (showDays) 74 else 0) +
                     (if (showBottom) 17 else 0) + 4
                 val chartHeight = max(1, ((heightDp - reservedHeightDp) * density).toInt())
-                val chartLabelSizeSp = 9f
-                views.setImageViewBitmap(R.id.weather_chart, drawChart(context, snapshot.days, chartWidth, chartHeight))
-                updateChartLabels(context, views, snapshot.days, chartWidth, chartHeight, chartLabelSizeSp)
+                views.setImageViewBitmap(R.id.weather_chart, drawChart(context, snapshot.days, chartWidth, chartHeight, 9f))
             }
             views.setTextViewText(
                 R.id.weather_bottom_info,
@@ -196,13 +193,21 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         manager.updateAppWidget(id, views)
     }
 
-    private fun drawChart(context: Context, days: List<WeatherDay>, width: Int, height: Int): Bitmap {
+    /**
+     * Draw the forecast curves, dots and temperature labels on one canvas.
+     * A single coordinate system prevents labels drifting away from their points
+     * when the launcher resizes or reloads the widget.
+     */
+    private fun drawChart(
+        context: Context, days: List<WeatherDay>, width: Int, height: Int, labelSizeSp: Float
+    ): Bitmap {
         val curveGain = PreferenceManager.getDefaultSharedPreferences(context)
             .getFloat(WeatherWidgetSettingsActivity.PREF_CURVE_GAIN, WeatherWidgetSettingsActivity.DEFAULT_CURVE_GAIN)
             .coerceIn(WeatherWidgetSettingsActivity.MIN_GAIN, WeatherWidgetSettingsActivity.MAX_GAIN)
         val density = context.resources.displayMetrics.density
         val cacheKey = buildString {
-            append(width).append('x').append(height).append('|').append(density).append('|').append(curveGain)
+            append(width).append('x').append(height).append('|').append(density)
+                .append('|').append(curveGain).append('|').append(labelSizeSp)
             days.take(7).forEach { append('|').append(it.date).append(':').append(it.high).append('/').append(it.low) }
         }
         WeatherChartBitmapCache.get(cacheKey)?.let { return it }
@@ -224,17 +229,14 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val rawMax = days.take(7).maxOfOrNull { it.high } ?: 10
         val centerTemp = (rawMin + rawMax) / 2f
         fun emphasized(temp: Int) = centerTemp + (temp - centerTemp) * curveGain
-        // Fit the actual emphasized forecast extremes to the chart height.
-        // This lets the high/low curves use nearly the full vertical space.
         val minTemp = days.take(7).minOfOrNull { emphasized(it.low) } ?: emphasized(rawMin)
         val maxTemp = days.take(7).maxOfOrNull { emphasized(it.high) } ?: emphasized(rawMax)
         val range = max(1f, maxTemp - minTemp)
         val top = 4f * chartScale
         val bottom = 4f * chartScale
-        // Each forecast point sits at the center of its matching day column.
-        // The seven native TextView columns use the same centers.
         fun x(i: Int) = width * (i + 0.5f) / 7f
         fun y(temp: Int) = height - bottom - (emphasized(temp) - minTemp) * (height - top - bottom) / range
+
         val highPath = Path()
         val lowPath = Path()
         days.take(7).forEachIndexed { i, day ->
@@ -252,96 +254,50 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             canvas.drawCircle(x(i), y(day.high), 3f * chartScale, dotHigh)
             canvas.drawCircle(x(i), y(day.low), 3f * chartScale, dotLow)
         }
-        WeatherChartBitmapCache.put(cacheKey, bitmap)
-        return bitmap
-    }
 
-    /**
-     * Temperature labels are native TextViews layered over the line-only chart.
-     * Their font size and aspect ratio are independent from chart bitmap scaling.
-     */
-    private fun updateChartLabels(
-        context: Context, views: RemoteViews, days: List<WeatherDay>,
-        width: Int, height: Int, labelSizeSp: Float
-    ) {
-        val density = context.resources.displayMetrics.density
-        val curveGain = PreferenceManager.getDefaultSharedPreferences(context)
-            .getFloat(WeatherWidgetSettingsActivity.PREF_CURVE_GAIN, WeatherWidgetSettingsActivity.DEFAULT_CURVE_GAIN)
-            .coerceIn(WeatherWidgetSettingsActivity.MIN_GAIN, WeatherWidgetSettingsActivity.MAX_GAIN)
-        val rawMin = days.take(7).minOfOrNull { it.low } ?: 0
-        val rawMax = days.take(7).maxOfOrNull { it.high } ?: 10
-        val centerTemp = (rawMin + rawMax) / 2f
-        fun emphasized(temp: Int) = centerTemp + (temp - centerTemp) * curveGain
-        // Fit the actual emphasized forecast extremes to the chart height.
-        // This lets the high/low curves use nearly the full vertical space.
-        val minTemp = days.take(7).minOfOrNull { emphasized(it.low) } ?: emphasized(rawMin)
-        val maxTemp = days.take(7).maxOfOrNull { emphasized(it.high) } ?: emphasized(rawMax)
-        val range = max(1f, maxTemp - minTemp)
-        val chartScale = min(1f, min(width / 240f, height / 64f)).coerceAtLeast(0f)
-        val top = 4f * chartScale
-        val bottom = 4f * chartScale
-        fun x(i: Int) = width * (i + 0.5f) / 7f
-        fun y(temp: Int) = height - bottom - (emphasized(temp) - minTemp) * (height - top - bottom) / range
-
-        val highIds = intArrayOf(
-            R.id.weather_chart_high_0, R.id.weather_chart_high_1, R.id.weather_chart_high_2,
-            R.id.weather_chart_high_3, R.id.weather_chart_high_4, R.id.weather_chart_high_5,
-            R.id.weather_chart_high_6
-        )
-        val lowIds = intArrayOf(
-            R.id.weather_chart_low_0, R.id.weather_chart_low_1, R.id.weather_chart_low_2,
-            R.id.weather_chart_low_3, R.id.weather_chart_low_4, R.id.weather_chart_low_5,
-            R.id.weather_chart_low_6
-        )
-        // The label font is intentionally independent from widget/chart scaling.
-        val labelHeight = labelSizeSp * density * 1.25f
+        // Fixed 9sp text; only its anchor position follows the curve.
+        val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFE8EDF5.toInt()
+            textSize = labelSizeSp * density
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        }
+        val metrics = labelPaint.fontMetrics
         val gap = 2f * density
         val cellWidth = width / 7f
-        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = labelSizeSp * density }
         data class LabelRect(val left: Float, val top: Float, val right: Float, val bottom: Float)
         val occupied = mutableListOf<LabelRect>()
 
-        fun place(viewId: Int, text: String, pointX: Float, pointY: Float, preferAbove: Boolean) {
-            val textWidth = textPaint.measureText(text)
-            if (textWidth + gap * 2f > cellWidth) {
-                views.setViewVisibility(viewId, View.GONE)
-                return
-            }
+        fun drawTemperatureLabel(text: String, pointX: Float, pointY: Float, preferAbove: Boolean) {
+            val textWidth = labelPaint.measureText(text)
+            if (textWidth + gap * 2f > cellWidth) return
             val left = pointX - textWidth / 2f
             val right = pointX + textWidth / 2f
-            val candidates = listOf(preferAbove, !preferAbove)
-            for (above in candidates) {
-                val labelTop = if (above) pointY - gap - labelHeight else pointY + gap
-                val labelBottom = labelTop + labelHeight
+            for (above in listOf(preferAbove, !preferAbove)) {
+                val baseline = if (above) pointY - gap - metrics.descent else pointY + gap - metrics.ascent
+                val labelTop = baseline + metrics.ascent
+                val labelBottom = baseline + metrics.descent
                 if (labelTop < 0f || labelBottom > height) continue
                 val overlaps = occupied.any { other ->
                     left < other.right + gap && right > other.left - gap &&
                         labelTop < other.bottom + gap && labelBottom > other.top - gap
                 }
                 if (overlaps) continue
-
-                views.setViewVisibility(viewId, View.VISIBLE)
-                views.setTextViewText(viewId, text)
-                views.setTextViewTextSize(viewId, android.util.TypedValue.COMPLEX_UNIT_SP, labelSizeSp)
-                views.setInt(viewId, "setGravity", Gravity.TOP or Gravity.CENTER_HORIZONTAL)
-                views.setViewPadding(viewId, 0, labelTop.toInt(), 0, 0)
+                canvas.drawText(text, pointX, baseline, labelPaint)
                 occupied.add(LabelRect(left, labelTop, right, labelBottom))
                 return
             }
-            // When there is not enough room, hide only the label; never squeeze
-            // or clip the line chart itself.
-            views.setViewVisibility(viewId, View.GONE)
+            // If there is not enough room, omit only the label; keep both curves.
         }
 
         days.take(7).forEachIndexed { i, day ->
-            val highText = "${day.high}°"
-            val lowText = "${day.low}°"
             val pointX = x(i)
-            val highY = y(day.high)
-            val lowY = y(day.low)
-            place(highIds[i], highText, pointX, highY, true)
-            place(lowIds[i], lowText, pointX, lowY, false)
+            drawTemperatureLabel("${day.high}°", pointX, y(day.high), true)
+            drawTemperatureLabel("${day.low}°", pointX, y(day.low), false)
         }
+
+        WeatherChartBitmapCache.put(cacheKey, bitmap)
+        return bitmap
     }
 
 }
