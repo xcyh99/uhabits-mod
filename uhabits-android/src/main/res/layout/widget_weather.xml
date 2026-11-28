@@ -107,7 +107,7 @@
             android:id="@+id/weather_chart"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:scaleType="fitCenter"
+            android:scaleType="centerInside"
             android:contentDescription="未来七天最高温和最低温趋势图" />
         <LinearLayout
             android:layout_width="match_parent"
