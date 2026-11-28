@@ -115,12 +115,14 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             val highChart = WeatherLineGeometry.calculate(
                 temperatures = days.map { it.high },
                 width = widgetWidthDp * 6f / 7f,
-                height = CHART_ROW_HEIGHT_DP
+                height = CHART_ROW_HEIGHT_DP,
+                leftInset = widgetWidthDp / 14f
             )
             val lowChart = WeatherLineGeometry.calculate(
                 temperatures = days.map { it.low },
                 width = widgetWidthDp * 6f / 7f,
-                height = CHART_ROW_HEIGHT_DP
+                height = CHART_ROW_HEIGHT_DP,
+                leftInset = widgetWidthDp / 14f
             )
             applyChartGlyphs(context, views, highSegmentIds, highChart, widgetWidthDp)
             applyChartGlyphs(context, views, lowSegmentIds, lowChart, widgetWidthDp)
