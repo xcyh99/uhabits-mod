@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/weather_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="8dp"
+    android:background="@drawable/weather_widget_background">
+
+    <LinearLayout
+        android:id="@+id/weather_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/weather_city"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="合肥"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/weather_current_desc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="天气概况"
+                android:textColor="#D7DFEA"
+                android:textSize="11sp" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/weather_current_temp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="--°"
+            android:textColor="#FFFFFF"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/weather_updated"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="2dp"
+        android:text="天气数据"
+        android:textColor="#AEB9C8"
+        android:textSize="9sp" />
+
+    <LinearLayout
+        android:id="@+id/weather_day_desc_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="9dp"
+        android:orientation="horizontal"
+        android:gravity="center">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+            <TextView android:id="@+id/weather_day_0" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="今天" android:textColor="#FFFFFF" android:textSize="10sp"/>
+            <TextView android:id="@+id/weather_icon_0" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="☀️" android:textSize="18sp"/>
+            <TextView android:id="@+id/weather_desc_0" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp"/>
+        </LinearLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+            <TextView android:id="@+id/weather_day_1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="明天" android:textColor="#FFFFFF" android:textSize="10sp"/>
+            <TextView android:id="@+id/weather_icon_1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="☀️" android:textSize="18sp"/>
+            <TextView android:id="@+id/weather_desc_1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp"/>
+        </LinearLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+            <TextView android:id="@+id/weather_day_2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="周三" android:textColor="#FFFFFF" android:textSize="10sp"/>
+            <TextView android:id="@+id/weather_icon_2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="☀️" android:textSize="18sp"/>
+            <TextView android:id="@+id/weather_desc_2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp"/>
+        </LinearLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+            <TextView android:id="@+id/weather_day_3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_weight="1" android:text="周四" android:textColor="#FFFFFF" android:textSize="10sp"/>
+            <TextView android:id="@+id/weather_icon_3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="☀️" android:textSize="18sp"/>
+            <TextView android:id="@+id/weather_desc_3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp"/>
+        </LinearLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+            <TextView android:id="@+id/weather_day_4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="周五" android:textColor="#FFFFFF" android:textSize="10sp"/>
+            <TextView android:id="@+id/weather_icon_4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="☀️" android:textSize="18sp"/>
+            <TextView android:id="@+id/weather_desc_4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp"/>
+        </LinearLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+            <TextView android:id="@+id/weather_day_5" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="周六" android:textColor="#FFFFFF" android:textSize="10sp"/>
+            <TextView android:id="@+id/weather_icon_5" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="☀️" android:textSize="18sp"/>
+            <TextView android:id="@+id/weather_desc_5" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp"/>
+        </LinearLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+            <TextView android:id="@+id/weather_day_6" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="周日" android:textColor="#FFFFFF" android:textSize="10sp"/>
+            <TextView android:id="@+id/weather_icon_6" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="☀️" android:textSize="18sp"/>
+            <TextView android:id="@+id/weather_desc_6" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="4dp">
+        <ImageView
+            android:id="@+id/weather_chart"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitXY"
+            android:contentDescription="未来七天最高温和最低温趋势图" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
+            <TextView android:id="@+id/weather_hit_0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@android:color/transparent" android:text=""/>
+            <TextView android:id="@+id/weather_hit_1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@android:color/transparent" android:text=""/>
+            <TextView android:id="@+id/weather_hit_2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@android:color/transparent" android:text=""/>
+            <TextView android:id="@+id/weather_hit_3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@android:color/transparent" android:text=""/>
+            <TextView android:id="@+id/weather_hit_4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@android:color/transparent" android:text=""/>
+            <TextView android:id="@+id/weather_hit_5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@android:color/transparent" android:text=""/>
+            <TextView android:id="@+id/weather_hit_6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@android:color/transparent" android:text=""/>
+        </LinearLayout>
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/weather_bottom_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="5dp"
+        android:text="湿度 --%   风速 --"
+        android:textColor="#D7DFEA"
+        android:textSize="10sp" />
+</LinearLayout>
