@@ -41,6 +41,7 @@ on:
       - feature/weather-restore-from-legacy
       - feature/weather-responsive-line-test
       - weather-line-stable-2026-11-28
+      - weather-line-single-space-experiment
   pull_request:
     branches:
       - dev
