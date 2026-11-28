@@ -20,7 +20,6 @@ import org.isoron.uhabits.R
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.pow
 
 class WeatherWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
@@ -236,16 +235,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         }
         val dotHigh = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFA34A.toInt() }
         val dotLow = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF65A9FF.toInt() }
-        val highMin = days.take(7).minOfOrNull { it.high } ?: 0
-        val highMax = days.take(7).maxOfOrNull { it.high } ?: 10
-        val lowMin = days.take(7).minOfOrNull { it.low } ?: 0
-        val lowMax = days.take(7).maxOfOrNull { it.low } ?: 10
-        val highRange = max(1f, (highMax - highMin).toFloat())
-        val lowRange = max(1f, (lowMax - lowMin).toFloat())
-
-        // Each series owns its own half of the chart:
-        // highest high is pinned to the top edge; lowest low is pinned to the bottom.
-        // Gain changes the intermediate points inside each band, never the endpoints.
+        val visibleDays = days.take(7)
         val cellWidth = width / 7f
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFE8EDF5.toInt()
@@ -256,23 +246,29 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val metrics = labelPaint.fontMetrics
         val dotRadius = 3f * chartScale
         val edge = dotRadius + 1f * chartScale
-        val topY = edge
-        val bottomY = height - edge
-        val highBandBottom = height * 0.47f
-        val lowBandTop = height * 0.53f
+
+        // Position each complete series by its average, not by pinning an
+        // individual minimum/maximum point to an edge. Both series share one
+        // pixels-per-degree scale, so their internal proportions stay linear
+        // and the gain setting changes the whole curve uniformly.
+        val highMean = visibleDays.map { it.high.toFloat() }.average().toFloat()
+        val lowMean = visibleDays.map { it.low.toFloat() }.average().toFloat()
+        val maxDeviation = max(
+            visibleDays.maxOfOrNull { abs(it.high - highMean) } ?: 0f,
+            visibleDays.maxOfOrNull { abs(it.low - lowMean) } ?: 0f
+        ).coerceAtLeast(1f)
+        val gainFactor = curveGain / WeatherWidgetSettingsActivity.DEFAULT_CURVE_GAIN
+        val curveScale = min(
+            height * 0.13f / maxDeviation * gainFactor,
+            height * 0.18f / maxDeviation
+        )
+        val highCenterY = max(edge + height * 0.015f, height * 0.19f)
+        val lowCenterY = min(height - edge - height * 0.015f, height * 0.81f)
         fun x(i: Int) = width * (i + 0.5f) / 7f
-        fun shaped(value: Float): Float =
-            value.coerceIn(0f, 1f).toDouble().pow(1.0 / curveGain.toDouble()).toFloat()
-        fun yHigh(temp: Int): Float {
-            val normalized = if (highMax == highMin) 1f
-                else ((temp - highMin) / highRange).coerceIn(0f, 1f)
-            return highBandBottom - shaped(normalized) * (highBandBottom - topY)
-        }
-        fun yLow(temp: Int): Float {
-            val normalized = if (lowMax == lowMin) 0f
-                else ((temp - lowMin) / lowRange).coerceIn(0f, 1f)
-            return bottomY - shaped(normalized) * (bottomY - lowBandTop)
-        }
+        fun yHigh(temp: Int): Float =
+            (highCenterY - (temp - highMean) * curveScale).coerceIn(edge, height - edge)
+        fun yLow(temp: Int): Float =
+            (lowCenterY - (temp - lowMean) * curveScale).coerceIn(edge, height - edge)
 
         val highPath = Path()
         val lowPath = Path()
@@ -357,7 +353,9 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         labels.forEach { label ->
             val textWidth = labelPaint.measureText(label.text)
             val halfWidth = textWidth / 2f
-            val gap = 3f * chartScale
+            // Keep the label outside the full dot radius plus a clear gap.
+            // The previous gap was smaller than the collision box around each dot.
+            val gap = dotRadius + 3f * chartScale
             // Keep the label centered over its own day first; only shift sideways
             // when another label occupies that exact position.
             val horizontalOffsets = listOf(0f, -cellWidth * 0.22f, cellWidth * 0.22f, -cellWidth * 0.38f, cellWidth * 0.38f)
@@ -390,21 +388,38 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                 if (chosen != null) break
             }
 
-            // If the preferred side has no real free space, use the opposite side.
-            // The curve is never shifted to accommodate a label.
+            // Last resort: score both sides and all small horizontal offsets.
+            // Never blindly force the label to the opposite side.
             if (chosen == null) {
-                val direction = -preferredDirection
-                val cx = label.pointX.coerceIn(halfWidth + 1f, width - halfWidth - 1f)
-                val baseline = if (direction > 0) label.pointY + gap - metrics.ascent
-                    else label.pointY - gap - metrics.descent
-                val clampedBaseline = baseline.coerceIn(-metrics.ascent, height - metrics.descent)
-                val box = LabelBox(
-                    cx - halfWidth,
-                    clampedBaseline + metrics.ascent,
-                    cx + halfWidth,
-                    clampedBaseline + metrics.descent
-                )
-                chosen = LabelPlacement(label.text, cx, clampedBaseline, box)
+                var bestScore = Float.POSITIVE_INFINITY
+                for (direction in directions) {
+                    for (dx in horizontalOffsets) {
+                        val cx = (label.pointX + dx).coerceIn(halfWidth + 1f, width - halfWidth - 1f)
+                        val baseline = if (direction > 0) label.pointY + gap - metrics.ascent
+                            else label.pointY - gap - metrics.descent
+                        val clampedBaseline = baseline.coerceIn(-metrics.ascent, height - metrics.descent)
+                        val box = LabelBox(
+                            cx - halfWidth,
+                            clampedBaseline + metrics.ascent,
+                            cx + halfWidth,
+                            clampedBaseline + metrics.descent
+                        )
+                        val outsidePenalty = if (box.top < 0f || box.bottom > height) 1000f else 0f
+                        val curvePenalty = if (curveOverlaps(box)) 100f else 0f
+                        val labelPenalty = if (occupied.any { other ->
+                                box.left < other.right && box.right > other.left &&
+                                    box.top < other.bottom && box.bottom > other.top
+                            }) 50f else 0f
+                        val directionPenalty = if (direction == preferredDirection) 0f else 10f
+                        val offsetPenalty = abs(dx) / cellWidth
+                        val score = outsidePenalty + curvePenalty + labelPenalty +
+                            directionPenalty + offsetPenalty
+                        if (score < bestScore) {
+                            bestScore = score
+                            chosen = LabelPlacement(label.text, cx, clampedBaseline, box)
+                        }
+                    }
+                }
             }
             chosen?.let {
                 canvas.drawText(it.text, it.x, it.baseline, labelPaint)
