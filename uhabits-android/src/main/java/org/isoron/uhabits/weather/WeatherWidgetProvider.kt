@@ -22,18 +22,17 @@ import kotlin.math.min
 
 class WeatherWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
-        // Diagnostic isolation build: send only the simplest RemoteViews layout.
-        // This distinguishes provider/initial-layout failures from failures in the
-        // full weather layout or its dynamic RemoteViews actions.
-        val loadingViews = RemoteViews(context.packageName, R.layout.widget_weather_loading)
-        ids.forEach { manager.updateAppWidget(it, loadingViews) }
+        // Diagnostic isolation build: inflate the complete weather XML, but do not
+        // execute dynamic RemoteViews actions, fetch data, draw charts or attach intents.
+        val staticViews = RemoteViews(context.packageName, R.layout.widget_weather)
+        ids.forEach { manager.updateAppWidget(it, staticViews) }
     }
 
     override fun onAppWidgetOptionsChanged(
         context: Context, manager: AppWidgetManager, appWidgetId: Int, newOptions: Bundle
     ) {
-        val loadingViews = RemoteViews(context.packageName, R.layout.widget_weather_loading)
-        manager.updateAppWidget(appWidgetId, loadingViews)
+        val staticViews = RemoteViews(context.packageName, R.layout.widget_weather)
+        manager.updateAppWidget(appWidgetId, staticViews)
     }
 
     private fun updateAll(context: Context, snapshot: WeatherSnapshot?) {
