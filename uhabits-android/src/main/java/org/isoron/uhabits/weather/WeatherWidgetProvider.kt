@@ -14,6 +14,7 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.view.View
 import android.widget.RemoteViews
+import androidx.preference.PreferenceManager
 import org.isoron.uhabits.R
 import kotlin.math.max
 import kotlin.math.min
@@ -181,7 +182,9 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val rawMin = days.take(7).minOfOrNull { it.low } ?: 0
         val rawMax = days.take(7).maxOfOrNull { it.high } ?: 10
         val centerTemp = (rawMin + rawMax) / 2f
-        val curveGain = 1.45f
+        val curveGain = PreferenceManager.getDefaultSharedPreferences(context)
+            .getFloat(WeatherWidgetSettingsActivity.PREF_CURVE_GAIN, WeatherWidgetSettingsActivity.DEFAULT_CURVE_GAIN)
+            .coerceIn(0.8f, 2.2f)
         fun emphasized(temp: Int) = centerTemp + (temp - centerTemp) * curveGain
         val minTemp = emphasized(rawMin) - 1.5f
         val maxTemp = emphasized(rawMax) + 1.5f
