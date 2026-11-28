@@ -253,22 +253,34 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         // and the gain setting changes the whole curve uniformly.
         val highMean = visibleDays.map { it.high.toFloat() }.average().toFloat()
         val lowMean = visibleDays.map { it.low.toFloat() }.average().toFloat()
-        val maxDeviation = max(
-            visibleDays.maxOfOrNull { abs(it.high - highMean) } ?: 0f,
-            visibleDays.maxOfOrNull { abs(it.low - lowMean) } ?: 0f
-        ).coerceAtLeast(1f)
-        val gainFactor = curveGain / WeatherWidgetSettingsActivity.DEFAULT_CURVE_GAIN
-        val curveScale = min(
-            height * 0.13f / maxDeviation * gainFactor,
-            height * 0.18f / maxDeviation
-        )
-        val highCenterY = max(edge + height * 0.015f, height * 0.19f)
-        val lowCenterY = min(height - edge - height * 0.015f, height * 0.81f)
+        val highDeviation = (visibleDays.maxOfOrNull { abs(it.high - highMean) } ?: 0f)
+            .coerceAtLeast(0.01f)
+        val lowDeviation = (visibleDays.maxOfOrNull { abs(it.low - lowMean) } ?: 0f)
+            .coerceAtLeast(0.01f)
+        val maxDeviation = max(highDeviation, lowDeviation)
+
+        // Map the full 0.8x..10x setting range to a visible curve-strength range.
+        // The old min(scale, fixedCap) saturated around 2x, so most of the slider
+        // did nothing. A square-root response keeps the default near the former
+        // appearance while making both lower and higher settings visibly distinct.
+        val gainPosition = (
+            kotlin.math.ln(curveGain / WeatherWidgetSettingsActivity.MIN_GAIN) /
+                kotlin.math.ln(
+                    WeatherWidgetSettingsActivity.MAX_GAIN /
+                        WeatherWidgetSettingsActivity.MIN_GAIN
+                )
+            ).coerceIn(0f, 1f)
+        val gainStrength = 0.25f + 0.75f * kotlin.math.sqrt(gainPosition)
+        val curveScale = height * 0.22f / maxDeviation * gainStrength
+        val margin = height * 0.015f
+        // Anchor each series by its mean while allowing its full deviation to expand
+        // toward the corresponding outer edge. No individual point is independently
+        // normalized or clipped, so the original temperature proportions remain linear.
+        val highCenterY = edge + margin + highDeviation * curveScale
+        val lowCenterY = height - edge - margin - lowDeviation * curveScale
         fun x(i: Int) = width * (i + 0.5f) / 7f
-        fun yHigh(temp: Int): Float =
-            (highCenterY - (temp - highMean) * curveScale).coerceIn(edge, height - edge)
-        fun yLow(temp: Int): Float =
-            (lowCenterY - (temp - lowMean) * curveScale).coerceIn(edge, height - edge)
+        fun yHigh(temp: Int): Float = highCenterY - (temp - highMean) * curveScale
+        fun yLow(temp: Int): Float = lowCenterY - (temp - lowMean) * curveScale
 
         val highPath = Path()
         val lowPath = Path()
