@@ -85,9 +85,9 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val conditionText = snapshot?.let { WeatherRepository.weatherText(it.currentCode) } ?: "获取中"
         views.setTextViewText(R.id.weather_city, cityText)
         views.setTextViewText(R.id.weather_current_temp, tempText)
-        views.setTextViewText(R.id.weather_detail_info,
-            snapshot?.let { "湿度 ${it.humidity}%  │  风速 ${it.wind} km/h  │  降水 ${it.days.firstOrNull()?.rain ?: 0}%" }
-                ?: "湿度 --%  │  风速 --  │  降水 --%")
+        views.setTextViewText(R.id.weather_humidity_value, snapshot?.let { "${it.humidity}%" } ?: "--%")
+        views.setTextViewText(R.id.weather_wind_value, snapshot?.let { "${it.wind} km/h" } ?: "--")
+        views.setTextViewText(R.id.weather_rain_value, snapshot?.let { "${it.days.firstOrNull()?.rain ?: 0}%" } ?: "--%")
         views.setTextViewText(R.id.weather_current_desc, conditionText)
         views.setTextViewText(R.id.weather_tiny_city, cityText)
         views.setTextViewText(R.id.weather_tiny_desc, conditionText)
@@ -184,7 +184,9 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             views.setViewVisibility(R.id.weather_bottom_info, View.GONE)
         } else {
             views.setViewVisibility(R.id.weather_bottom_info, View.GONE)
-            views.setTextViewText(R.id.weather_detail_info, "天气详情暂不可用")
+            views.setTextViewText(R.id.weather_humidity_value, "--%")
+            views.setTextViewText(R.id.weather_wind_value, "--")
+            views.setTextViewText(R.id.weather_rain_value, "--%")
         }
 
         // A tap anywhere on the widget opens the full forecast page.
@@ -240,7 +242,9 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val maxTemp = days.take(7).maxOfOrNull { emphasized(it.high) } ?: emphasized(rawMax)
         val range = max(1f, maxTemp - minTemp)
 
-        // Labels, dots and curves share one proportional scale.
+        // Keep the curves close to the chart edges while reserving only a small
+        // safety margin for the dots. Temperature labels are placed dynamically
+        // around their points on this same bitmap.
         val cellWidth = width / 7f
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFE8EDF5.toInt()
@@ -249,12 +253,11 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         }
         val metrics = labelPaint.fontMetrics
-        val gap = 1.5f * density * chartScale
-        val top = -metrics.ascent + gap + 2f * chartScale
-        val bottom = metrics.descent + gap + 2f * chartScale
+        val dotRadius = 3f * chartScale
+        val edge = dotRadius + 1f * chartScale
         fun x(i: Int) = width * (i + 0.5f) / 7f
-        fun y(temp: Int) = height - bottom - (emphasized(temp) - minTemp) *
-            (height - top - bottom) / range
+        fun y(temp: Int) = height - edge - (emphasized(temp) - minTemp) *
+            (height - edge * 2f) / range
 
         val highPath = Path()
         val lowPath = Path()
@@ -270,20 +273,56 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         canvas.drawPath(highPath, highPaint)
         canvas.drawPath(lowPath, lowPaint)
         days.take(7).forEachIndexed { i, day ->
-            canvas.drawCircle(x(i), y(day.high), 3f * chartScale, dotHigh)
-            canvas.drawCircle(x(i), y(day.low), 3f * chartScale, dotLow)
+            canvas.drawCircle(x(i), y(day.high), dotRadius, dotHigh)
+            canvas.drawCircle(x(i), y(day.low), dotRadius, dotLow)
         }
 
-        // Never suppress a temperature label. Place high/low labels on opposite
-        // sides of each point; the font scales uniformly with the chart.
-        days.take(7).forEachIndexed { i, day ->
-            val pointX = x(i)
-            val highY = y(day.high)
-            val lowY = y(day.low)
-            canvas.drawText("${day.high}°", pointX - cellWidth * 0.16f,
-                highY - gap - metrics.descent, labelPaint)
-            canvas.drawText("${day.low}°", pointX + cellWidth * 0.16f,
-                lowY + gap - metrics.ascent, labelPaint)
+        data class LabelBox(val left: Float, val top: Float, val right: Float, val bottom: Float)
+        data class LabelPlacement(val text: String, val x: Float, val baseline: Float, val box: LabelBox)
+        val occupied = mutableListOf<LabelBox>()
+        val labels = days.take(7).flatMapIndexed { i, day ->
+            listOf(
+                Triple("${day.high}°", x(i), y(day.high)),
+                Triple("${day.low}°", x(i), y(day.low))
+            )
+        }.sortedByDescending { (_, _, pointY) ->
+            // Place the points nearest the chart boundaries first.
+            max(pointY, height - pointY)
+        }
+
+        labels.forEachIndexed { index, (text, pointX, pointY) ->
+            val textWidth = labelPaint.measureText(text)
+            val halfWidth = textWidth / 2f
+            val textHeight = metrics.descent - metrics.ascent
+            val gap = 2f * chartScale
+            val preferBelow = index % 2 == 0
+            val verticalOffsets = if (preferBelow) listOf(1, -1, 2, -2) else listOf(-1, 1, -2, 2)
+            var best: LabelPlacement? = null
+            var bestCost = Float.MAX_VALUE
+            verticalOffsets.forEach { direction ->
+                listOf(0f, -cellWidth * 0.22f, cellWidth * 0.22f, -cellWidth * 0.38f, cellWidth * 0.38f).forEach { dx ->
+                    val cx = (pointX + dx).coerceIn(halfWidth + 1f, width - halfWidth - 1f)
+                    val baseline = if (direction > 0) pointY + gap - metrics.ascent
+                        else pointY - gap - metrics.descent
+                    val box = LabelBox(cx - halfWidth, baseline + metrics.ascent, cx + halfWidth, baseline + metrics.descent)
+                    val overflow = max(0f, -box.top) + max(0f, box.bottom - height)
+                    val overlap = occupied.sumOf { other ->
+                        val w = max(0f, min(box.right, other.right) - max(box.left, other.left))
+                        val h = max(0f, min(box.bottom, other.bottom) - max(box.top, other.top))
+                        (w * h).toDouble()
+                    }.toFloat()
+                    val preferredPenalty = if ((direction > 0) != preferBelow) 3f * chartScale else 0f
+                    val cost = overflow * 10000f + overlap * 100f + abs(dx) * 0.08f + preferredPenalty
+                    if (cost < bestCost) {
+                        bestCost = cost
+                        best = LabelPlacement(text, cx, baseline, box)
+                    }
+                }
+            }
+            best?.let {
+                canvas.drawText(it.text, it.x, it.baseline, labelPaint)
+                occupied.add(it.box)
+            }
         }
 
         WeatherChartBitmapCache.put(cacheKey, bitmap)
