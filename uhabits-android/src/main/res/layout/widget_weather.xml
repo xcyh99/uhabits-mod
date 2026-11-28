@@ -17,9 +17,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="top|start"
+            android:maxWidth="48dp"
+            android:maxLines="1"
+            android:ellipsize="end"
             android:text="合肥"
             android:textColor="#FFFFFF"
-            android:textSize="10sp"
+            android:textSize="8sp"
             android:textStyle="bold" />
         <TextView
             android:id="@+id/weather_tiny_desc"
@@ -35,8 +38,9 @@
             android:id="@+id/weather_tiny_temp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical|end"
+            android:layout_gravity="bottom|end"
             android:layout_marginEnd="4dp"
+            android:layout_marginBottom="3dp"
             android:text="--°"
             android:textColor="#FFFFFF"
             android:textSize="17sp"
@@ -53,9 +57,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="top|start"
+            android:maxWidth="48dp"
+            android:maxLines="1"
+            android:ellipsize="end"
             android:text="合肥"
             android:textColor="#FFFFFF"
-            android:textSize="10sp"
+            android:textSize="8sp"
             android:textStyle="bold" />
         <TextView
             android:id="@+id/weather_current_desc"
