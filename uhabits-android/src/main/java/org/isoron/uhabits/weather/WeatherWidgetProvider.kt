@@ -174,6 +174,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
+        private const val CHART_ROW_HEIGHT_DP = 27f
         private const val LINE_TEXT_SIZE_SP = 3.5f
         private const val MONOSPACE_WIDTH_FACTOR = 0.6f
 
