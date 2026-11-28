@@ -165,9 +165,12 @@ class WeatherWidgetProvider : AppWidgetProvider() {
 
             if (showChart) {
                 val chartWidth = max(1, ((widthDp - padding * 2) * density).toInt())
-                val reservedHeightDp = padding * 2 + 36 +
+                // Match the actual fixed-height rows in widget_weather.xml:
+                // header 42dp, update line ~13dp, seven-day row 74dp, footer ~17dp.
+                // The chart fills the remaining weighted FrameLayout height.
+                val reservedHeightDp = 42 +
                     (if (showUpdated) 13 else 0) +
-                    (if (showDays) 49 else 0) +
+                    (if (showDays) 74 else 0) +
                     (if (showBottom) 17 else 0) + 4
                 val chartHeight = max(1, ((heightDp - reservedHeightDp) * density).toInt())
                 val chartLabelSizeSp = 9f
