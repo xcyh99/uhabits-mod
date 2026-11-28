@@ -9,7 +9,7 @@ import org.isoron.uhabits.R
 
 /**
  * Fifth-round diagnostic: isolated header plus seven-day forecast row.
- * All values are fixed; chart, repository, cache, and network are bypassed.
+ * All values are fixed; custom chart drawing, repository, cache, and network are bypassed.
  */
 class WeatherWidgetProvider : AppWidgetProvider() {
 
@@ -28,7 +28,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     }
 
     private fun createForecastTestViews(context: Context): RemoteViews {
-        val views = RemoteViews(context.packageName, R.layout.widget_weather_forecast_test)
+        val views = RemoteViews(context.packageName, R.layout.widget_weather_line_test)
         views.setTextViewText(R.id.weather_city, "天气七天预报测试")
         views.setTextViewText(R.id.weather_updated, "顶部栏与预报区独立测试")
         views.setTextViewText(R.id.weather_current_desc, "晴")
