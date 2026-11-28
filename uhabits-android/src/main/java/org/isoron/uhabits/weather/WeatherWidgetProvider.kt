@@ -205,7 +205,8 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         // Text remains a fixed pixel size while chart coordinates expand with widget width.
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFE8EDF5.toInt(); textSize = labelSizeSp * context.resources.displayMetrics.density * chartScale; textAlign = Paint.Align.CENTER
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            // Match the regular Android TextView font used by the forecast temperatures.
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         }
         val dotHigh = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFA34A.toInt() }
         val dotLow = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF65A9FF.toInt() }
@@ -223,8 +224,10 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val maxTemp = centerTemp + plotHalfRange
         val range = max(1f, maxTemp - minTemp)
         val side = min(34f * chartScale, width * 0.12f)
-        val top = min(24f * chartScale, height * 0.22f)
-        val bottom = min(28f * chartScale, height * 0.25f)
+        // Let the temperature curves use almost the entire chart height.
+        // Labels are positioned afterwards and never reserve plotting space.
+        val top = 4f * chartScale
+        val bottom = 4f * chartScale
         fun x(i: Int) = side + i * (width - side * 2f) / 6f
         fun y(temp: Int) = height - bottom - (emphasized(temp) - minTemp) * (height - top - bottom) / range
         val highPath = Path()
@@ -243,8 +246,42 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         days.take(7).forEachIndexed { i, day ->
             canvas.drawCircle(x(i), y(day.high), 3f * chartScale, dotHigh)
             canvas.drawCircle(x(i), y(day.low), 3f * chartScale, dotLow)
-            canvas.drawText("${day.high}°", x(i), max(22f * chartScale, y(day.high) - 12f * chartScale), labelPaint)
-            canvas.drawText("${day.low}°", x(i), min(height - 3f * chartScale, y(day.low) + 25f * chartScale), labelPaint)
+            val highText = "${day.high}°"
+            val lowText = "${day.low}°"
+            val metrics = labelPaint.fontMetrics
+            val gap = 2f * chartScale
+            val highY = y(day.high)
+            val lowY = y(day.low)
+
+            // Prefer high labels above and low labels below their points.
+            // If either side would leave the bitmap, flip that label to the other side.
+            fun baseline(pointY: Float, preferAbove: Boolean): Float {
+                val above = pointY - gap - metrics.bottom
+                val below = pointY + gap - metrics.top
+                val aboveFits = above + metrics.top >= 0f && above + metrics.bottom <= height
+                val belowFits = below + metrics.top >= 0f && below + metrics.bottom <= height
+                return when {
+                    preferAbove && aboveFits -> above
+                    !preferAbove && belowFits -> below
+                    aboveFits -> above
+                    belowFits -> below
+                    else -> (height / 2f) - (metrics.ascent + metrics.descent) / 2f
+                }
+            }
+            var highBaseline = baseline(highY, true)
+            var lowBaseline = baseline(lowY, false)
+
+            // When the two labels are close, put them on opposite sides of their points.
+            val highTop = highBaseline + metrics.top
+            val highBottom = highBaseline + metrics.bottom
+            val lowTop = lowBaseline + metrics.top
+            val lowBottom = lowBaseline + metrics.bottom
+            if (highTop < lowBottom && lowTop < highBottom) {
+                highBaseline = baseline(highY, highBaseline > highY)
+                lowBaseline = baseline(lowY, lowBaseline < lowY)
+            }
+            canvas.drawText(highText, x(i), highBaseline, labelPaint)
+            canvas.drawText(lowText, x(i), lowBaseline, labelPaint)
         }
         WeatherChartBitmapCache.put(cacheKey, bitmap)
         return bitmap
