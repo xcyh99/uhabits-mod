@@ -91,6 +91,15 @@ class WeatherDetailActivity : AppCompatActivity() {
         val city = data?.city ?: "合肥"
         top.addView(label(city + " 天气", 21f, true), LinearLayout.LayoutParams(0, -2, 1f))
         top.addView(Button(this).apply {
+            text = "设置"
+            setOnClickListener {
+                startActivity(android.content.Intent(
+                    this@WeatherDetailActivity,
+                    WeatherWidgetSettingsActivity::class.java
+                ))
+            }
+        })
+        top.addView(Button(this).apply {
             text = "刷新"
             setOnClickListener {
                 text = "更新中"
