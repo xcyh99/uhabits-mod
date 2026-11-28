@@ -6,16 +6,21 @@ import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import org.isoron.uhabits.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
 
 /**
  * Weather widget: cached-first rendering with an asynchronous forecast refresh.
- * The verified TEXT chart layout and responsive glyph scaling are intentionally preserved.
+ *
+ * The chart keeps six independent TEXT glyph controls per temperature line.
+ * Each glyph is sized and vertically positioned from the shared seven-node
+ * geometry, so adjacent glyphs use the exact same calculated node.
  */
 class WeatherWidgetProvider : AppWidgetProvider() {
 
@@ -53,7 +58,8 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         snapshot: WeatherSnapshot?
     ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_weather_line_test)
-        applyResponsiveLineCount(views, options)
+        val widgetWidthDp = getWidgetWidthDp(options)
+        applyResponsiveLineCount(views, widgetWidthDp)
 
         val openDetails = Intent(context, WeatherDetailActivity::class.java)
         val clickIntent = PendingIntent.getActivity(
@@ -77,6 +83,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                 views.setTextViewText(iconIds[i], "·")
                 views.setTextViewText(tempIds[i], "--°/--°")
             }
+            clearChartGlyphs(views)
             return views
         }
 
@@ -103,33 +110,104 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             }
         }
 
-        // Each of the six chart segments represents the change between adjacent forecast days.
-        val highs = days.map { it.high }
-        val lows = days.map { it.low }
-        val highGlyphs = (0 until 6).joinToString("") { i ->
-            if (highs[i + 1] >= highs[i]) "╱" else "╲"
-        }
-        val lowGlyphs = (0 until 6).joinToString("") { i ->
-            if (lows[i + 1] >= lows[i]) "╱" else "╲"
-        }
-        for (i in 0 until 6) {
-            views.setTextViewText(highSegmentIds[i], highGlyphs[i].toString())
-            views.setTextViewText(lowSegmentIds[i], lowGlyphs[i].toString())
+        // A chart is valid only with seven real forecast days: seven nodes, six intervals.
+        if (days.size == 7) {
+            val highChart = WeatherLineGeometry.calculate(
+                temperatures = days.map { it.high },
+                width = widgetWidthDp * 6f / 7f,
+                height = CHART_ROW_HEIGHT_DP
+            )
+            val lowChart = WeatherLineGeometry.calculate(
+                temperatures = days.map { it.low },
+                width = widgetWidthDp * 6f / 7f,
+                height = CHART_ROW_HEIGHT_DP
+            )
+            applyChartGlyphs(context, views, highSegmentIds, highChart, widgetWidthDp)
+            applyChartGlyphs(context, views, lowSegmentIds, lowChart, widgetWidthDp)
+        } else {
+            clearChartGlyphs(views)
         }
         return views
     }
 
-    private fun applyResponsiveLineCount(views: RemoteViews, options: Bundle) {
+    /**
+     * Positions each character glyph so its visual box spans the two shared
+     * node Y coordinates. The TextView itself remains in its original interval
+     * cell; padding positions the glyph inside that cell without translating
+     * the view outside the row (which could be clipped by RemoteViews).
+     */
+    private fun applyChartGlyphs(
+        context: Context,
+        views: RemoteViews,
+        segmentIds: IntArray,
+        chart: WeatherLineGeometry.Chart,
+        widgetWidthDp: Int
+    ) {
+        val density = context.resources.displayMetrics.density
+        val rowHeight = CHART_ROW_HEIGHT_DP
+        val segmentWidth = widgetWidthDp / 7f
+
+        chart.segments.forEach { segment ->
+            val startY = segment.start.y
+            val endY = segment.end.y
+            val deltaY = endY - startY
+            val glyphHeight = abs(deltaY).coerceAtLeast(MIN_GLYPH_HEIGHT_DP)
+            val middleY = (startY + endY) / 2f
+            val contentTop = (middleY - glyphHeight / 2f)
+                .coerceIn(0f, rowHeight - glyphHeight)
+            val contentBottom = (rowHeight - contentTop - glyphHeight).coerceAtLeast(0f)
+
+            val glyph = when {
+                abs(deltaY) < FLAT_LINE_THRESHOLD_DP -> "─"
+                deltaY < 0f -> "╱"
+                else -> "╲"
+            }
+            val viewId = segmentIds[segment.index]
+            views.setTextViewText(viewId, glyph)
+            views.setTextViewTextSize(
+                viewId,
+                TypedValue.COMPLEX_UNIT_DIP,
+                glyphHeight
+            )
+            views.setFloat(
+                viewId,
+                "setTextScaleX",
+                (segmentWidth / glyphHeight).coerceAtLeast(0.1f)
+            )
+            views.setViewPadding(
+                viewId,
+                0,
+                (contentTop * density).toInt(),
+                0,
+                (contentBottom * density).toInt()
+            )
+            views.setViewVisibility(viewId, View.VISIBLE)
+        }
+    }
+
+    private fun clearChartGlyphs(views: RemoteViews) {
+        for (i in 0 until 6) {
+            views.setTextViewText(highSegmentIds[i], "")
+            views.setTextViewText(lowSegmentIds[i], "")
+        }
+    }
+
+    private fun getWidgetWidthDp(options: Bundle): Int {
         val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
         val maxWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH)
-        val widgetWidthDp = when {
+        return when {
             minWidth > 0 -> minWidth
             maxWidth > 0 -> maxWidth
             else -> 50
         }
-        // Keep all six intervals visible. This is the phone-verified 1x2–6x2 behavior.
+    }
+
+    private fun applyResponsiveLineCount(views: RemoteViews, widgetWidthDp: Int) {
+        // Preserve all six independent glyph controls across the verified resize range.
         val glyphTextScaleX = if (widgetWidthDp >= 295) 2.43f else 1.9f
         for (i in 0 until 6) {
+            // The per-segment scale is set from its actual geometry after forecast data is loaded.
+            // Keep this fallback scale for the loading/empty state only.
             views.setFloat(highSegmentIds[i], "setTextScaleX", glyphTextScaleX)
             views.setFloat(lowSegmentIds[i], "setTextScaleX", glyphTextScaleX)
             views.setViewVisibility(highSegmentIds[i], View.VISIBLE)
@@ -138,6 +216,10 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
+        private const val CHART_ROW_HEIGHT_DP = 27f
+        private const val MIN_GLYPH_HEIGHT_DP = 0.75f
+        private const val FLAT_LINE_THRESHOLD_DP = 0.75f
+
         private val dayIds = intArrayOf(
             R.id.weather_day_0, R.id.weather_day_1, R.id.weather_day_2,
             R.id.weather_day_3, R.id.weather_day_4, R.id.weather_day_5, R.id.weather_day_6
