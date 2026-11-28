@@ -14,6 +14,7 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.view.View
 import android.widget.RemoteViews
+import android.util.LruCache
 import androidx.preference.PreferenceManager
 import org.isoron.uhabits.R
 import kotlin.math.max
@@ -175,6 +176,19 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     }
 
     private fun drawChart(context: Context, days: List<WeatherDay>, width: Int, height: Int, labelSizeSp: Float): Bitmap {
+        val curveGain = PreferenceManager.getDefaultSharedPreferences(context)
+            .getFloat(WeatherWidgetSettingsActivity.PREF_CURVE_GAIN, WeatherWidgetSettingsActivity.DEFAULT_CURVE_GAIN)
+            .coerceIn(WeatherWidgetSettingsActivity.MIN_GAIN, WeatherWidgetSettingsActivity.MAX_GAIN)
+        val density = context.resources.displayMetrics.density
+        // Weather data changes infrequently. Reuse the finished chart when its
+        // dimensions, labels, forecast temperatures, density, and curve setting match.
+        val cacheKey = buildString {
+            append(width).append('x').append(height)
+            append('|').append(labelSizeSp).append('|').append(density).append('|').append(curveGain)
+            days.take(7).forEach { append('|').append(it.date).append(':').append(it.high).append('/').append(it.low) }
+        }
+        WeatherChartBitmapCache.get(cacheKey)?.let { return it }
+
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         // 240x64 px is the reference drawing size. Larger widgets never enlarge
@@ -200,9 +214,6 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val rawMin = days.take(7).minOfOrNull { it.low } ?: 0
         val rawMax = days.take(7).maxOfOrNull { it.high } ?: 10
         val centerTemp = (rawMin + rawMax) / 2f
-        val curveGain = PreferenceManager.getDefaultSharedPreferences(context)
-            .getFloat(WeatherWidgetSettingsActivity.PREF_CURVE_GAIN, WeatherWidgetSettingsActivity.DEFAULT_CURVE_GAIN)
-            .coerceIn(WeatherWidgetSettingsActivity.MIN_GAIN, WeatherWidgetSettingsActivity.MAX_GAIN)
         fun emphasized(temp: Int) = centerTemp + (temp - centerTemp) * curveGain
         // Keep the vertical plotting range fixed against the maximum supported gain.
         // Do not derive these bounds from emphasized values: doing so cancels the gain.
@@ -235,6 +246,23 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             canvas.drawText("${day.high}°", x(i), max(22f * chartScale, y(day.high) - 12f * chartScale), labelPaint)
             canvas.drawText("${day.low}°", x(i), min(height - 3f * chartScale, y(day.low) + 25f * chartScale), labelPaint)
         }
+        WeatherChartBitmapCache.put(cacheKey, bitmap)
         return bitmap
+    }
+}
+
+/** Small process-local cache: keeps only a few recently used weather chart bitmaps. */
+private object WeatherChartBitmapCache {
+    private val cache = object : LruCache<String, Bitmap>(2 * 1024) {
+        override fun sizeOf(key: String, value: Bitmap): Int =
+            max(1, value.byteCount / 1024)
+    }
+
+    @Synchronized
+    fun get(key: String): Bitmap? = cache.get(key)
+
+    @Synchronized
+    fun put(key: String, bitmap: Bitmap) {
+        cache.put(key, bitmap)
     }
 }
