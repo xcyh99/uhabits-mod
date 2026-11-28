@@ -106,16 +106,25 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         // Each of the six chart segments represents the change between adjacent forecast days.
         val highs = days.map { it.high }
         val lows = days.map { it.low }
+        // One TextView per complete six-interval line: adjacent intervals now share
+        // the same text stream and cannot drift as six independent child views.
+        // Equal temperatures are horizontal; rising/falling temperatures slope accordingly.
         val highGlyphs = (0 until 6).joinToString("") { i ->
-            if (highs[i + 1] >= highs[i]) "╱" else "╲"
+            when {
+                highs[i + 1] == highs[i] -> "─"
+                highs[i + 1] > highs[i] -> "╱"
+                else -> "╲"
+            }
         }
         val lowGlyphs = (0 until 6).joinToString("") { i ->
-            if (lows[i + 1] >= lows[i]) "╱" else "╲"
+            when {
+                lows[i + 1] == lows[i] -> "─"
+                lows[i + 1] > lows[i] -> "╱"
+                else -> "╲"
+            }
         }
-        for (i in 0 until 6) {
-            views.setTextViewText(highSegmentIds[i], highGlyphs[i].toString())
-            views.setTextViewText(lowSegmentIds[i], lowGlyphs[i].toString())
-        }
+        views.setTextViewText(R.id.weather_high_line, highGlyphs)
+        views.setTextViewText(R.id.weather_low_line, lowGlyphs)
         return views
     }
 
@@ -129,12 +138,10 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         }
         // Keep all six intervals visible. This is the phone-verified 1x2–6x2 behavior.
         val glyphTextScaleX = if (widgetWidthDp >= 295) 2.43f else 1.9f
-        for (i in 0 until 6) {
-            views.setFloat(highSegmentIds[i], "setTextScaleX", glyphTextScaleX)
-            views.setFloat(lowSegmentIds[i], "setTextScaleX", glyphTextScaleX)
-            views.setViewVisibility(highSegmentIds[i], View.VISIBLE)
-            views.setViewVisibility(lowSegmentIds[i], View.VISIBLE)
-        }
+        views.setFloat(R.id.weather_high_line, "setTextScaleX", glyphTextScaleX)
+        views.setFloat(R.id.weather_low_line, "setTextScaleX", glyphTextScaleX)
+        views.setViewVisibility(R.id.weather_high_line, View.VISIBLE)
+        views.setViewVisibility(R.id.weather_low_line, View.VISIBLE)
     }
 
     companion object {
@@ -150,15 +157,6 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             R.id.weather_desc_0, R.id.weather_desc_1, R.id.weather_desc_2,
             R.id.weather_desc_3, R.id.weather_desc_4, R.id.weather_desc_5, R.id.weather_desc_6
         )
-        private val highSegmentIds = intArrayOf(
-            R.id.weather_high_segment_0, R.id.weather_high_segment_1,
-            R.id.weather_high_segment_2, R.id.weather_high_segment_3,
-            R.id.weather_high_segment_4, R.id.weather_high_segment_5
-        )
-        private val lowSegmentIds = intArrayOf(
-            R.id.weather_low_segment_0, R.id.weather_low_segment_1,
-            R.id.weather_low_segment_2, R.id.weather_low_segment_3,
-            R.id.weather_low_segment_4, R.id.weather_low_segment_5
-        )
+
     }
 }
