@@ -8,16 +8,16 @@ import android.widget.RemoteViews
 import org.isoron.uhabits.R
 
 /**
- * Temporary third-round diagnostic.
+ * Temporary fourth-round diagnostic.
  *
- * Bypass WeatherRepository, cached-data loading, network refresh, dynamic
- * RemoteViews operations, and the full weather layout. This tests the
- * provider's direct update path using a single TextView layout.
+ * Uses only the original weather header section in an isolated layout.
+ * Weather data, forecast rows, chart views, and background drawables remain
+ * bypassed so this test isolates the header layout itself.
  */
 class WeatherWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
-        val views = createDiagnosticViews(context)
+        val views = createHeaderTestViews(context)
         ids.forEach { manager.updateAppWidget(it, views) }
     }
 
@@ -27,12 +27,18 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         appWidgetId: Int,
         newOptions: Bundle
     ) {
-        manager.updateAppWidget(appWidgetId, createDiagnosticViews(context))
+        manager.updateAppWidget(appWidgetId, createHeaderTestViews(context))
     }
 
-    private fun createDiagnosticViews(context: Context): RemoteViews {
-        val views = RemoteViews(context.packageName, R.layout.widget_weather_loading)
-        views.setTextViewText(R.id.weather_loading_text, "天气Provider直连测试")
+    private fun createHeaderTestViews(context: Context): RemoteViews {
+        val views = RemoteViews(context.packageName, R.layout.widget_weather_header_test)
+        views.setTextViewText(R.id.weather_city, "天气顶部栏测试")
+        views.setTextViewText(R.id.weather_updated, "Provider直连正常")
+        views.setTextViewText(R.id.weather_current_desc, "晴")
+        views.setTextViewText(R.id.weather_current_temp, "22°")
+        views.setTextViewText(R.id.weather_humidity_value, "55%")
+        views.setTextViewText(R.id.weather_wind_value, "东风2级")
+        views.setTextViewText(R.id.weather_rain_value, "0%")
         return views
     }
 }
