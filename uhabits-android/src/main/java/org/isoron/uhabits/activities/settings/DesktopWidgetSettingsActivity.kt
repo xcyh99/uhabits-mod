@@ -133,6 +133,43 @@ class DesktopWidgetSettingsActivity : AppCompatActivity() {
             gravity = android.view.Gravity.CENTER
         })
         root.addView(pictureItem, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
+        val weatherItem = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(dp(16), dp(15), dp(14), dp(15))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(if (isDark()) Color.rgb(45, 48, 55) else Color.WHITE)
+                cornerRadius = dp(13).toFloat()
+                setStroke(dp(1), if (isDark()) Color.rgb(70, 74, 82) else Color.rgb(230, 233, 238))
+            }
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                startActivity(Intent(this@DesktopWidgetSettingsActivity,
+                    org.isoron.uhabits.weather.WeatherWidgetSettingsActivity::class.java))
+            }
+        }
+        val weatherLabels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        weatherLabels.addView(TextView(this).apply {
+            text = "天气组件设置"
+            textSize = 15f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(resolvePrimaryText())
+        })
+        weatherLabels.addView(TextView(this).apply {
+            text = "调整温度曲线起伏幅度等显示参数"
+            textSize = 12f
+            setTextColor(resolveSecondaryText())
+            setPadding(0, dp(3), 0, 0)
+        })
+        weatherItem.addView(weatherLabels, LinearLayout.LayoutParams(0, -2, 1f))
+        weatherItem.addView(TextView(this).apply {
+            text = "›"
+            textSize = 27f
+            setTextColor(resolveSecondaryText())
+            gravity = android.view.Gravity.CENTER
+        })
+        root.addView(weatherItem, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
         setContentView(android.widget.ScrollView(this).apply {
             isFillViewport = true
             addView(root)
