@@ -462,6 +462,11 @@
             android:layout_width="match_parent"
             android:layout_height="27dp"
             android:orientation="horizontal">
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="0.5" />
+
             <TextView
                 android:id="@+id/weather_high_segment_0"
                 android:layout_width="0dp"
@@ -546,12 +551,21 @@
                 android:textScaleX="1.9"
                 android:textStyle="bold"
                 android:maxLines="1" />
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="0.5" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="27dp"
             android:orientation="horizontal">
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="0.5" />
+
             <TextView
                 android:id="@+id/weather_low_segment_0"
                 android:layout_width="0dp"
@@ -636,6 +650,10 @@
                 android:textScaleX="1.9"
                 android:textStyle="bold"
                 android:maxLines="1" />
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="0.5" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>
