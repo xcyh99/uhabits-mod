@@ -20,6 +20,7 @@ import org.isoron.uhabits.R
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
 
 class WeatherWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
@@ -237,11 +238,11 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val dotLow = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF65A9FF.toInt() }
         val rawMin = days.take(7).minOfOrNull { it.low } ?: 0
         val rawMax = days.take(7).maxOfOrNull { it.high } ?: 10
-        val centerTemp = (rawMin + rawMax) / 2f
-        fun emphasized(temp: Int) = centerTemp + (temp - centerTemp) * curveGain
-        val minTemp = days.take(7).minOfOrNull { emphasized(it.low) } ?: emphasized(rawMin)
-        val maxTemp = days.take(7).maxOfOrNull { emphasized(it.high) } ?: emphasized(rawMax)
-        val range = max(1f, maxTemp - minTemp)
+        // Keep the absolute lowest and highest forecast points anchored to the
+        // bottom and top edges. Apply gain as a non-linear contrast curve between
+        // those fixed endpoints, so changing the setting visibly changes the
+        // separation/shape of intermediate points instead of being normalized away.
+        val rawRange = max(1f, (rawMax - rawMin).toFloat())
 
         // Keep the curves close to the chart edges while reserving only a small
         // safety margin for the dots. Temperature labels are placed dynamically
@@ -257,8 +258,13 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val dotRadius = 3f * chartScale
         val edge = dotRadius + 1f * chartScale
         fun x(i: Int) = width * (i + 0.5f) / 7f
-        fun y(temp: Int) = height - edge - (emphasized(temp) - minTemp) *
-            (height - edge * 2f) / range
+        fun y(temp: Int): Float {
+            val normalized = ((temp - rawMin) / rawRange).coerceIn(0f, 1f)
+            val centered = normalized * 2f - 1f
+            val shaped = 0.5f + (if (centered < 0f) -1f else 1f) *
+                0.5f * kotlin.math.abs(centered).toDouble().pow(1.0 / curveGain.toDouble()).toFloat()
+            return height - edge - shaped * (height - edge * 2f)
+        }
 
         val highPath = Path()
         val lowPath = Path()
