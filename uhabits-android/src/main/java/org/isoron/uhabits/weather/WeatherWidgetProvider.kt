@@ -128,7 +128,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                     (if (showUpdated) 13 else 0) +
                     (if (showDays) 49 else 0) +
                     (if (showBottom) 17 else 0) + 4
-                val chartHeight = max(32, ((heightDp - reservedHeightDp) * density).toInt())
+                val chartHeight = max(1, ((heightDp - reservedHeightDp) * density).toInt())
                 views.setImageViewBitmap(R.id.weather_chart, drawChart(snapshot.days, chartWidth, chartHeight))
             }
             views.setTextViewText(
