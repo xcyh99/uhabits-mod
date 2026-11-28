@@ -129,18 +129,43 @@
             android:layout_height="26dp"
             android:background="#667D91A8" />
 
-        <TextView
+        <LinearLayout
             android:id="@+id/weather_detail_info"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="4.1"
             android:gravity="center"
-            android:includeFontPadding="false"
-            android:maxLines="2"
-            android:breakStrategy="simple"
-            android:text="湿度 --%  │  风速 -- km/h  │  降水 --%"
-            android:textColor="#D7DFEA"
-            android:textSize="8sp" />
+            android:orientation="horizontal">
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:includeFontPadding="false" android:text="湿度" android:textColor="#D7DFEA" android:textSize="8sp" />
+                <TextView android:id="@+id/weather_humidity_value" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:includeFontPadding="false" android:text="--%" android:textColor="#FFFFFF" android:textSize="8sp" />
+            </LinearLayout>
+            <TextView android:layout_width="1dp" android:layout_height="26dp" android:background="#667D91A8" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:includeFontPadding="false" android:text="风速" android:textColor="#D7DFEA" android:textSize="8sp" />
+                <TextView android:id="@+id/weather_wind_value" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:includeFontPadding="false" android:text="--" android:textColor="#FFFFFF" android:textSize="8sp" />
+            </LinearLayout>
+            <TextView android:layout_width="1dp" android:layout_height="26dp" android:background="#667D91A8" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:includeFontPadding="false" android:text="降水" android:textColor="#D7DFEA" android:textSize="8sp" />
+                <TextView android:id="@+id/weather_rain_value" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:includeFontPadding="false" android:text="--%" android:textColor="#FFFFFF" android:textSize="8sp" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 
     <LinearLayout
