@@ -46,6 +46,13 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     private fun render(
         context: Context, manager: AppWidgetManager, id: Int, snapshot: WeatherSnapshot?
     ) {
+        // TEMPORARY DIAGNOSTIC: isolate launcher/provider registration from the
+        // full weather RemoteViews tree and its dynamic chart operations.
+        val diagnosticViews = RemoteViews(context.packageName, R.layout.widget_weather_loading)
+        diagnosticViews.setTextViewText(R.id.weather_loading_text, "天气组件加载测试")
+        manager.updateAppWidget(id, diagnosticViews)
+        return
+
         val views = RemoteViews(context.packageName, R.layout.widget_weather)
         val options = manager.getAppWidgetOptions(id)
         val widthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
