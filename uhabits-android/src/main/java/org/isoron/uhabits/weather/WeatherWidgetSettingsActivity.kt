@@ -15,6 +15,7 @@ import android.widget.TextView
 import android.text.InputType
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
+import kotlin.math.pow
 import org.isoron.uhabits.HabitsApplication
 import org.isoron.uhabits.activities.AndroidThemeSwitcher
 
@@ -24,8 +25,8 @@ class WeatherWidgetSettingsActivity : AppCompatActivity() {
         const val PREF_CURVE_GAIN = "weather_widget_curve_gain"
         const val DEFAULT_CURVE_GAIN = 1.45f
         const val MIN_GAIN = 0.8f
-        const val MAX_GAIN = 10.0f
-        private const val STEPS = 92
+        const val SLIDER_MAX_GAIN = 1000.0f
+        private const val STEPS = 100
     }
 
     private val store by lazy { PreferenceManager.getDefaultSharedPreferences(this) }
@@ -106,7 +107,7 @@ class WeatherWidgetSettingsActivity : AppCompatActivity() {
             setPadding(0, dp(10), 0, 0)
         }
         gainInput = EditText(this).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or InputType.TYPE_NUMBER_FLAG_SIGNED
             setSingleLine(true)
             textSize = 14f
             setTextColor(primary)
@@ -120,14 +121,16 @@ class WeatherWidgetSettingsActivity : AppCompatActivity() {
         inputRow.addView(Button(this).apply {
             text = "应用数值"
             setOnClickListener {
-                val typed = gainInput?.text?.toString()?.trim()?.toFloatOrNull()
-                if (typed == null || typed < MIN_GAIN || typed > MAX_GAIN) {
-                    gainInput?.error = "请输入 0.8～10.0 之间的数值"
+                val typed = gainInput?.text?.toString()?.trim()?.toDoubleOrNull()
+                if (typed == null || !typed.isFinite() || typed < MIN_GAIN.toDouble() ||
+                    typed > Float.MAX_VALUE.toDouble()) {
+                    gainInput?.error = "请输入不小于 0.8 的有效正数"
                 } else {
-                    seek.progress = gainToProgress(typed)
-                    valueLabel?.text = String.format(java.util.Locale.CHINA, "%.2f 倍", typed)
-                    saveGain(typed)
-                    gainInput?.setText(String.format(java.util.Locale.US, "%.2f", typed))
+                    val gain = typed.toFloat()
+                    seek.progress = gainToProgress(gain)
+                    valueLabel?.text = formatGain(gain)
+                    saveGain(gain)
+                    gainInput?.setText(typed.toString())
                 }
             }
         }, LinearLayout.LayoutParams(-2, dp(48)))
@@ -161,7 +164,7 @@ class WeatherWidgetSettingsActivity : AppCompatActivity() {
         }
         root.addView(reset, LinearLayout.LayoutParams(-1, -2))
         root.addView(TextView(this).apply {
-            text = "默认值：1.45 倍。滑块可调 0.8～10 倍，也可以在上方直接输入数值。"
+            text = "默认值：1.45 倍。滑块采用对数刻度，便于调节 0.8～1000 倍；输入框可直接输入更大的有效数值。"
             textSize = 12f
             setTextColor(secondary)
             setPadding(dp(2), dp(10), dp(2), 0)
@@ -170,7 +173,7 @@ class WeatherWidgetSettingsActivity : AppCompatActivity() {
         seek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val gain = progressToGain(progress)
-                valueLabel?.text = String.format(java.util.Locale.CHINA, "%.2f 倍", gain)
+                valueLabel?.text = formatGain(gain)
                 if (fromUser && gainInput?.hasFocus() != true) {
                     gainInput?.setText(String.format(java.util.Locale.US, "%.2f", gain))
                 }
@@ -183,7 +186,7 @@ class WeatherWidgetSettingsActivity : AppCompatActivity() {
         })
         valueLabel?.text = String.format(
             java.util.Locale.CHINA, "%.2f 倍",
-            store.getFloat(PREF_CURVE_GAIN, DEFAULT_CURVE_GAIN).coerceIn(MIN_GAIN, MAX_GAIN)
+            store.getFloat(PREF_CURVE_GAIN, DEFAULT_CURVE_GAIN).coerceAtLeast(MIN_GAIN)
         )
         setContentView(android.widget.ScrollView(this).apply {
             isFillViewport = true
@@ -191,15 +194,25 @@ class WeatherWidgetSettingsActivity : AppCompatActivity() {
         })
     }
 
-    private fun gainToProgress(gain: Float): Int =
-        (((gain.coerceIn(MIN_GAIN, MAX_GAIN) - MIN_GAIN) / (MAX_GAIN - MIN_GAIN)) * STEPS)
-            .toInt().coerceIn(0, STEPS)
+    private fun gainToProgress(gain: Float): Int {
+        val safeGain = gain.coerceAtLeast(MIN_GAIN)
+        val ratio = kotlin.math.ln(safeGain.toDouble() / MIN_GAIN.toDouble()) /
+            kotlin.math.ln(SLIDER_MAX_GAIN.toDouble() / MIN_GAIN.toDouble())
+        return (ratio * STEPS).toInt().coerceIn(0, STEPS)
+    }
 
-    private fun progressToGain(progress: Int): Float =
-        MIN_GAIN + (MAX_GAIN - MIN_GAIN) * progress.coerceIn(0, STEPS) / STEPS
+    private fun progressToGain(progress: Int): Float {
+        val fraction = progress.coerceIn(0, STEPS).toDouble() / STEPS
+        return (MIN_GAIN.toDouble() *
+            (SLIDER_MAX_GAIN.toDouble() / MIN_GAIN.toDouble()).pow(fraction)).toFloat()
+    }
+
+    private fun formatGain(gain: Float): String =
+        if (gain >= 1000f) String.format(java.util.Locale.CHINA, "%.2e 倍", gain)
+        else String.format(java.util.Locale.CHINA, "%.2f 倍", gain)
 
     private fun saveGain(gain: Float) {
-        store.edit().putFloat(PREF_CURVE_GAIN, gain.coerceIn(MIN_GAIN, MAX_GAIN)).apply()
+        store.edit().putFloat(PREF_CURVE_GAIN, gain.coerceAtLeast(MIN_GAIN)).apply()
         val manager = AppWidgetManager.getInstance(this)
         val ids = manager.getAppWidgetIds(ComponentName(this, WeatherWidgetProvider::class.java))
         if (ids.isNotEmpty()) {
