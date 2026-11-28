@@ -236,17 +236,16 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         }
         val dotHigh = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFA34A.toInt() }
         val dotLow = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF65A9FF.toInt() }
-        val rawMin = days.take(7).minOfOrNull { it.low } ?: 0
-        val rawMax = days.take(7).maxOfOrNull { it.high } ?: 10
-        // Keep the absolute lowest and highest forecast points anchored to the
-        // bottom and top edges. Apply gain as a non-linear contrast curve between
-        // those fixed endpoints, so changing the setting visibly changes the
-        // separation/shape of intermediate points instead of being normalized away.
-        val rawRange = max(1f, (rawMax - rawMin).toFloat())
+        val highMin = days.take(7).minOfOrNull { it.high } ?: 0
+        val highMax = days.take(7).maxOfOrNull { it.high } ?: 10
+        val lowMin = days.take(7).minOfOrNull { it.low } ?: 0
+        val lowMax = days.take(7).maxOfOrNull { it.low } ?: 10
+        val highRange = max(1f, (highMax - highMin).toFloat())
+        val lowRange = max(1f, (lowMax - lowMin).toFloat())
 
-        // Keep the curves close to the chart edges while reserving only a small
-        // safety margin for the dots. Temperature labels are placed dynamically
-        // around their points on this same bitmap.
+        // Each series owns its own half of the chart:
+        // highest high is pinned to the top edge; lowest low is pinned to the bottom.
+        // Gain changes the intermediate points inside each band, never the endpoints.
         val cellWidth = width / 7f
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFE8EDF5.toInt()
@@ -257,76 +256,105 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val metrics = labelPaint.fontMetrics
         val dotRadius = 3f * chartScale
         val edge = dotRadius + 1f * chartScale
+        val topY = edge
+        val bottomY = height - edge
+        val highBandBottom = height * 0.47f
+        val lowBandTop = height * 0.53f
         fun x(i: Int) = width * (i + 0.5f) / 7f
-        fun y(temp: Int): Float {
-            val normalized = ((temp - rawMin) / rawRange).coerceIn(0f, 1f)
-            val centered = normalized * 2f - 1f
-            val shaped = 0.5f + (if (centered < 0f) -1f else 1f) *
-                0.5f * kotlin.math.abs(centered).toDouble().pow(1.0 / curveGain.toDouble()).toFloat()
-            return height - edge - shaped * (height - edge * 2f)
+        fun shaped(value: Float): Float =
+            value.coerceIn(0f, 1f).toDouble().pow(1.0 / curveGain.toDouble()).toFloat()
+        fun yHigh(temp: Int): Float {
+            val normalized = if (highMax == highMin) 1f
+                else ((temp - highMin) / highRange).coerceIn(0f, 1f)
+            return highBandBottom - shaped(normalized) * (highBandBottom - topY)
+        }
+        fun yLow(temp: Int): Float {
+            val normalized = if (lowMax == lowMin) 0f
+                else ((temp - lowMin) / lowRange).coerceIn(0f, 1f)
+            return bottomY - shaped(normalized) * (bottomY - lowBandTop)
         }
 
         val highPath = Path()
         val lowPath = Path()
         days.take(7).forEachIndexed { i, day ->
             if (i == 0) {
-                highPath.moveTo(x(i), y(day.high))
-                lowPath.moveTo(x(i), y(day.low))
+                highPath.moveTo(x(i), yHigh(day.high))
+                lowPath.moveTo(x(i), yLow(day.low))
             } else {
-                highPath.lineTo(x(i), y(day.high))
-                lowPath.lineTo(x(i), y(day.low))
+                highPath.lineTo(x(i), yHigh(day.high))
+                lowPath.lineTo(x(i), yLow(day.low))
             }
         }
         canvas.drawPath(highPath, highPaint)
         canvas.drawPath(lowPath, lowPaint)
         days.take(7).forEachIndexed { i, day ->
-            canvas.drawCircle(x(i), y(day.high), dotRadius, dotHigh)
-            canvas.drawCircle(x(i), y(day.low), dotRadius, dotLow)
+            canvas.drawCircle(x(i), yHigh(day.high), dotRadius, dotHigh)
+            canvas.drawCircle(x(i), yLow(day.low), dotRadius, dotLow)
         }
 
         data class LabelBox(val left: Float, val top: Float, val right: Float, val bottom: Float)
         data class LabelPlacement(val text: String, val x: Float, val baseline: Float, val box: LabelBox)
         val occupied = mutableListOf<LabelBox>()
+        data class ChartLabel(val text: String, val pointX: Float, val pointY: Float, val preferBelow: Boolean)
         val labels = days.take(7).flatMapIndexed { i, day ->
             listOf(
-                Triple("${day.high}°", x(i), y(day.high)),
-                Triple("${day.low}°", x(i), y(day.low))
+                ChartLabel("${day.high}°", x(i), yHigh(day.high), false),
+                ChartLabel("${day.low}°", x(i), yLow(day.low), true)
             )
-        }.sortedByDescending { (_, _, pointY) ->
-            // Place the points nearest the chart boundaries first.
-            max(pointY, height - pointY)
-        }
+        }.sortedBy { if (it.preferBelow) 1 else 0 }
 
-        labels.forEachIndexed { index, (text, pointX, pointY) ->
-            val textWidth = labelPaint.measureText(text)
+        labels.forEach { label ->
+            val textWidth = labelPaint.measureText(label.text)
             val halfWidth = textWidth / 2f
-            val textHeight = metrics.descent - metrics.ascent
             val gap = 2f * chartScale
-            val preferBelow = index % 2 == 0
-            val verticalOffsets = if (preferBelow) listOf(1, -1, 2, -2) else listOf(-1, 1, -2, 2)
-            var best: LabelPlacement? = null
-            var bestCost = Float.MAX_VALUE
-            verticalOffsets.forEach { direction ->
-                listOf(0f, -cellWidth * 0.22f, cellWidth * 0.22f, -cellWidth * 0.38f, cellWidth * 0.38f).forEach { dx ->
-                    val cx = (pointX + dx).coerceIn(halfWidth + 1f, width - halfWidth - 1f)
-                    val baseline = if (direction > 0) pointY + gap - metrics.ascent
-                        else pointY - gap - metrics.descent
-                    val box = LabelBox(cx - halfWidth, baseline + metrics.ascent, cx + halfWidth, baseline + metrics.descent)
-                    val overflow = max(0f, -box.top) + max(0f, box.bottom - height)
-                    val overlap = occupied.sumOf { other ->
-                        val w = max(0f, min(box.right, other.right) - max(box.left, other.left))
-                        val h = max(0f, min(box.bottom, other.bottom) - max(box.top, other.top))
-                        (w * h).toDouble()
-                    }.toFloat()
-                    val preferredPenalty = if ((direction > 0) != preferBelow) 3f * chartScale else 0f
-                    val cost = overflow * 10000f + overlap * 100f + abs(dx) * 0.08f + preferredPenalty
-                    if (cost < bestCost) {
-                        bestCost = cost
-                        best = LabelPlacement(text, cx, baseline, box)
+            val horizontalOffsets = listOf(0f, -cellWidth * 0.22f, cellWidth * 0.22f, -cellWidth * 0.38f, cellWidth * 0.38f)
+            val preferredDirection = if (label.preferBelow) 1 else -1
+            val directions = listOf(preferredDirection, -preferredDirection)
+            var chosen: LabelPlacement? = null
+
+            // The curve has priority. Try the requested side first; only move the
+            // label to the opposite side when the first side is clipped or occupied.
+            for (direction in directions) {
+                for (dx in horizontalOffsets) {
+                    val cx = (label.pointX + dx).coerceIn(halfWidth + 1f, width - halfWidth - 1f)
+                    val baseline = if (direction > 0) label.pointY + gap - metrics.ascent
+                        else label.pointY - gap - metrics.descent
+                    val box = LabelBox(
+                        cx - halfWidth,
+                        baseline + metrics.ascent,
+                        cx + halfWidth,
+                        baseline + metrics.descent
+                    )
+                    val inside = box.top >= 0f && box.bottom <= height
+                    val overlaps = occupied.any { other ->
+                        box.left < other.right && box.right > other.left &&
+                            box.top < other.bottom && box.bottom > other.top
+                    }
+                    if (inside && !overlaps) {
+                        chosen = LabelPlacement(label.text, cx, baseline, box)
+                        break
                     }
                 }
+                if (chosen != null) break
             }
-            best?.let {
+
+            // In extremely dense charts, keep the label visible and clipped safely;
+            // never move either curve to make room for text.
+            if (chosen == null) {
+                val direction = -preferredDirection
+                val cx = label.pointX.coerceIn(halfWidth + 1f, width - halfWidth - 1f)
+                val baseline = if (direction > 0) label.pointY + gap - metrics.ascent
+                    else label.pointY - gap - metrics.descent
+                val clampedBaseline = baseline.coerceIn(-metrics.ascent, height - metrics.descent)
+                val box = LabelBox(
+                    cx - halfWidth,
+                    clampedBaseline + metrics.ascent,
+                    cx + halfWidth,
+                    clampedBaseline + metrics.descent
+                )
+                chosen = LabelPlacement(label.text, cx, clampedBaseline, box)
+            }
+            chosen?.let {
                 canvas.drawText(it.text, it.x, it.baseline, labelPaint)
                 occupied.add(it.box)
             }
