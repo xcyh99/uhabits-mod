@@ -135,7 +135,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                     (if (showDays) 49 else 0) +
                     (if (showBottom) 17 else 0) + 4
                 val chartHeight = max(1, ((heightDp - reservedHeightDp) * density).toInt())
-                views.setImageViewBitmap(R.id.weather_chart, drawChart(snapshot.days, chartWidth, chartHeight))
+                views.setImageViewBitmap(R.id.weather_chart, drawChart(context, snapshot.days, chartWidth, chartHeight))
             }
             views.setTextViewText(
                 R.id.weather_bottom_info,
@@ -156,7 +156,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         manager.updateAppWidget(id, views)
     }
 
-    private fun drawChart(days: List<WeatherDay>, width: Int, height: Int): Bitmap {
+    private fun drawChart(context: Context, days: List<WeatherDay>, width: Int, height: Int): Bitmap {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         // 240x64 px is the reference drawing size. Larger widgets never enlarge
