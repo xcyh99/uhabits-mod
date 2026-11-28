@@ -71,7 +71,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         views.setViewVisibility(R.id.weather_city, if (!tinyCell) View.VISIBLE else View.GONE)
         views.setViewVisibility(R.id.weather_updated, if (showUpdated && !tinyCell) View.VISIBLE else View.GONE)
         views.setViewVisibility(R.id.weather_day_desc_row, if (showDays && !tinyCell) View.VISIBLE else View.GONE)
-        views.setViewVisibility(R.id.weather_chart, if (showChart && !tinyCell) View.VISIBLE else View.GONE)
+        views.setViewVisibility(R.id.weather_chart_container, if (showChart && !tinyCell) View.VISIBLE else View.GONE)
         views.setViewVisibility(R.id.weather_bottom_info, View.GONE)
         views.setViewVisibility(R.id.weather_detail_info, if (showDetails && !tinyCell) View.VISIBLE else View.GONE)
 
@@ -263,6 +263,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                 if (hasNext) {
                     val angle = Math.toDegrees(kotlin.math.atan2((ys[i + 1] - ys[i]).toDouble(), step.toDouble())).toFloat()
                     views.setFloat(id, "setRotation", angle)
+                    views.setFloat(id, "setTranslationX", step / 2f)
                     views.setFloat(id, "setTranslationY", (ys[i] + ys[i + 1]) / 2f - heightPx / 2f)
                 }
             }
