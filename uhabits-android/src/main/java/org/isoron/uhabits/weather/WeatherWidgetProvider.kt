@@ -4,6 +4,7 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.os.Bundle
+import android.view.View
 import android.widget.RemoteViews
 import org.isoron.uhabits.R
 
@@ -55,8 +56,8 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     }
 
     /**
-     * Select visible diagonal strokes from the widget's horizontal size.
-     * AppWidgetOptions dimensions are supplied in dp.
+     * Choose how many of the six day-to-day intervals are visible from widget width.
+     * Each interval keeps its own fixed slot, aligned between two adjacent day columns.
      */
     private fun applyResponsiveLineCount(views: RemoteViews, options: Bundle) {
         val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
@@ -67,7 +68,6 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             else -> 50
         }
 
-        // Width-based tiers; the maximum is six strokes for seven forecast days.
         val visibleSegments = when {
             widgetWidthDp < 85 -> 1
             widgetWidthDp < 155 -> 2
@@ -76,23 +76,34 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             else -> 6
         }
 
-        // Seven forecast days form six intervals, so the trend has at most six strokes.
-        val high = "╱╲╱╱╲╱"
-        val low = "╲╱╲╲╱╲"
-        views.setTextViewText(R.id.weather_high_line, sampleLine(high, visibleSegments))
-        views.setTextViewText(R.id.weather_low_line, sampleLine(low, visibleSegments))
-    }
+        val selectedSlots = when (visibleSegments) {
+            1 -> setOf(2)
+            2 -> setOf(0, 5)
+            4 -> setOf(0, 2, 3, 5)
+            5 -> setOf(0, 1, 3, 4, 5)
+            else -> (0..5).toSet()
+        }
 
-    /** Keep both ends and distribute selected glyphs evenly across the trend. */
-    private fun sampleLine(line: String, count: Int): String {
-        if (count >= line.length) return line
-        if (count <= 1) return line.substring(0, 1)
-        val lastIndex = line.lastIndex
-        return buildString(count) {
-            for (i in 0 until count) {
-                val sourceIndex = (i * lastIndex.toFloat() / (count - 1)).toInt()
-                append(line[sourceIndex])
-            }
+        val highGlyphs = "╱╲╱╱╲╱"
+        val lowGlyphs = "╲╱╲╲╱╲"
+        val highIds = intArrayOf(
+            R.id.weather_high_segment_0, R.id.weather_high_segment_1,
+            R.id.weather_high_segment_2, R.id.weather_high_segment_3,
+            R.id.weather_high_segment_4, R.id.weather_high_segment_5
+        )
+        val lowIds = intArrayOf(
+            R.id.weather_low_segment_0, R.id.weather_low_segment_1,
+            R.id.weather_low_segment_2, R.id.weather_low_segment_3,
+            R.id.weather_low_segment_4, R.id.weather_low_segment_5
+        )
+
+        for (i in 0 until 6) {
+            val visibility = if (i in selectedSlots) View.VISIBLE else View.INVISIBLE
+            views.setTextViewText(highIds[i], highGlyphs[i].toString())
+            views.setTextViewText(lowIds[i], lowGlyphs[i].toString())
+            views.setViewVisibility(highIds[i], visibility)
+            views.setViewVisibility(lowIds[i], visibility)
         }
     }
+
 }
