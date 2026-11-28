@@ -170,6 +170,11 @@
             android:exported="false" />
 
         <activity
+            android:name="org.isoron.uhabits.weather.WeatherWidgetSettingsActivity"
+            android:exported="false"
+            android:label="天气组件设置" />
+
+        <activity
             android:name="org.isoron.uhabits.weather.WeatherDetailActivity"
             android:exported="false"
             android:label="天气">
