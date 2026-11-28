@@ -160,11 +160,11 @@ object WeatherRepository {
     }
 
     fun dayLabel(date: String, index: Int): String {
-        if (index == 0) return "今天"
-        if (index == 1) return "明天"
+        if (index == 0) return "今"
+        if (index == 1) return "明"
         return runCatching {
-            val parts = date.split("-")
-            parts[1].toInt().toString() + "/" + parts[2].toInt()
+            // Later forecast labels show only the day number, without the month.
+            date.split("-")[2].toInt().toString()
         }.getOrDefault(date)
     }
 
