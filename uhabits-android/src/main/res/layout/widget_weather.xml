@@ -89,7 +89,7 @@
                 android:textStyle="normal" />
         </LinearLayout>
 
-        <View
+        <TextView
             android:layout_width="1dp"
             android:layout_height="26dp"
             android:background="#667D91A8" />
@@ -124,7 +124,7 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <View
+        <TextView
             android:layout_width="1dp"
             android:layout_height="26dp"
             android:background="#667D91A8" />
@@ -187,7 +187,7 @@
         </LinearLayout>
     </LinearLayout>
 
-    <View
+    <TextView
         android:id="@+id/weather_chart_separator"
         android:layout_width="match_parent"
         android:layout_height="1dp"
