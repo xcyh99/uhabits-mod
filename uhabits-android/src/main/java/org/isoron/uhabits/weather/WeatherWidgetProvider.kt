@@ -170,7 +170,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                     (if (showDays) 49 else 0) +
                     (if (showBottom) 17 else 0) + 4
                 val chartHeight = max(1, ((heightDp - reservedHeightDp) * density).toInt())
-                val chartLabelSizeSp = if (widthDp < 180 || heightDp < 150) 7f else 9f
+                val chartLabelSizeSp = 9f
                 views.setImageViewBitmap(R.id.weather_chart, drawChart(context, snapshot.days, chartWidth, chartHeight))
                 updateChartLabels(context, views, snapshot.days, chartWidth, chartHeight, chartLabelSizeSp)
             }
@@ -226,10 +226,11 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val minTemp = days.take(7).minOfOrNull { emphasized(it.low) } ?: emphasized(rawMin)
         val maxTemp = days.take(7).maxOfOrNull { emphasized(it.high) } ?: emphasized(rawMax)
         val range = max(1f, maxTemp - minTemp)
-        val side = min(34f * chartScale, width * 0.12f)
         val top = 4f * chartScale
         val bottom = 4f * chartScale
-        fun x(i: Int) = side + i * (width - side * 2f) / 6f
+        // Each forecast point sits at the center of its matching day column.
+        // The seven native TextView columns use the same centers.
+        fun x(i: Int) = width * (i + 0.5f) / 7f
         fun y(temp: Int) = height - bottom - (emphasized(temp) - minTemp) * (height - top - bottom) / range
         val highPath = Path()
         val lowPath = Path()
@@ -276,6 +277,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val chartScale = min(1f, min(width / 240f, height / 64f)).coerceAtLeast(0f)
         val top = 4f * chartScale
         val bottom = 4f * chartScale
+        fun x(i: Int) = width * (i + 0.5f) / 7f
         fun y(temp: Int) = height - bottom - (emphasized(temp) - minTemp) * (height - top - bottom) / range
 
         val highIds = intArrayOf(
@@ -288,44 +290,54 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             R.id.weather_chart_low_3, R.id.weather_chart_low_4, R.id.weather_chart_low_5,
             R.id.weather_chart_low_6
         )
+        // The label font is intentionally independent from widget/chart scaling.
         val labelHeight = labelSizeSp * density * 1.25f
         val gap = 2f * density
-        fun place(viewId: Int, pointY: Float, preferAbove: Boolean) {
-            val aboveFits = pointY - gap - labelHeight >= 0f
-            val belowFits = pointY + gap + labelHeight <= height
-            val above = when {
-                preferAbove && aboveFits -> true
-                !preferAbove && belowFits -> false
-                aboveFits -> true
-                else -> false
+        val cellWidth = width / 7f
+        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = labelSizeSp * density }
+        data class LabelRect(val left: Float, val top: Float, val right: Float, val bottom: Float)
+        val occupied = mutableListOf<LabelRect>()
+
+        fun place(viewId: Int, text: String, pointX: Float, pointY: Float, preferAbove: Boolean) {
+            val textWidth = textPaint.measureText(text)
+            if (textWidth + gap * 2f > cellWidth) {
+                views.setViewVisibility(viewId, View.GONE)
+                return
             }
-            val topPadding: Int
-            val bottomPadding: Int
-            if (above) {
-                topPadding = (pointY - gap - labelHeight).coerceAtLeast(0f).toInt()
-                bottomPadding = 0
+            val left = pointX - textWidth / 2f
+            val right = pointX + textWidth / 2f
+            val candidates = listOf(preferAbove, !preferAbove)
+            for (above in candidates) {
+                val labelTop = if (above) pointY - gap - labelHeight else pointY + gap
+                val labelBottom = labelTop + labelHeight
+                if (labelTop < 0f || labelBottom > height) continue
+                val overlaps = occupied.any { other ->
+                    left < other.right + gap && right > other.left - gap &&
+                        labelTop < other.bottom + gap && labelBottom > other.top - gap
+                }
+                if (overlaps) continue
+
+                views.setViewVisibility(viewId, View.VISIBLE)
+                views.setTextViewText(viewId, text)
+                views.setTextViewTextSize(viewId, android.util.TypedValue.COMPLEX_UNIT_SP, labelSizeSp)
                 views.setInt(viewId, "setGravity", Gravity.TOP or Gravity.CENTER_HORIZONTAL)
-            } else {
-                topPadding = 0
-                bottomPadding = (height - pointY - gap - labelHeight).coerceAtLeast(0f).toInt()
-                views.setInt(viewId, "setGravity", Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL)
+                views.setViewPadding(viewId, 0, labelTop.toInt(), 0, 0)
+                occupied.add(LabelRect(left, labelTop, right, labelBottom))
+                return
             }
-            views.setViewPadding(viewId, 0, topPadding, 0, bottomPadding)
-            views.setTextViewTextSize(viewId, android.util.TypedValue.COMPLEX_UNIT_SP, labelSizeSp)
+            // When there is not enough room, hide only the label; never squeeze
+            // or clip the line chart itself.
+            views.setViewVisibility(viewId, View.GONE)
         }
+
         days.take(7).forEachIndexed { i, day ->
-            views.setTextViewText(highIds[i], "${day.high}°")
-            views.setTextViewText(lowIds[i], "${day.low}°")
+            val highText = "${day.high}°"
+            val lowText = "${day.low}°"
+            val pointX = x(i)
             val highY = y(day.high)
             val lowY = y(day.low)
-            val labelsOverlap = kotlin.math.abs(highY - lowY) < labelHeight * 2f + gap * 2f
-            place(highIds[i], highY, true)
-            place(lowIds[i], lowY, !labelsOverlap)
-            if (labelsOverlap) {
-                // Separate close high/low labels onto opposite sides of their points.
-                place(highIds[i], highY, highY >= lowY)
-                place(lowIds[i], lowY, lowY > highY)
-            }
+            place(highIds[i], highText, pointX, highY, true)
+            place(lowIds[i], lowText, pointX, lowY, false)
         }
     }
 
