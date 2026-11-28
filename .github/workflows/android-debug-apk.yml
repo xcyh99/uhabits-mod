@@ -39,6 +39,7 @@ on:
       - fix/desktop-shortcut-reenable-verify
       - fix/project-detail-description-notes-label
       - feature/weather-restore-from-legacy
+      - feature/weather-responsive-line-test
   pull_request:
     branches:
       - dev
