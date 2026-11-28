@@ -22,7 +22,7 @@ object FeatureShortcutCatalog {
     const val KEY_ALLOWED_ENTRIES = "shortcut_candidate_keys_v1"
     private const val KEY_CATALOG_CACHE = "shortcut_catalog_cache_v1"
     private const val KEY_CATALOG_CACHE_VERSION = "shortcut_catalog_cache_version"
-    private const val CATALOG_CACHE_VERSION = 12
+    private const val CATALOG_CACHE_VERSION = 13
     private const val META_KEY = "org.isoron.uhabits.shortcut.key"
     private const val META_TITLE = "org.isoron.uhabits.shortcut.title"
     private const val META_CATEGORY = "org.isoron.uhabits.shortcut.category"
@@ -65,6 +65,7 @@ object FeatureShortcutCatalog {
         BuiltIn("desktopDoodle", "桌面涂鸦", "功能"),
         BuiltIn("widgetManager", "添加组件", "功能"),
         BuiltIn("widgetRestore", "组件恢复向导", "功能"),
+        BuiltIn("weatherForecast", "天气预报", "功能"),
         BuiltIn("createFullBackup", "创建完整备份", "功能"),
         BuiltIn("restoreFullBackup", "恢复完整备份", "功能"),
         BuiltIn("exportProgramApk", "单独导出本机 APK", "功能"),
@@ -88,7 +89,7 @@ object FeatureShortcutCatalog {
 
     private val recommended = builtIns.filterNot { it.key == "widgetRestore" }.map { it.key }.toSet() + setOf("pictureShortcutWidgetSettings")
     private const val KEY_ALLOWED_MIGRATION_VERSION = "shortcut_candidate_migration_version"
-    private const val ALLOWED_MIGRATION_VERSION = 12
+    private const val ALLOWED_MIGRATION_VERSION = 13
 
     fun getEntries(context: Context, onProgress: ((String) -> Unit)? = null): List<Entry> {
         val result = mutableListOf<Entry>()
@@ -252,9 +253,13 @@ object FeatureShortcutCatalog {
                     )
                 }
             }.getOrDefault(emptyList())
+            val weather = builtIns.first { it.key == "weatherForecast" }
+            return (cached + Entry(weather.key, weather.title, "", weather.category)).distinctBy { it.key }
         }
-        // Ordinary consumers never trigger discovery. Only shortcut-entry management scans.
-        return emptyList()
+        // Weather is a direct built-in destination and remains available before the
+        // full shortcut catalog has been scanned or its cache has been refreshed.
+        val weather = builtIns.first { it.key == "weatherForecast" }
+        return listOf(Entry(weather.key, weather.title, "", weather.category))
     }
 
     /** Lightweight list for ordinary selection menus. */
@@ -279,6 +284,7 @@ object FeatureShortcutCatalog {
                 else store.getStringSet(KEY_ALLOWED_ENTRIES, recommended)?.toMutableSet()
                     ?: recommended.toMutableSet()
             current.add("desktopWidgetTimeSettings")
+            current.add("weatherForecast")
             current.remove("settingsBackupRestore")
             val ownComponent = ComponentName(
                 context,
@@ -319,6 +325,7 @@ object FeatureShortcutCatalog {
             "widgetManager" -> Intent(context, ComponentAddActivity::class.java)
             "pictureShortcutWidgetSettings" -> Intent(context, PictureShortcutWidgetSettingsActivity::class.java)
             "widgetRestore" -> Intent(context, org.isoron.uhabits.widgets.PictureWidgetRestoreActivity::class.java)
+            "weatherForecast" -> Intent(context, org.isoron.uhabits.weather.WeatherDetailActivity::class.java)
             else -> null
         }
         if (entry == null) return fallback?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
