@@ -211,7 +211,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     ): Bitmap {
         val curveGain = PreferenceManager.getDefaultSharedPreferences(context)
             .getFloat(WeatherWidgetSettingsActivity.PREF_CURVE_GAIN, WeatherWidgetSettingsActivity.DEFAULT_CURVE_GAIN)
-            .coerceIn(WeatherWidgetSettingsActivity.MIN_GAIN, WeatherWidgetSettingsActivity.MAX_GAIN)
+            .coerceAtLeast(WeatherWidgetSettingsActivity.MIN_GAIN)
         val density = context.resources.displayMetrics.density
         val cacheKey = buildString {
             append(width).append('x').append(height).append('|').append(density)
@@ -259,25 +259,16 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             .coerceAtLeast(0.01f)
         val maxDeviation = max(highDeviation, lowDeviation)
 
-        // Map the full 0.8x..10x setting range to a visible curve-strength range.
-        // The old min(scale, fixedCap) saturated around 2x, so most of the slider
-        // did nothing. A square-root response keeps the default near the former
-        // appearance while making both lower and higher settings visibly distinct.
-        val gainPosition = (
-            kotlin.math.ln(curveGain / WeatherWidgetSettingsActivity.MIN_GAIN) /
-                kotlin.math.ln(
-                    WeatherWidgetSettingsActivity.MAX_GAIN /
-                        WeatherWidgetSettingsActivity.MIN_GAIN
-                )
-            ).coerceIn(0f, 1f)
-        val gainStrength = 0.25f + 0.75f * kotlin.math.sqrt(gainPosition)
-        val curveScale = height * 0.22f / maxDeviation * gainStrength
-        val margin = height * 0.015f
-        // Anchor each series by its mean while allowing its full deviation to expand
-        // toward the corresponding outer edge. No individual point is independently
-        // normalized or clipped, so the original temperature proportions remain linear.
-        val highCenterY = edge + margin + highDeviation * curveScale
-        val lowCenterY = height - edge - margin - lowDeviation * curveScale
+        // No 10x ceiling: scale the complete series uniformly. Any portion
+        // outside the finite bitmap is naturally clipped by Canvas.
+        // The generous safety bound only prevents coordinate overflow.
+        val rawScale = height.toDouble() * 0.08 * curveGain.toDouble() / maxDeviation.toDouble()
+        val curveScale = rawScale.coerceAtMost(height.toDouble() * 1_000_000.0).toFloat()
+        val meanGap = max(1f, height * 0.008f)
+        // Anchor the high-series mean near the top and the low-series mean near
+        // the bottom while preserving every point's linear distance from its mean.
+        val highCenterY = edge + meanGap
+        val lowCenterY = height - edge - meanGap
         fun x(i: Int) = width * (i + 0.5f) / 7f
         fun yHigh(temp: Int): Float = highCenterY - (temp - highMean) * curveScale
         fun yLow(temp: Int): Float = lowCenterY - (temp - lowMean) * curveScale
