@@ -62,15 +62,28 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         // Use the full widget canvas: no artificial inset around the weather content.
         val padding = 0
         views.setViewPadding(R.id.weather_root, 0, 0, 0, 0)
+        val tinyCell = widthDp < 130 && heightDp < 130
+        views.setViewVisibility(R.id.weather_tiny_panel, if (tinyCell) View.VISIBLE else View.GONE)
+        views.setViewVisibility(R.id.weather_header, if (tinyCell) View.GONE else View.VISIBLE)
         views.setViewVisibility(R.id.weather_city, if (widthDp >= 180 && !tiny) View.VISIBLE else View.GONE)
-        views.setViewVisibility(R.id.weather_updated, if (showUpdated) View.VISIBLE else View.GONE)
-        views.setViewVisibility(R.id.weather_day_desc_row, if (showDays) View.VISIBLE else View.GONE)
-        views.setViewVisibility(R.id.weather_chart, if (showChart) View.VISIBLE else View.GONE)
-        views.setViewVisibility(R.id.weather_bottom_info, if (showBottom) View.VISIBLE else View.GONE)
+        views.setViewVisibility(R.id.weather_updated, if (showUpdated && !tinyCell) View.VISIBLE else View.GONE)
+        views.setViewVisibility(R.id.weather_day_desc_row, if (showDays && !tinyCell) View.VISIBLE else View.GONE)
+        views.setViewVisibility(R.id.weather_chart, if (showChart && !tinyCell) View.VISIBLE else View.GONE)
+        views.setViewVisibility(R.id.weather_bottom_info, if (showBottom && !tinyCell) View.VISIBLE else View.GONE)
 
-        views.setTextViewText(R.id.weather_city, snapshot?.city ?: "天气")
-        views.setTextViewText(R.id.weather_current_temp, snapshot?.let { "${it.currentTemperature}°" } ?: "--°")
-        views.setTextViewText(R.id.weather_current_desc, snapshot?.let { WeatherRepository.weatherText(it.currentCode) } ?: "获取天气中")
+        val cityText = snapshot?.city ?: "天气"
+        val tempText = snapshot?.let { "${it.currentTemperature}°" } ?: "--°"
+        val conditionText = snapshot?.let { WeatherRepository.weatherText(it.currentCode) } ?: "获取中"
+        views.setTextViewText(R.id.weather_city, cityText)
+        views.setTextViewText(R.id.weather_current_temp, tempText)
+        views.setTextViewText(R.id.weather_current_desc, conditionText)
+        views.setTextViewText(R.id.weather_tiny_city, cityText)
+        views.setTextViewText(R.id.weather_tiny_desc, conditionText)
+        views.setTextViewText(R.id.weather_tiny_temp, tempText)
+        if (tinyCell) {
+            views.setTextViewTextSize(R.id.weather_tiny_desc, android.util.TypedValue.COMPLEX_UNIT_SP, 22f)
+            views.setTextViewTextSize(R.id.weather_tiny_temp, android.util.TypedValue.COMPLEX_UNIT_SP, 17f)
+        }
         views.setTextViewText(
             R.id.weather_updated,
             snapshot?.let { "更新于 ${java.text.SimpleDateFormat("HH:mm", java.util.Locale.CHINA).format(java.util.Date(it.fetchedAt))}" }
