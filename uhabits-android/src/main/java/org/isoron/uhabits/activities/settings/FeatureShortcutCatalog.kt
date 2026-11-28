@@ -237,7 +237,7 @@ object FeatureShortcutCatalog {
         val store = PreferenceManager.getDefaultSharedPreferences(context)
         val raw = store.getString(KEY_CATALOG_CACHE, null)
         if (!raw.isNullOrBlank() && store.getInt(KEY_CATALOG_CACHE_VERSION, 0) >= CATALOG_CACHE_VERSION) {
-            return runCatching {
+            val cached = runCatching {
                 val array = org.json.JSONArray(raw)
                 (0 until array.length()).mapNotNull { index ->
                     val item = array.optJSONObject(index) ?: return@mapNotNull null
