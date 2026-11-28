@@ -22,18 +22,18 @@ import kotlin.math.min
 
 class WeatherWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
-        val snapshot = WeatherRepository.load(context)
-        ids.forEach { render(context, manager, it, snapshot) }
-        WeatherRepository.fetch(context) { fresh -> updateAll(context, fresh) }
+        // Diagnostic isolation build: send only the simplest RemoteViews layout.
+        // This distinguishes provider/initial-layout failures from failures in the
+        // full weather layout or its dynamic RemoteViews actions.
+        val loadingViews = RemoteViews(context.packageName, R.layout.widget_weather_loading)
+        ids.forEach { manager.updateAppWidget(it, loadingViews) }
     }
 
     override fun onAppWidgetOptionsChanged(
         context: Context, manager: AppWidgetManager, appWidgetId: Int, newOptions: Bundle
     ) {
-        // Launcher resize callbacks can arrive repeatedly while the user drags a
-        // widget edge. Re-render from the local cache only; never start network
-        // requests during interactive resizing.
-        render(context, manager, appWidgetId, WeatherRepository.load(context))
+        val loadingViews = RemoteViews(context.packageName, R.layout.widget_weather_loading)
+        manager.updateAppWidget(appWidgetId, loadingViews)
     }
 
     private fun updateAll(context: Context, snapshot: WeatherSnapshot?) {
