@@ -22,17 +22,23 @@ import kotlin.math.min
 
 class WeatherWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
-        // Diagnostic isolation build: inflate the complete weather XML, but do not
-        // execute dynamic RemoteViews actions, fetch data, draw charts or attach intents.
-        val staticViews = RemoteViews(context.packageName, R.layout.widget_weather)
-        ids.forEach { manager.updateAppWidget(it, staticViews) }
+        // Render cached data immediately so the widget is useful without waiting
+        // for the network, then refresh all instances when fresh data arrives.
+        val cached = WeatherRepository.load(context)
+        ids.forEach { render(context, manager, it, cached) }
+        WeatherRepository.fetch(context, force = false) { fresh ->
+            updateAll(context, fresh ?: cached)
+        }
     }
 
     override fun onAppWidgetOptionsChanged(
         context: Context, manager: AppWidgetManager, appWidgetId: Int, newOptions: Bundle
     ) {
-        val staticViews = RemoteViews(context.packageName, R.layout.widget_weather)
-        manager.updateAppWidget(appWidgetId, staticViews)
+        val cached = WeatherRepository.load(context)
+        render(context, manager, appWidgetId, cached)
+        WeatherRepository.fetch(context, force = false) { fresh ->
+            updateAll(context, fresh ?: cached)
+        }
     }
 
     private fun updateAll(context: Context, snapshot: WeatherSnapshot?) {
