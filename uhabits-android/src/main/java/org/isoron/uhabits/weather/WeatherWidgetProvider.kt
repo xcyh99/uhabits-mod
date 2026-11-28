@@ -74,6 +74,10 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             snapshot?.let { "更新于 ${java.text.SimpleDateFormat("HH:mm", java.util.Locale.CHINA).format(java.util.Date(it.fetchedAt))}" }
                 ?: "等待天气数据"
         )
+        if (oneCellSide) {
+            views.setTextViewTextSize(R.id.weather_current_temp, android.util.TypedValue.COMPLEX_UNIT_SP, 17f)
+            views.setTextViewTextSize(R.id.weather_current_desc, android.util.TypedValue.COMPLEX_UNIT_SP, 8f)
+        }
         views.setTextViewTextSize(
             R.id.weather_current_temp,
             android.util.TypedValue.COMPLEX_UNIT_SP,
@@ -123,7 +127,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             }
 
             if (showChart) {
-                val chartWidth = max(1, ((widthDp - padding * 2) * density).toInt())
+                val chartWidth = max(240, ((widthDp - padding * 2) * density).toInt())
                 val reservedHeightDp = padding * 2 + 36 +
                     (if (showUpdated) 13 else 0) +
                     (if (showDays) 49 else 0) +
@@ -153,17 +157,20 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     private fun drawChart(days: List<WeatherDay>, width: Int, height: Int): Bitmap {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
+        // 240x64 px is the reference drawing size. Larger widgets never enlarge
+        // strokes or labels; smaller widgets scale every chart mark down uniformly.
+        val chartScale = min(1f, min(width / 240f, height / 64f)).coerceAtLeast(0.1f)
         val highPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFFFA34A.toInt(); style = Paint.Style.STROKE; strokeWidth = 2.5f
+            color = 0xFFFFA34A.toInt(); style = Paint.Style.STROKE; strokeWidth = 2.5f * chartScale
             strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
         }
         val lowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFF65A9FF.toInt(); style = Paint.Style.STROKE; strokeWidth = 7f
+            color = 0xFF65A9FF.toInt(); style = Paint.Style.STROKE; strokeWidth = 2.5f * chartScale
             strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
         }
         // Text remains a fixed pixel size while chart coordinates expand with widget width.
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFE8EDF5.toInt(); textSize = 22f; textAlign = Paint.Align.CENTER
+            color = 0xFFE8EDF5.toInt(); textSize = 22f * chartScale; textAlign = Paint.Align.CENTER
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
         val dotHigh = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFA34A.toInt() }
@@ -171,9 +178,9 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val minTemp = (days.take(7).minOfOrNull { it.low } ?: 0) - 2
         val maxTemp = (days.take(7).maxOfOrNull { it.high } ?: 10) + 2
         val range = max(1, maxTemp - minTemp).toFloat()
-        val side = min(34f, width * 0.12f)
-        val top = min(24f, height * 0.22f)
-        val bottom = min(28f, height * 0.25f)
+        val side = min(34f * chartScale, width * 0.12f)
+        val top = min(24f * chartScale, height * 0.22f)
+        val bottom = min(28f * chartScale, height * 0.25f)
         fun x(i: Int) = side + i * (width - side * 2f) / 6f
         fun y(temp: Int) = height - bottom - (temp - minTemp) * (height - top - bottom) / range
         val highPath = Path()
@@ -190,10 +197,10 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         canvas.drawPath(highPath, highPaint)
         canvas.drawPath(lowPath, lowPaint)
         days.take(7).forEachIndexed { i, day ->
-            canvas.drawCircle(x(i), y(day.high), 4f, dotHigh)
-            canvas.drawCircle(x(i), y(day.low), 4f, dotLow)
-            canvas.drawText("${day.high}°", x(i), max(22f, y(day.high) - 12f), labelPaint)
-            canvas.drawText("${day.low}°", x(i), min(height - 3f, y(day.low) + 25f), labelPaint)
+            canvas.drawCircle(x(i), y(day.high), 4f * chartScale, dotHigh)
+            canvas.drawCircle(x(i), y(day.low), 4f * chartScale, dotLow)
+            canvas.drawText("${day.high}°", x(i), max(22f * chartScale, y(day.high) - 12f * chartScale), labelPaint)
+            canvas.drawText("${day.low}°", x(i), min(height - 3f * chartScale, y(day.low) + 25f * chartScale), labelPaint)
         }
         return bitmap
     }
