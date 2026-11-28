@@ -129,7 +129,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             }
 
             if (showChart) {
-                val chartWidth = max(240, ((widthDp - padding * 2) * density).toInt())
+                val chartWidth = max(1, ((widthDp - padding * 2) * density).toInt())
                 val reservedHeightDp = padding * 2 + 36 +
                     (if (showUpdated) 13 else 0) +
                     (if (showDays) 49 else 0) +
@@ -161,7 +161,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val canvas = Canvas(bitmap)
         // 240x64 px is the reference drawing size. Larger widgets never enlarge
         // strokes or labels; smaller widgets scale every chart mark down uniformly.
-        val chartScale = min(1f, min(width / 240f, height / 64f)).coerceAtLeast(0.1f)
+        val chartScale = min(1f, min(width / 240f, height / 64f)).coerceAtLeast(0f)
         val highPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFFFA34A.toInt(); style = Paint.Style.STROKE; strokeWidth = 2.5f * chartScale
             strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
@@ -186,8 +186,12 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             .getFloat(WeatherWidgetSettingsActivity.PREF_CURVE_GAIN, WeatherWidgetSettingsActivity.DEFAULT_CURVE_GAIN)
             .coerceIn(0.8f, 2.2f)
         fun emphasized(temp: Int) = centerTemp + (temp - centerTemp) * curveGain
-        val minTemp = emphasized(rawMin) - 1.5f
-        val maxTemp = emphasized(rawMax) + 1.5f
+        // Keep the vertical plotting range fixed against the maximum supported gain.
+        // Do not derive these bounds from emphasized values: doing so cancels the gain.
+        val rawRange = max(1f, rawMax - rawMin.toFloat())
+        val plotHalfRange = rawRange * 2.2f / 2f + 1.5f
+        val minTemp = centerTemp - plotHalfRange
+        val maxTemp = centerTemp + plotHalfRange
         val range = max(1f, maxTemp - minTemp)
         val side = min(34f * chartScale, width * 0.12f)
         val top = min(24f * chartScale, height * 0.22f)
