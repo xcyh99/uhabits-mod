@@ -22,7 +22,7 @@ object FeatureShortcutCatalog {
     const val KEY_ALLOWED_ENTRIES = "shortcut_candidate_keys_v1"
     private const val KEY_CATALOG_CACHE = "shortcut_catalog_cache_v1"
     private const val KEY_CATALOG_CACHE_VERSION = "shortcut_catalog_cache_version"
-    private const val CATALOG_CACHE_VERSION = 12
+    private const val CATALOG_CACHE_VERSION = 13
     private const val META_KEY = "org.isoron.uhabits.shortcut.key"
     private const val META_TITLE = "org.isoron.uhabits.shortcut.title"
     private const val META_CATEGORY = "org.isoron.uhabits.shortcut.category"
@@ -89,7 +89,7 @@ object FeatureShortcutCatalog {
 
     private val recommended = builtIns.filterNot { it.key == "widgetRestore" }.map { it.key }.toSet() + setOf("pictureShortcutWidgetSettings")
     private const val KEY_ALLOWED_MIGRATION_VERSION = "shortcut_candidate_migration_version"
-    private const val ALLOWED_MIGRATION_VERSION = 13
+    private const val ALLOWED_MIGRATION_VERSION = 14
 
     fun getEntries(context: Context, onProgress: ((String) -> Unit)? = null): List<Entry> {
         val result = mutableListOf<Entry>()
