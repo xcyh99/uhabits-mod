@@ -341,6 +341,8 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         }
     }
 
+}
+
 /** Small process-local cache: keeps only a few recently used weather chart bitmaps. */
 private object WeatherChartBitmapCache {
     private val cache = object : LruCache<String, Bitmap>(2 * 1024) {
