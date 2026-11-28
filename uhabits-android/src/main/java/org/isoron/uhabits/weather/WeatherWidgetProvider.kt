@@ -68,21 +68,9 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             else -> 50
         }
 
-        val visibleSegments = when {
-            widgetWidthDp < 85 -> 1
-            widgetWidthDp < 155 -> 2
-            widgetWidthDp < 225 -> 4
-            widgetWidthDp < 295 -> 5
-            else -> 6
-        }
-
-        val selectedSlots = when (visibleSegments) {
-            1 -> setOf(2)
-            2 -> setOf(0, 5)
-            4 -> setOf(0, 2, 3, 5)
-            5 -> setOf(0, 1, 3, 4, 5)
-            else -> (0..5).toSet()
-        }
+        // Keep all six intervals visible at every widget width.
+        // The launcher can report a different final size after resize is released;
+        // hiding individual slots here caused gaps in the settled widget.
 
         // The 5-column widget has wider segment slots than the proven 4-column layout.
         // Stretch only the glyph text (not the TextView bounds) so adjacent intervals stay connected.
@@ -103,7 +91,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         )
 
         for (i in 0 until 6) {
-            val visibility = if (i in selectedSlots) View.VISIBLE else View.INVISIBLE
+            val visibility = View.VISIBLE
             views.setTextViewText(highIds[i], highGlyphs[i].toString())
             views.setTextViewText(lowIds[i], lowGlyphs[i].toString())
             views.setFloat(highIds[i], "setTextScaleX", glyphTextScaleX)
