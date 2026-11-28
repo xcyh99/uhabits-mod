@@ -121,7 +121,11 @@ class WeatherWidgetProvider : AppWidgetProvider() {
 
             if (showChart) {
                 val chartWidth = max(240, ((widthDp - padding * 2) * density).toInt())
-                val chartHeight = max(64, ((heightDp - 112) * density).toInt())
+                val reservedHeightDp = padding * 2 + 36 +
+                    (if (showUpdated) 13 else 0) +
+                    (if (showDays) 49 else 0) +
+                    (if (showBottom) 17 else 0) + 4
+                val chartHeight = max(64, ((heightDp - reservedHeightDp) * density).toInt())
                 views.setImageViewBitmap(R.id.weather_chart, drawChart(snapshot.days, chartWidth, chartHeight))
             }
             views.setTextViewText(
@@ -156,7 +160,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         }
         // Text remains a fixed pixel size while chart coordinates expand with widget width.
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFE8EDF5.toInt(); textSize = 22f; textAlign = Paint.Align.CENTER
+            color = 0xFFE8EDF5.toInt(); textSize = 27f; textAlign = Paint.Align.CENTER
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
         val dotHigh = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFA34A.toInt() }
