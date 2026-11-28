@@ -6,15 +6,9 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Path
-import android.graphics.Typeface
 import android.os.Bundle
 import android.view.View
 import android.widget.RemoteViews
-import android.util.LruCache
 import androidx.preference.PreferenceManager
 import org.isoron.uhabits.R
 import kotlin.math.abs
@@ -179,7 +173,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                 val reservedHeightDp = 40 +
                     (if (showDays) 63 else 0) + 4
                 val chartHeight = max(1, ((heightDp - reservedHeightDp) * density).toInt())
-                views.setImageViewBitmap(R.id.weather_chart, drawChart(context, snapshot.days, chartWidth, chartHeight, 7f))
+                renderChartViews(context, views, snapshot.days, chartWidth, chartHeight, density)
             }
             // Weather details now live in the compact right-hand header column.
             views.setViewVisibility(R.id.weather_bottom_info, View.GONE)
@@ -206,248 +200,73 @@ class WeatherWidgetProvider : AppWidgetProvider() {
      * A single coordinate system prevents labels drifting away from their points
      * when the launcher resizes or reloads the widget.
      */
-    private fun drawChart(
-        context: Context, days: List<WeatherDay>, width: Int, height: Int, labelSizeSp: Float
-    ): Bitmap {
-        val curveGain = PreferenceManager.getDefaultSharedPreferences(context)
+    /**
+     * Seven-day chart built entirely from ordinary RemoteViews controls.
+     * Text labels are TextViews; curve segments and dots are regular Views.
+     */
+    private fun renderChartViews(context: Context, views: RemoteViews, days: List<WeatherDay>, widthPx: Int, heightPx: Int, density: Float) {
+        val visible = days.take(7)
+        val gain = PreferenceManager.getDefaultSharedPreferences(context)
             .getFloat(WeatherWidgetSettingsActivity.PREF_CURVE_GAIN, WeatherWidgetSettingsActivity.DEFAULT_CURVE_GAIN)
             .coerceAtLeast(WeatherWidgetSettingsActivity.MIN_GAIN)
-        val density = context.resources.displayMetrics.density
-        val cacheKey = buildString {
-            append(width).append('x').append(height).append('|').append(density)
-                .append('|').append(curveGain).append('|').append(labelSizeSp)
-            days.take(7).forEach { append('|').append(it.date).append(':').append(it.high).append('/').append(it.low) }
-        }
-        WeatherChartBitmapCache.get(cacheKey)?.let { return it }
+        val chartScale = min(widthPx / 240f, heightPx / 64f).coerceIn(0.45f, 2f)
+        val highMean = visible.map { it.high.toFloat() }.average().toFloat()
+        val lowMean = visible.map { it.low.toFloat() }.average().toFloat()
+        val highDev = visible.maxOfOrNull { abs(it.high - highMean) } ?: 0f
+        val lowDev = visible.maxOfOrNull { abs(it.low - lowMean) } ?: 0f
+        val maxDev = max(highDev, lowDev).coerceAtLeast(0.01f)
+        val wantedScale = heightPx * 0.075f * gain / maxDev
+        val curveScale = min(wantedScale, heightPx * 0.19f / maxDev)
+        val highCenter = heightPx * 0.34f
+        val lowCenter = heightPx * 0.66f
+        val step = widthPx / 7f
+        val highY = visible.map { highCenter - (it.high - highMean) * curveScale }
+        val lowY = visible.map { lowCenter - (it.low - lowMean) * curveScale }
 
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        // Scale every chart element together. The lower bound keeps labels legible
-        // in narrow one-cell widgets; the upper bound avoids oversized strokes.
-        val chartScale = min(width / 240f, height / 64f).coerceIn(0.45f, 2f)
-        val highPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFFFA34A.toInt(); style = Paint.Style.STROKE; strokeWidth = 1.5f * chartScale
-            strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
+        fun viewId(name: String) = context.resources.getIdentifier(name, "id", context.packageName)
+        fun show(name: String, visibleNow: Boolean) {
+            val id = viewId(name)
+            if (id != 0) views.setViewVisibility(id, if (visibleNow) View.VISIBLE else View.GONE)
         }
-        val lowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFF65A9FF.toInt(); style = Paint.Style.STROKE; strokeWidth = 1.5f * chartScale
-            strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
+        fun placeLabel(name: String, value: String, y: Float, above: Boolean) {
+            val id = viewId(name)
+            if (id == 0) return
+            views.setTextViewText(id, value)
+            views.setTextViewTextSize(id, android.util.TypedValue.COMPLEX_UNIT_SP, 7f * chartScale)
+            val half = 6f * density * chartScale
+            val center = (if (above) y - half - 3f * density else y + half + 3f * density)
+                .coerceIn(half, heightPx - half)
+            views.setFloat(id, "setTranslationY", center - heightPx / 2f)
         }
-        val dotHigh = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFA34A.toInt() }
-        val dotLow = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF65A9FF.toInt() }
-        val visibleDays = days.take(7)
-        val cellWidth = width / 7f
-        val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFE8EDF5.toInt()
-            textSize = labelSizeSp * chartScale * density
-            textAlign = Paint.Align.CENTER
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-        }
-        val metrics = labelPaint.fontMetrics
-        val dotRadius = 3f * chartScale
-        val edge = dotRadius + 1f * chartScale
-
-        // Position each complete series by its average, not by pinning an
-        // individual minimum/maximum point to an edge. Both series share one
-        // pixels-per-degree scale, so their internal proportions stay linear
-        // and the gain setting changes the whole curve uniformly.
-        val highMean = visibleDays.map { it.high.toFloat() }.average().toFloat()
-        val lowMean = visibleDays.map { it.low.toFloat() }.average().toFloat()
-        val highDeviation = (visibleDays.maxOfOrNull { abs(it.high - highMean) } ?: 0f)
-            .coerceAtLeast(0.01f)
-        val lowDeviation = (visibleDays.maxOfOrNull { abs(it.low - lowMean) } ?: 0f)
-            .coerceAtLeast(0.01f)
-        val maxDeviation = max(highDeviation, lowDeviation)
-
-        // No 10x ceiling: scale the complete series uniformly. Any portion
-        // outside the finite bitmap is naturally clipped by Canvas.
-        // The generous safety bound only prevents coordinate overflow.
-        val rawScale = height.toDouble() * 0.08 * curveGain.toDouble() / maxDeviation.toDouble()
-        val curveScale = rawScale.coerceAtMost(height.toDouble() * 1_000_000.0).toFloat()
-        val meanGap = max(1f, height * 0.008f)
-        // Anchor the high-series mean near the top and the low-series mean near
-        // the bottom while preserving every point's linear distance from its mean.
-        val highCenterY = edge + meanGap
-        val lowCenterY = height - edge - meanGap
-        fun x(i: Int) = width * (i + 0.5f) / 7f
-        fun yHigh(temp: Int): Float = highCenterY - (temp - highMean) * curveScale
-        fun yLow(temp: Int): Float = lowCenterY - (temp - lowMean) * curveScale
-
-        val highPath = Path()
-        val lowPath = Path()
-        days.take(7).forEachIndexed { i, day ->
-            if (i == 0) {
-                highPath.moveTo(x(i), yHigh(day.high))
-                lowPath.moveTo(x(i), yLow(day.low))
-            } else {
-                highPath.lineTo(x(i), yHigh(day.high))
-                lowPath.lineTo(x(i), yLow(day.low))
+        for (i in 0 until 7) {
+            show("weather_chart_cell_$i", i < visible.size)
+            if (i >= visible.size) continue
+            val hd = viewId("weather_high_dot_$i")
+            val ld = viewId("weather_low_dot_$i")
+            if (hd != 0) {
+                views.setViewVisibility(hd, View.VISIBLE)
+                views.setFloat(hd, "setTranslationY", highY[i] - heightPx / 2f)
             }
+            if (ld != 0) {
+                views.setViewVisibility(ld, View.VISIBLE)
+                views.setFloat(ld, "setTranslationY", lowY[i] - heightPx / 2f)
+            }
+            placeLabel("weather_high_label_$i", "${visible[i].high}°", highY[i], true)
+            placeLabel("weather_low_label_$i", "${visible[i].low}°", lowY[i], false)
         }
-        canvas.drawPath(highPath, highPaint)
-        canvas.drawPath(lowPath, lowPaint)
-        days.take(7).forEachIndexed { i, day ->
-            canvas.drawCircle(x(i), yHigh(day.high), dotRadius, dotHigh)
-            canvas.drawCircle(x(i), yLow(day.low), dotRadius, dotLow)
-        }
-
-        data class LabelBox(val left: Float, val top: Float, val right: Float, val bottom: Float)
-        data class LabelPlacement(val text: String, val x: Float, val baseline: Float, val box: LabelBox)
-        val occupied = mutableListOf<LabelBox>()
-        data class ChartLabel(val text: String, val pointX: Float, val pointY: Float, val preferBelow: Boolean)
-        val labels = days.take(7).flatMapIndexed { i, day ->
-            listOf(
-                ChartLabel("${day.high}°", x(i), yHigh(day.high), false),
-                ChartLabel("${day.low}°", x(i), yLow(day.low), true)
-            )
-        }.sortedBy { if (it.preferBelow) 1 else 0 }
-
-        // Test the actual line segments against a candidate label rectangle.
-        // This makes "space above/below" mean genuinely unobstructed space,
-        // not merely room before the bitmap boundary.
-        fun segmentHitsBox(
-            x1: Float, y1: Float, x2: Float, y2: Float, box: LabelBox
-        ): Boolean {
-            var t0 = 0f
-            var t1 = 1f
-            val dx = x2 - x1
-            val dy = y2 - y1
-            fun clip(p: Float, q: Float): Boolean {
-                if (abs(p) < 0.0001f) return q >= 0f
-                val t = q / p
-                if (p < 0f) {
-                    if (t > t1) return false
-                    if (t > t0) t0 = t
-                } else {
-                    if (t < t0) return false
-                    if (t < t1) t1 = t
-                }
-                return true
-            }
-            return clip(-dx, x1 - box.left) &&
-                clip(dx, box.right - x1) &&
-                clip(-dy, y1 - box.top) &&
-                clip(dy, box.bottom - y1) && t0 <= t1
-        }
-        fun curveOverlaps(box: LabelBox): Boolean {
-            val points = days.take(7).mapIndexed { i, day ->
-                Triple(x(i), yHigh(day.high), yLow(day.low))
-            }
-            val dotPad = dotRadius + 0.8f * chartScale
-            for (point in points) {
-                val highDot = LabelBox(point.first - dotPad, point.second - dotPad,
-                    point.first + dotPad, point.second + dotPad)
-                val lowDot = LabelBox(point.first - dotPad, point.third - dotPad,
-                    point.first + dotPad, point.third + dotPad)
-                if (box.left < highDot.right && box.right > highDot.left &&
-                    box.top < highDot.bottom && box.bottom > highDot.top) return true
-                if (box.left < lowDot.right && box.right > lowDot.left &&
-                    box.top < lowDot.bottom && box.bottom > lowDot.top) return true
-            }
-            for (i in 0 until points.size - 1) {
-                val a = points[i]
-                val b = points[i + 1]
-                if (segmentHitsBox(a.first, a.second, b.first, b.second, box) ||
-                    segmentHitsBox(a.first, a.third, b.first, b.third, box)) return true
-            }
-            return false
-        }
-
-        labels.forEach { label ->
-            val textWidth = labelPaint.measureText(label.text)
-            val halfWidth = textWidth / 2f
-            // Keep the label outside the full dot radius plus a clear gap.
-            // The previous gap was smaller than the collision box around each dot.
-            val gap = dotRadius + 3f * chartScale
-            // Keep the label centered over its own day first; only shift sideways
-            // when another label occupies that exact position.
-            val horizontalOffsets = listOf(0f, -cellWidth * 0.22f, cellWidth * 0.22f, -cellWidth * 0.38f, cellWidth * 0.38f)
-            val preferredDirection = if (label.preferBelow) 1 else -1
-            val directions = listOf(preferredDirection, -preferredDirection)
-            var chosen: LabelPlacement? = null
-
-            for (direction in directions) {
-                for (dx in horizontalOffsets) {
-                    val cx = (label.pointX + dx).coerceIn(halfWidth + 1f, width - halfWidth - 1f)
-                    val baseline = if (direction > 0) label.pointY + gap - metrics.ascent
-                        else label.pointY - gap - metrics.descent
-                    val box = LabelBox(
-                        cx - halfWidth,
-                        baseline + metrics.ascent,
-                        cx + halfWidth,
-                        baseline + metrics.descent
-                    )
-                    val inside = box.top >= 0f && box.bottom <= height
-                    val overlapsLabel = occupied.any { other ->
-                        box.left < other.right && box.right > other.left &&
-                            box.top < other.bottom && box.bottom > other.top
-                    }
-                    val overlapsCurve = curveOverlaps(box)
-                    if (inside && !overlapsLabel && !overlapsCurve) {
-                        chosen = LabelPlacement(label.text, cx, baseline, box)
-                        break
-                    }
-                }
-                if (chosen != null) break
-            }
-
-            // Last resort: score both sides and all small horizontal offsets.
-            // Never blindly force the label to the opposite side.
-            if (chosen == null) {
-                var bestScore = Float.POSITIVE_INFINITY
-                for (direction in directions) {
-                    for (dx in horizontalOffsets) {
-                        val cx = (label.pointX + dx).coerceIn(halfWidth + 1f, width - halfWidth - 1f)
-                        val baseline = if (direction > 0) label.pointY + gap - metrics.ascent
-                            else label.pointY - gap - metrics.descent
-                        val clampedBaseline = baseline.coerceIn(-metrics.ascent, height - metrics.descent)
-                        val box = LabelBox(
-                            cx - halfWidth,
-                            clampedBaseline + metrics.ascent,
-                            cx + halfWidth,
-                            clampedBaseline + metrics.descent
-                        )
-                        val outsidePenalty = if (box.top < 0f || box.bottom > height) 1000f else 0f
-                        val curvePenalty = if (curveOverlaps(box)) 100f else 0f
-                        val labelPenalty = if (occupied.any { other ->
-                                box.left < other.right && box.right > other.left &&
-                                    box.top < other.bottom && box.bottom > other.top
-                            }) 50f else 0f
-                        val directionPenalty = if (direction == preferredDirection) 0f else 10f
-                        val offsetPenalty = abs(dx) / cellWidth
-                        val score = outsidePenalty + curvePenalty + labelPenalty +
-                            directionPenalty + offsetPenalty
-                        if (score < bestScore) {
-                            bestScore = score
-                            chosen = LabelPlacement(label.text, cx, clampedBaseline, box)
-                        }
-                    }
+        for (i in 0 until 6) {
+            val hasNext = i + 1 < visible.size
+            for ((prefix, ys) in listOf("weather_high_line_" to highY, "weather_low_line_" to lowY)) {
+                val id = viewId("$prefix$i")
+                if (id == 0) continue
+                views.setViewVisibility(id, if (hasNext) View.VISIBLE else View.GONE)
+                if (hasNext) {
+                    val angle = Math.toDegrees(kotlin.math.atan2((ys[i + 1] - ys[i]).toDouble(), step.toDouble())).toFloat()
+                    views.setFloat(id, "setRotation", angle)
+                    views.setFloat(id, "setTranslationY", (ys[i] + ys[i + 1]) / 2f - heightPx / 2f)
                 }
             }
-            chosen?.let {
-                canvas.drawText(it.text, it.x, it.baseline, labelPaint)
-                occupied.add(it.box)
-            }
         }
-
-        WeatherChartBitmapCache.put(cacheKey, bitmap)
-        return bitmap
     }
 
-}
 
-/** Small process-local cache: keeps only a few recently used weather chart bitmaps. */
-private object WeatherChartBitmapCache {
-    private val cache = object : LruCache<String, Bitmap>(2 * 1024) {
-        override fun sizeOf(key: String, value: Bitmap): Int =
-            max(1, value.byteCount / 1024)
-    }
-
-    @Synchronized
-    fun get(key: String): Bitmap? = cache.get(key)
-
-    @Synchronized
-    fun put(key: String, bitmap: Bitmap) {
-        cache.put(key, bitmap)
-    }
-}
