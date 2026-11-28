@@ -58,8 +58,9 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val showUpdated = widthDp >= 160 && heightDp >= 145
         val showBottom = widthDp >= 210 && heightDp >= 175
 
-        val padding = if (tiny) 4 else if (showDays) 8 else 6
-        views.setViewPadding(R.id.weather_root, padding, padding, padding, padding)
+        // Use the full widget canvas: no artificial inset around the weather content.
+        val padding = 0
+        views.setViewPadding(R.id.weather_root, 0, 0, 0, 0)
         views.setViewVisibility(R.id.weather_city, if (widthDp >= 180 && !tiny) View.VISIBLE else View.GONE)
         views.setViewVisibility(R.id.weather_updated, if (showUpdated) View.VISIBLE else View.GONE)
         views.setViewVisibility(R.id.weather_day_desc_row, if (showDays) View.VISIBLE else View.GONE)
@@ -175,14 +176,21 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         }
         val dotHigh = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFA34A.toInt() }
         val dotLow = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF65A9FF.toInt() }
-        val minTemp = (days.take(7).minOfOrNull { it.low } ?: 0) - 2
-        val maxTemp = (days.take(7).maxOfOrNull { it.high } ?: 10) + 2
-        val range = max(1, maxTemp - minTemp).toFloat()
+        // Amplify vertical temperature differences so warming/cooling is easier to read.
+        // This changes only the curve's vertical movement, never its stroke or label size.
+        val rawMin = days.take(7).minOfOrNull { it.low } ?: 0
+        val rawMax = days.take(7).maxOfOrNull { it.high } ?: 10
+        val centerTemp = (rawMin + rawMax) / 2f
+        val curveGain = 1.45f
+        fun emphasized(temp: Int) = centerTemp + (temp - centerTemp) * curveGain
+        val minTemp = emphasized(rawMin) - 1.5f
+        val maxTemp = emphasized(rawMax) + 1.5f
+        val range = max(1f, maxTemp - minTemp)
         val side = min(34f * chartScale, width * 0.12f)
         val top = min(24f * chartScale, height * 0.22f)
         val bottom = min(28f * chartScale, height * 0.25f)
         fun x(i: Int) = side + i * (width - side * 2f) / 6f
-        fun y(temp: Int) = height - bottom - (temp - minTemp) * (height - top - bottom) / range
+        fun y(temp: Int) = height - bottom - (emphasized(temp) - minTemp) * (height - top - bottom) / range
         val highPath = Path()
         val lowPath = Path()
         days.take(7).forEachIndexed { i, day ->
