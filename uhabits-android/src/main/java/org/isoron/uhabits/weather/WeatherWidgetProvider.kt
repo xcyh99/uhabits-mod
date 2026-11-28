@@ -51,7 +51,10 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         // the chart only when the launcher gives the widget enough real space.
         val tiny = widthDp < 100 || heightDp < 85
         val showDays = widthDp >= 120 && heightDp >= 105
-        val showChart = widthDp >= 120 && heightDp >= 130
+        // Keep the trend line visible in 1x2 and 2x1 widgets as well.
+        // A single-cell side is narrow or short, but the chart must not disappear.
+        val oneCellSide = (widthDp < 100 && heightDp >= 100) || (heightDp < 100 && widthDp >= 100)
+        val showChart = (widthDp >= 120 && heightDp >= 130) || oneCellSide
         val showUpdated = widthDp >= 160 && heightDp >= 145
         val showBottom = widthDp >= 210 && heightDp >= 175
 
@@ -120,12 +123,12 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             }
 
             if (showChart) {
-                val chartWidth = max(240, ((widthDp - padding * 2) * density).toInt())
+                val chartWidth = max(1, ((widthDp - padding * 2) * density).toInt())
                 val reservedHeightDp = padding * 2 + 36 +
                     (if (showUpdated) 13 else 0) +
                     (if (showDays) 49 else 0) +
                     (if (showBottom) 17 else 0) + 4
-                val chartHeight = max(64, ((heightDp - reservedHeightDp) * density).toInt())
+                val chartHeight = max(32, ((heightDp - reservedHeightDp) * density).toInt())
                 views.setImageViewBitmap(R.id.weather_chart, drawChart(snapshot.days, chartWidth, chartHeight))
             }
             views.setTextViewText(
@@ -151,7 +154,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val highPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFFFA34A.toInt(); style = Paint.Style.STROKE; strokeWidth = 7f
+            color = 0xFFFFA34A.toInt(); style = Paint.Style.STROKE; strokeWidth = 2.5f
             strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
         }
         val lowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -160,7 +163,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         }
         // Text remains a fixed pixel size while chart coordinates expand with widget width.
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFE8EDF5.toInt(); textSize = 27f; textAlign = Paint.Align.CENTER
+            color = 0xFFE8EDF5.toInt(); textSize = 22f; textAlign = Paint.Align.CENTER
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
         val dotHigh = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFA34A.toInt() }
@@ -168,9 +171,9 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val minTemp = (days.take(7).minOfOrNull { it.low } ?: 0) - 2
         val maxTemp = (days.take(7).maxOfOrNull { it.high } ?: 10) + 2
         val range = max(1, maxTemp - minTemp).toFloat()
-        val side = 34f
-        val top = 24f
-        val bottom = 28f
+        val side = min(34f, width * 0.12f)
+        val top = min(24f, height * 0.22f)
+        val bottom = min(28f, height * 0.25f)
         fun x(i: Int) = side + i * (width - side * 2f) / 6f
         fun y(temp: Int) = height - bottom - (temp - minTemp) * (height - top - bottom) / range
         val highPath = Path()
@@ -187,8 +190,8 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         canvas.drawPath(highPath, highPaint)
         canvas.drawPath(lowPath, lowPaint)
         days.take(7).forEachIndexed { i, day ->
-            canvas.drawCircle(x(i), y(day.high), 8f, dotHigh)
-            canvas.drawCircle(x(i), y(day.low), 8f, dotLow)
+            canvas.drawCircle(x(i), y(day.high), 4f, dotHigh)
+            canvas.drawCircle(x(i), y(day.low), 4f, dotLow)
             canvas.drawText("${day.high}°", x(i), max(22f, y(day.high) - 12f), labelPaint)
             canvas.drawText("${day.low}°", x(i), min(height - 3f, y(day.low) + 25f), labelPaint)
         }
