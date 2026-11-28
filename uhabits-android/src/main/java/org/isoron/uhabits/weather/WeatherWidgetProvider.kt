@@ -48,8 +48,10 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     ) {
         // TEMPORARY DIAGNOSTIC: isolate launcher/provider registration from the
         // full weather RemoteViews tree and its dynamic chart operations.
-        val diagnosticViews = RemoteViews(context.packageName, R.layout.widget_weather_loading)
-        diagnosticViews.setTextViewText(R.id.weather_loading_text, "天气组件加载测试")
+        // TEMPORARY DIAGNOSTIC: test whether the complete weather layout
+        // can be inflated by the launcher without any dynamic RemoteViews actions.
+        val diagnosticViews = RemoteViews(context.packageName, R.layout.widget_weather)
+        diagnosticViews.setTextViewText(R.id.weather_city, "天气布局加载测试")
         manager.updateAppWidget(id, diagnosticViews)
         return
 
