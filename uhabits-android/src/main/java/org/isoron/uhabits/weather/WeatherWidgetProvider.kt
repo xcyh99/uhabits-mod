@@ -91,18 +91,20 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             snapshot?.let { "更新于 ${java.text.SimpleDateFormat("HH:mm", java.util.Locale.CHINA).format(java.util.Date(it.fetchedAt))}" }
                 ?: "等待天气数据"
         )
-        if (oneCellSide) {
-            views.setTextViewTextSize(R.id.weather_current_temp, android.util.TypedValue.COMPLEX_UNIT_SP, 17f)
-            views.setTextViewTextSize(R.id.weather_current_desc, android.util.TypedValue.COMPLEX_UNIT_SP, 8f)
+        val headerTextSize = when {
+            tiny -> 21f
+            widthDp < 160 || heightDp < 130 -> 25f
+            else -> 30f
         }
         views.setTextViewTextSize(
             R.id.weather_current_temp,
             android.util.TypedValue.COMPLEX_UNIT_SP,
-            when {
-                tiny -> 21f
-                widthDp < 160 || heightDp < 130 -> 25f
-                else -> 30f
-            }
+            headerTextSize
+        )
+        views.setTextViewTextSize(
+            R.id.weather_current_desc,
+            android.util.TypedValue.COMPLEX_UNIT_SP,
+            headerTextSize
         )
 
         if (snapshot != null && snapshot.days.isNotEmpty()) {
