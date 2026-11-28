@@ -18,6 +18,24 @@ class WeatherLineGeometryTest {
     }
 
     @Test
+    fun nodeXCoordinatesAlignWithSevenDayColumnCenters() {
+        val widgetWidth = 350f
+        val dayColumnWidth = widgetWidth / 7f
+        val chart = WeatherLineGeometry.calculate(
+            temperatures = listOf(12, 16, 16, 20, 18, 22, 19),
+            width = dayColumnWidth * 6f,
+            height = 27f,
+            leftInset = dayColumnWidth / 2f
+        )
+        chart.nodes.forEachIndexed { index, node ->
+            assertEquals(dayColumnWidth * (index + 0.5f), node.x, 0.0001f)
+        }
+        chart.segments.forEach { segment ->
+            assertEquals(dayColumnWidth, segment.end.x - segment.start.x, 0.0001f)
+        }
+    }
+
+    @Test
     fun equalTemperaturesHaveExactlyTheSameHeight() {
         val chart = WeatherLineGeometry.calculate(
             listOf(12, 16, 16, 20, 18, 22, 19), 600f, 100f
