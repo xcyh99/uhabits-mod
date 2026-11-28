@@ -154,6 +154,8 @@ class WeatherWidgetSettingsActivity : AppCompatActivity() {
             text = "恢复默认幅度"
             setOnClickListener {
                 seek.progress = gainToProgress(DEFAULT_CURVE_GAIN)
+                valueLabel?.text = String.format(java.util.Locale.CHINA, "%.2f 倍", DEFAULT_CURVE_GAIN)
+                gainInput?.setText(String.format(java.util.Locale.US, "%.2f", DEFAULT_CURVE_GAIN))
                 saveGain(DEFAULT_CURVE_GAIN)
             }
         }
