@@ -131,8 +131,8 @@ class WeatherWidgetProvider : AppWidgetProvider() {
 
     /**
      * Renders a complete six-interval curve into one TextView. The renderer
-     * uses a 7-row x 56-column monospace character grid: eight character cells
-     * per day interval, with each day node located at the center of its column.
+     * uses one 56-character Braille raster line. Each glyph carries a 2x4 dot
+     * cell, and the seven day nodes remain centered over their forecast columns.
      */
     private fun applyChartText(
         context: Context,
@@ -175,7 +175,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
 
     companion object {
         private const val CHART_ROW_HEIGHT_DP = 27f
-        private const val LINE_TEXT_SIZE_SP = 3.5f
+        private const val LINE_TEXT_SIZE_SP = 22f
         private const val MONOSPACE_WIDTH_FACTOR = 0.6f
 
         private val dayIds = intArrayOf(
