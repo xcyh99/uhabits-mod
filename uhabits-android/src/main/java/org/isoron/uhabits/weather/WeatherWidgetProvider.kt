@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Paint
 import android.os.Bundle
 import android.view.View
 import android.widget.RemoteViews
@@ -125,10 +126,6 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                 R.id.weather_desc_0, R.id.weather_desc_1, R.id.weather_desc_2,
                 R.id.weather_desc_3, R.id.weather_desc_4, R.id.weather_desc_5, R.id.weather_desc_6
             )
-            val hitViews = intArrayOf(
-                R.id.weather_hit_0, R.id.weather_hit_1, R.id.weather_hit_2,
-                R.id.weather_hit_3, R.id.weather_hit_4, R.id.weather_hit_5, R.id.weather_hit_6
-            )
             val compactForecast = widthDp < 180 || heightDp < 150
             val dayTextSize = if (compactForecast) 8f else 10f
             val iconTextSize = if (compactForecast) 17f else 22f
@@ -163,7 +160,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                 )
                 views.setOnClickPendingIntent(dayViews[index], pending)
                 views.setOnClickPendingIntent(iconViews[index], pending)
-                views.setOnClickPendingIntent(hitViews[index], pending)
+                views.setOnClickPendingIntent(descViews[index], pending)
             }
 
             if (showChart) {
@@ -271,5 +268,4 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             }
         }
     }
-
-
+}
