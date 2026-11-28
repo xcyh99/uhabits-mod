@@ -52,18 +52,32 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="34dp">
-        <TextView
-            android:id="@+id/weather_city"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="top|start"
-            android:maxWidth="48dp"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:text="合肥"
-            android:textColor="#FFFFFF"
-            android:textSize="8sp"
-            android:textStyle="bold" />
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/weather_city"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="48dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="合肥"
+                android:textColor="#FFFFFF"
+                android:textSize="8sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/weather_updated"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:text="更新于 --:--"
+                android:textColor="#AEB9C8"
+                android:textSize="8sp"
+                android:textStyle="normal" />
+        </LinearLayout>
         <TextView
             android:id="@+id/weather_current_desc"
             android:layout_width="match_parent"
@@ -84,15 +98,6 @@
             android:textSize="30sp"
             android:textStyle="bold" />
     </FrameLayout>
-
-    <TextView
-        android:id="@+id/weather_updated"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingTop="0dp"
-        android:text="天气数据"
-        android:textColor="#AEB9C8"
-        android:textSize="8sp" />
 
     <LinearLayout
         android:id="@+id/weather_day_desc_row"
