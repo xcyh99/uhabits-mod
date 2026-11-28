@@ -126,15 +126,31 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                 R.id.weather_hit_0, R.id.weather_hit_1, R.id.weather_hit_2,
                 R.id.weather_hit_3, R.id.weather_hit_4, R.id.weather_hit_5, R.id.weather_hit_6
             )
+            val compactForecast = widthDp < 180 || heightDp < 150
+            val dayTextSize = if (compactForecast) 8f else 10f
+            val iconTextSize = if (compactForecast) 14f else 18f
+            val forecastTempSize = if (compactForecast) 7f else 9f
+            val cellWidthPx = (widthDp / 7f - 4f).coerceAtLeast(1f) * density
+            val measurePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+            measurePaint.textSize = dayTextSize * density
+            val fullDayLabels = snapshot.days.take(7).mapIndexed { index, day ->
+                WeatherRepository.dayLabel(day.date, index, compact = false)
+            }
+            val compactDayLabels = snapshot.days.take(7).mapIndexed { index, day ->
+                WeatherRepository.dayLabel(day.date, index, compact = true)
+            }
+            val fullDatesFit = fullDayLabels.all { measurePaint.measureText(it) <= cellWidthPx }
+            measurePaint.textSize = forecastTempSize * density
+            val singleLineTempsFit = snapshot.days.take(7).all { day ->
+                measurePaint.measureText("${day.high}°/${day.low}°") <= cellWidthPx
+            }
             snapshot.days.take(7).forEachIndexed { index, day ->
-                views.setTextViewText(dayViews[index], WeatherRepository.dayLabel(day.date, index))
+                views.setTextViewText(dayViews[index], if (fullDatesFit) fullDayLabels[index] else compactDayLabels[index])
                 views.setTextViewText(iconViews[index], WeatherRepository.weatherIcon(day.code))
-                views.setTextViewText(descViews[index], "${day.high}°/${day.low}°")
-                if (widthDp < 180 || heightDp < 150) {
-                    views.setTextViewTextSize(dayViews[index], android.util.TypedValue.COMPLEX_UNIT_SP, 8f)
-                    views.setTextViewTextSize(iconViews[index], android.util.TypedValue.COMPLEX_UNIT_SP, 14f)
-                    views.setTextViewTextSize(descViews[index], android.util.TypedValue.COMPLEX_UNIT_SP, 7f)
-                }
+                views.setTextViewText(descViews[index], if (singleLineTempsFit) "${day.high}°/${day.low}°" else "${day.high}°\n${day.low}°")
+                views.setTextViewTextSize(dayViews[index], android.util.TypedValue.COMPLEX_UNIT_SP, dayTextSize)
+                views.setTextViewTextSize(iconViews[index], android.util.TypedValue.COMPLEX_UNIT_SP, iconTextSize)
+                views.setTextViewTextSize(descViews[index], android.util.TypedValue.COMPLEX_UNIT_SP, forecastTempSize)
                 val intent = Intent(context, WeatherDetailActivity::class.java)
                     .putExtra(WeatherDetailActivity.EXTRA_DATE, day.date)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
