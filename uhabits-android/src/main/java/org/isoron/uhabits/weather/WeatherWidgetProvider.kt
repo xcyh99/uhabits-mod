@@ -135,7 +135,8 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                     (if (showDays) 49 else 0) +
                     (if (showBottom) 17 else 0) + 4
                 val chartHeight = max(1, ((heightDp - reservedHeightDp) * density).toInt())
-                views.setImageViewBitmap(R.id.weather_chart, drawChart(context, snapshot.days, chartWidth, chartHeight))
+                val chartLabelSizeSp = if (widthDp < 180 || heightDp < 150) 7f else 9f
+                views.setImageViewBitmap(R.id.weather_chart, drawChart(context, snapshot.days, chartWidth, chartHeight, chartLabelSizeSp))
             }
             views.setTextViewText(
                 R.id.weather_bottom_info,
@@ -156,23 +157,23 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         manager.updateAppWidget(id, views)
     }
 
-    private fun drawChart(context: Context, days: List<WeatherDay>, width: Int, height: Int): Bitmap {
+    private fun drawChart(context: Context, days: List<WeatherDay>, width: Int, height: Int, labelSizeSp: Float): Bitmap {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         // 240x64 px is the reference drawing size. Larger widgets never enlarge
         // strokes or labels; smaller widgets scale every chart mark down uniformly.
         val chartScale = min(1f, min(width / 240f, height / 64f)).coerceAtLeast(0f)
         val highPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFFFA34A.toInt(); style = Paint.Style.STROKE; strokeWidth = 2.5f * chartScale
+            color = 0xFFFFA34A.toInt(); style = Paint.Style.STROKE; strokeWidth = 1.5f * chartScale
             strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
         }
         val lowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFF65A9FF.toInt(); style = Paint.Style.STROKE; strokeWidth = 2.5f * chartScale
+            color = 0xFF65A9FF.toInt(); style = Paint.Style.STROKE; strokeWidth = 1.5f * chartScale
             strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
         }
         // Text remains a fixed pixel size while chart coordinates expand with widget width.
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFE8EDF5.toInt(); textSize = 22f * chartScale; textAlign = Paint.Align.CENTER
+            color = 0xFFE8EDF5.toInt(); textSize = labelSizeSp * context.resources.displayMetrics.density * chartScale; textAlign = Paint.Align.CENTER
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
         val dotHigh = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFA34A.toInt() }
@@ -184,12 +185,12 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val centerTemp = (rawMin + rawMax) / 2f
         val curveGain = PreferenceManager.getDefaultSharedPreferences(context)
             .getFloat(WeatherWidgetSettingsActivity.PREF_CURVE_GAIN, WeatherWidgetSettingsActivity.DEFAULT_CURVE_GAIN)
-            .coerceIn(0.8f, 2.2f)
+            .coerceIn(WeatherWidgetSettingsActivity.MIN_GAIN, WeatherWidgetSettingsActivity.MAX_GAIN)
         fun emphasized(temp: Int) = centerTemp + (temp - centerTemp) * curveGain
         // Keep the vertical plotting range fixed against the maximum supported gain.
         // Do not derive these bounds from emphasized values: doing so cancels the gain.
         val rawRange = max(1f, rawMax - rawMin.toFloat())
-        val plotHalfRange = rawRange * 2.2f / 2f + 1.5f
+        val plotHalfRange = rawRange * WeatherWidgetSettingsActivity.MAX_GAIN / 2f + 1.5f
         val minTemp = centerTemp - plotHalfRange
         val maxTemp = centerTemp + plotHalfRange
         val range = max(1f, maxTemp - minTemp)
@@ -212,8 +213,8 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         canvas.drawPath(highPath, highPaint)
         canvas.drawPath(lowPath, lowPaint)
         days.take(7).forEachIndexed { i, day ->
-            canvas.drawCircle(x(i), y(day.high), 4f * chartScale, dotHigh)
-            canvas.drawCircle(x(i), y(day.low), 4f * chartScale, dotLow)
+            canvas.drawCircle(x(i), y(day.high), 3f * chartScale, dotHigh)
+            canvas.drawCircle(x(i), y(day.low), 3f * chartScale, dotLow)
             canvas.drawText("${day.high}°", x(i), max(22f * chartScale, y(day.high) - 12f * chartScale), labelPaint)
             canvas.drawText("${day.low}°", x(i), min(height - 3f * chartScale, y(day.low) + 25f * chartScale), labelPaint)
         }
