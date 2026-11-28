@@ -84,6 +84,11 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             else -> (0..5).toSet()
         }
 
+        // The 5-column widget has wider segment slots than the proven 4-column layout.
+        // Stretch only the glyph text (not the TextView bounds) so adjacent intervals stay connected.
+        // 4x2 and all narrower sizes retain the verified 1.9 scale.
+        val glyphTextScaleX = if (widgetWidthDp >= 295) 2.43f else 1.9f
+
         val highGlyphs = "╱╲╱╱╲╱"
         val lowGlyphs = "╲╱╲╲╱╲"
         val highIds = intArrayOf(
@@ -101,6 +106,8 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             val visibility = if (i in selectedSlots) View.VISIBLE else View.INVISIBLE
             views.setTextViewText(highIds[i], highGlyphs[i].toString())
             views.setTextViewText(lowIds[i], lowGlyphs[i].toString())
+            views.setFloat(highIds[i], "setTextScaleX", glyphTextScaleX)
+            views.setFloat(lowIds[i], "setTextScaleX", glyphTextScaleX)
             views.setViewVisibility(highIds[i], visibility)
             views.setViewVisibility(lowIds[i], visibility)
         }
