@@ -86,6 +86,10 @@ class ComponentCenterActivity : AppCompatActivity() {
         card("图片组件设置", "管理图片、左右点击区域及显示方式") {
             startActivity(Intent(this, PictureShortcutWidgetSettingsActivity::class.java))
         }
+
+        card("天气组件设置", "调整桌面天气组件的曲线起伏幅度等显示参数") {
+            startActivity(Intent(this, org.isoron.uhabits.weather.WeatherWidgetSettingsActivity::class.java))
+        }
         setContentView(ScrollView(this).apply { isFillViewport = true; addView(root) })
     }
 }
