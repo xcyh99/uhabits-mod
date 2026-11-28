@@ -303,17 +303,68 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             )
         }.sortedBy { if (it.preferBelow) 1 else 0 }
 
+        // Test the actual line segments against a candidate label rectangle.
+        // This makes "space above/below" mean genuinely unobstructed space,
+        // not merely room before the bitmap boundary.
+        fun segmentHitsBox(
+            x1: Float, y1: Float, x2: Float, y2: Float, box: LabelBox
+        ): Boolean {
+            var t0 = 0f
+            var t1 = 1f
+            val dx = x2 - x1
+            val dy = y2 - y1
+            fun clip(p: Float, q: Float): Boolean {
+                if (abs(p) < 0.0001f) return q >= 0f
+                val t = q / p
+                if (p < 0f) {
+                    if (t > t1) return false
+                    if (t > t0) t0 = t
+                } else {
+                    if (t < t0) return false
+                    if (t < t1) t1 = t
+                }
+                return true
+            }
+            return clip(-dx, x1 - box.left) &&
+                clip(dx, box.right - x1) &&
+                clip(-dy, y1 - box.top) &&
+                clip(dy, box.bottom - y1) && t0 <= t1
+        }
+        fun curveOverlaps(box: LabelBox): Boolean {
+            val points = days.take(7).mapIndexed { i, day ->
+                Triple(x(i), yHigh(day.high), yLow(day.low))
+            }
+            val dotPad = dotRadius + 0.8f * chartScale
+            for (point in points) {
+                val highDot = LabelBox(point.first - dotPad, point.second - dotPad,
+                    point.first + dotPad, point.second + dotPad)
+                val lowDot = LabelBox(point.first - dotPad, point.third - dotPad,
+                    point.first + dotPad, point.third + dotPad)
+                if (box.left < highDot.right && box.right > highDot.left &&
+                    box.top < highDot.bottom && box.bottom > highDot.top) return true
+                if (box.left < lowDot.right && box.right > lowDot.left &&
+                    box.top < lowDot.bottom && box.bottom > lowDot.top) return true
+            }
+            for (i in 0 until points.size - 1) {
+                val a = points[i]
+                val b = points[i + 1]
+                if (segmentHitsBox(a.first, a.second, b.first, b.second, box) ||
+                    segmentHitsBox(a.first, a.third, b.first, b.third, box)) return true
+            }
+            return false
+        }
+
         labels.forEach { label ->
             val textWidth = labelPaint.measureText(label.text)
             val halfWidth = textWidth / 2f
-            val gap = 2f * chartScale
+            val gap = 3f * chartScale
+            // Keep the label centered over its own day first; only shift sideways
+            // when another label occupies that exact position.
             val horizontalOffsets = listOf(0f, -cellWidth * 0.22f, cellWidth * 0.22f, -cellWidth * 0.38f, cellWidth * 0.38f)
             val preferredDirection = if (label.preferBelow) 1 else -1
             val directions = listOf(preferredDirection, -preferredDirection)
             var chosen: LabelPlacement? = null
 
-            // The curve has priority. Try the requested side first; only move the
-            // label to the opposite side when the first side is clipped or occupied.
             for (direction in directions) {
                 for (dx in horizontalOffsets) {
                     val cx = (label.pointX + dx).coerceIn(halfWidth + 1f, width - halfWidth - 1f)
@@ -326,11 +377,12 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                         baseline + metrics.descent
                     )
                     val inside = box.top >= 0f && box.bottom <= height
-                    val overlaps = occupied.any { other ->
+                    val overlapsLabel = occupied.any { other ->
                         box.left < other.right && box.right > other.left &&
                             box.top < other.bottom && box.bottom > other.top
                     }
-                    if (inside && !overlaps) {
+                    val overlapsCurve = curveOverlaps(box)
+                    if (inside && !overlapsLabel && !overlapsCurve) {
                         chosen = LabelPlacement(label.text, cx, baseline, box)
                         break
                     }
@@ -338,8 +390,8 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                 if (chosen != null) break
             }
 
-            // In extremely dense charts, keep the label visible and clipped safely;
-            // never move either curve to make room for text.
+            // If the preferred side has no real free space, use the opposite side.
+            // The curve is never shifted to accommodate a label.
             if (chosen == null) {
                 val direction = -preferredDirection
                 val cx = label.pointX.coerceIn(halfWidth + 1f, width - halfWidth - 1f)
