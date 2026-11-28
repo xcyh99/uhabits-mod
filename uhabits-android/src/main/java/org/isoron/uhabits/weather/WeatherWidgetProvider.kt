@@ -29,8 +29,10 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     override fun onAppWidgetOptionsChanged(
         context: Context, manager: AppWidgetManager, appWidgetId: Int, newOptions: Bundle
     ) {
+        // Launcher resize callbacks can arrive repeatedly while the user drags a
+        // widget edge. Re-render from the local cache only; never start network
+        // requests during interactive resizing.
         render(context, manager, appWidgetId, WeatherRepository.load(context))
-        WeatherRepository.fetch(context) { fresh -> updateAll(context, fresh) }
     }
 
     private fun updateAll(context: Context, snapshot: WeatherSnapshot?) {
