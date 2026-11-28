@@ -69,7 +69,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val tinyCell = widthDp < 130 && heightDp < 130
         views.setViewVisibility(R.id.weather_tiny_panel, if (tinyCell) View.VISIBLE else View.GONE)
         views.setViewVisibility(R.id.weather_header, if (tinyCell) View.GONE else View.VISIBLE)
-        views.setViewVisibility(R.id.weather_city, if (widthDp >= 180 && !tiny) View.VISIBLE else View.GONE)
+        views.setViewVisibility(R.id.weather_city, if (!tinyCell) View.VISIBLE else View.GONE)
         views.setViewVisibility(R.id.weather_updated, if (showUpdated && !tinyCell) View.VISIBLE else View.GONE)
         views.setViewVisibility(R.id.weather_day_desc_row, if (showDays && !tinyCell) View.VISIBLE else View.GONE)
         views.setViewVisibility(R.id.weather_chart, if (showChart && !tinyCell) View.VISIBLE else View.GONE)
@@ -221,10 +221,10 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val rawMax = days.take(7).maxOfOrNull { it.high } ?: 10
         val centerTemp = (rawMin + rawMax) / 2f
         fun emphasized(temp: Int) = centerTemp + (temp - centerTemp) * curveGain
-        val rawRange = max(1f, rawMax - rawMin.toFloat())
-        val plotHalfRange = rawRange * WeatherWidgetSettingsActivity.MAX_GAIN / 2f + 1.5f
-        val minTemp = centerTemp - plotHalfRange
-        val maxTemp = centerTemp + plotHalfRange
+        // Fit the actual emphasized forecast extremes to the chart height.
+        // This lets the high/low curves use nearly the full vertical space.
+        val minTemp = days.take(7).minOfOrNull { emphasized(it.low) } ?: emphasized(rawMin)
+        val maxTemp = days.take(7).maxOfOrNull { emphasized(it.high) } ?: emphasized(rawMax)
         val range = max(1f, maxTemp - minTemp)
         val side = min(34f * chartScale, width * 0.12f)
         val top = 4f * chartScale
@@ -268,10 +268,10 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val rawMax = days.take(7).maxOfOrNull { it.high } ?: 10
         val centerTemp = (rawMin + rawMax) / 2f
         fun emphasized(temp: Int) = centerTemp + (temp - centerTemp) * curveGain
-        val rawRange = max(1f, rawMax - rawMin.toFloat())
-        val plotHalfRange = rawRange * WeatherWidgetSettingsActivity.MAX_GAIN / 2f + 1.5f
-        val minTemp = centerTemp - plotHalfRange
-        val maxTemp = centerTemp + plotHalfRange
+        // Fit the actual emphasized forecast extremes to the chart height.
+        // This lets the high/low curves use nearly the full vertical space.
+        val minTemp = days.take(7).minOfOrNull { emphasized(it.low) } ?: emphasized(rawMin)
+        val maxTemp = days.take(7).maxOfOrNull { emphasized(it.high) } ?: emphasized(rawMax)
         val range = max(1f, maxTemp - minTemp)
         val chartScale = min(1f, min(width / 240f, height / 64f)).coerceAtLeast(0f)
         val top = 4f * chartScale
