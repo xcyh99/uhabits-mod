@@ -14,13 +14,15 @@ internal object WeatherLineGeometry {
         width: Float,
         height: Float,
         topInset: Float = 0f,
-        bottomInset: Float = 0f
+        bottomInset: Float = 0f,
+        leftInset: Float = 0f
     ): Chart {
         require(temperatures.size == 7) { "Weather line requires exactly seven daily temperatures" }
         require(width > 0f && height > 0f) { "Chart dimensions must be positive" }
         require(topInset >= 0f && bottomInset >= 0f && topInset + bottomInset < height) {
             "Chart insets must fit inside chart height"
         }
+        require(leftInset >= 0f) { "Left inset must not be negative" }
 
         val minTemperature = temperatures.minOrNull()!!
         val maxTemperature = temperatures.maxOrNull()!!
@@ -33,7 +35,7 @@ internal object WeatherLineGeometry {
             Point(
                 dayIndex = index,
                 temperature = temperature,
-                x = width * (index / 6f),
+                x = leftInset + width * (index / 6f),
                 y = topInset + normalized * plotHeight
             )
         }
