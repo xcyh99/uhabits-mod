@@ -196,11 +196,6 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     }
 
     /**
-     * Draw the forecast curves, dots and temperature labels on one canvas.
-     * A single coordinate system prevents labels drifting away from their points
-     * when the launcher resizes or reloads the widget.
-     */
-    /**
      * Seven-day chart built entirely from ordinary RemoteViews controls.
      * Text labels are TextViews; curve segments and dots are regular Views.
      */
