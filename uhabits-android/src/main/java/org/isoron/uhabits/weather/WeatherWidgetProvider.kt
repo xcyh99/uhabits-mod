@@ -17,6 +17,7 @@ import android.widget.RemoteViews
 import android.util.LruCache
 import androidx.preference.PreferenceManager
 import org.isoron.uhabits.R
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
