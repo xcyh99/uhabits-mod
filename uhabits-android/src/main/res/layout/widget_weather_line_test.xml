@@ -470,7 +470,7 @@
             android:maxLines="7"
             android:text=""
             android:textColor="#F6B65D"
-            android:textSize="3.5sp"
+            android:textSize="22sp"
             android:textStyle="bold" />
 
         <TextView
@@ -484,7 +484,7 @@
             android:maxLines="7"
             android:text=""
             android:textColor="#78BCEB"
-            android:textSize="3.5sp"
+            android:textSize="22sp"
             android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>
