@@ -234,46 +234,22 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val minTemp = days.take(7).minOfOrNull { emphasized(it.low) } ?: emphasized(rawMin)
         val maxTemp = days.take(7).maxOfOrNull { emphasized(it.high) } ?: emphasized(rawMax)
         val range = max(1f, maxTemp - minTemp)
-        val top = 4f * chartScale
-        val bottom = 4f * chartScale
-        fun x(i: Int) = width * (i + 0.5f) / 7f
-        fun y(temp: Int) = height - bottom - (emphasized(temp) - minTemp) * (height - top - bottom) / range
 
-        val highPath = Path()
-        val lowPath = Path()
-        days.take(7).forEachIndexed { i, day ->
-            if (i == 0) {
-                highPath.moveTo(x(i), y(day.high))
-                lowPath.moveTo(x(i), y(day.low))
-            } else {
-                highPath.lineTo(x(i), y(day.high))
-                lowPath.lineTo(x(i), y(day.low))
-            }
-        }
-        canvas.drawPath(highPath, highPaint)
-        canvas.drawPath(lowPath, lowPaint)
-        days.take(7).forEachIndexed { i, day ->
-            canvas.drawCircle(x(i), y(day.high), 3f * chartScale, dotHigh)
-            canvas.drawCircle(x(i), y(day.low), 3f * chartScale, dotLow)
-        }
-
-        // Labels scale uniformly with the chart and are always drawn. Reserve
-        // enough vertical room so the extreme points' labels stay inside the bitmap.
+        // Labels, dots and curves share one proportional scale.
         val cellWidth = width / 7f
-        val labelSizeSp = (9f * chartScale).coerceIn(5f, 14f)
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFE8EDF5.toInt()
-            textSize = labelSizeSp * density
+            textSize = 9f * chartScale * density
             textAlign = Paint.Align.CENTER
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         }
         val metrics = labelPaint.fontMetrics
         val gap = 1.5f * density * chartScale
-        val labelHalfHeight = (metrics.descent - metrics.ascent) / 2f
-        val top = labelHalfHeight + gap + 2f * chartScale
-        val bottom = top
+        val top = -metrics.ascent + gap + 2f * chartScale
+        val bottom = metrics.descent + gap + 2f * chartScale
         fun x(i: Int) = width * (i + 0.5f) / 7f
-        fun y(temp: Int) = height - bottom - (emphasized(temp) - minTemp) * (height - top - bottom) / range
+        fun y(temp: Int) = height - bottom - (emphasized(temp) - minTemp) *
+            (height - top - bottom) / range
 
         val highPath = Path()
         val lowPath = Path()
@@ -293,20 +269,16 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             canvas.drawCircle(x(i), y(day.low), 3f * chartScale, dotLow)
         }
 
+        // Never suppress a temperature label. Place high/low labels on opposite
+        // sides of each point; the font scales uniformly with the chart.
         days.take(7).forEachIndexed { i, day ->
             val pointX = x(i)
             val highY = y(day.high)
             val lowY = y(day.low)
-            val highText = "${day.high}°"
-            val lowText = "${day.low}°"
-            // Keep both labels visible, placing them on opposite sides of their
-            // corresponding points. Slight horizontal separation prevents clashes.
-            canvas.drawText(highText, pointX - cellWidth * 0.16f,
-                (highY - gap - metrics.descent).coerceIn(-metrics.ascent, height - metrics.descent),
-                labelPaint)
-            canvas.drawText(lowText, pointX + cellWidth * 0.16f,
-                (lowY + gap - metrics.ascent).coerceIn(-metrics.ascent, height - metrics.descent),
-                labelPaint)
+            canvas.drawText("${day.high}°", pointX - cellWidth * 0.16f,
+                highY - gap - metrics.descent, labelPaint)
+            canvas.drawText("${day.low}°", pointX + cellWidth * 0.16f,
+                lowY + gap - metrics.ascent, labelPaint)
         }
 
         WeatherChartBitmapCache.put(cacheKey, bitmap)
