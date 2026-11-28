@@ -59,30 +59,37 @@ class WeatherLineGeometryTest {
         assertTrue(chart.segments.all { it.start.y == it.end.y })
     }
     @Test
-    fun singleTextRendererUsesOneContinuousCharacterGridAcrossSixIntervals() {
+    fun singleTextRendererProducesOneBrailleTextLine() {
         val chart = WeatherLineGeometry.calculate(
             temperatures = listOf(12, 16, 16, 20, 18, 22, 19),
             width = 600f,
             height = 27f
         )
-        val rows = WeatherLineTextRenderer.render(chart).split("\n")
-        assertEquals(WeatherLineTextRenderer.ROW_COUNT, rows.size)
-        assertTrue(rows.all { it.length == WeatherLineTextRenderer.COLUMN_COUNT })
-        for (column in WeatherLineTextRenderer.FIRST_NODE_COLUMN until WeatherLineTextRenderer.LAST_NODE_COLUMN) {
-            assertEquals(1, rows.count { it[column] != ' ' })
-        }
-        assertTrue(rows.all { row -> row.take(WeatherLineTextRenderer.FIRST_NODE_COLUMN).all { it == ' ' } })
-        assertTrue(rows.all { row -> row.drop(WeatherLineTextRenderer.LAST_NODE_COLUMN).all { it == ' ' } })
+        val rendered = WeatherLineTextRenderer.render(chart)
+        assertEquals(WeatherLineTextRenderer.COLUMN_COUNT, rendered.length)
+        assertTrue(!rendered.contains('\n'))
+        assertTrue(rendered.all { it.code in 0x2800..0x28FF })
+        assertTrue(rendered.substring(
+            WeatherLineTextRenderer.FIRST_NODE_COLUMN,
+            WeatherLineTextRenderer.LAST_NODE_COLUMN + 1
+        ).any { it.code != 0x2800 })
     }
 
     @Test
-    fun flatForecastRendersOneUnbrokenHorizontalTextLine() {
+    fun flatForecastFillsOneUnbrokenBrailleRow() {
         val chart = WeatherLineGeometry.calculate(List(7) { 16 }, 600f, 27f)
-        val rows = WeatherLineTextRenderer.render(chart).split("\n")
-        val lineRow = rows.indexOfFirst { it.contains('─') }
-        assertTrue(lineRow >= 0)
-        assertEquals(48, rows[lineRow].count { it == '─' })
-        assertTrue(rows.withIndex().filter { it.index != lineRow }.all { (_, row) -> row.all { it == ' ' } })
+        val rendered = WeatherLineTextRenderer.render(chart)
+        assertEquals(WeatherLineTextRenderer.COLUMN_COUNT, rendered.length)
+        assertTrue(!rendered.contains('\n'))
+        assertEquals(
+            WeatherLineTextRenderer.LAST_NODE_COLUMN -
+                WeatherLineTextRenderer.FIRST_NODE_COLUMN + 1,
+            rendered.count { it.code != 0x2800 }
+        )
+        assertTrue(rendered.take(WeatherLineTextRenderer.FIRST_NODE_COLUMN)
+            .all { it.code == 0x2800 })
+        assertTrue(rendered.drop(WeatherLineTextRenderer.LAST_NODE_COLUMN + 1)
+            .all { it.code == 0x2800 })
     }
 
 }
