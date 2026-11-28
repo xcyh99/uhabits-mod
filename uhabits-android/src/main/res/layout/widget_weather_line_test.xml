@@ -473,13 +473,20 @@
                 android:text="高"
                 android:textColor="#F6B65D"
                 android:textSize="9sp" />
-            <TextView android:id="@+id/weather_high_seg_0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:includeFontPadding="false" android:text="╱" android:textColor="#F6B65D" android:textSize="18sp" android:textStyle="bold" />
-            <TextView android:id="@+id/weather_high_seg_1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:includeFontPadding="false" android:text="╲" android:textColor="#F6B65D" android:textSize="18sp" android:textStyle="bold" />
-            <TextView android:id="@+id/weather_high_seg_2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:includeFontPadding="false" android:text="╱" android:textColor="#F6B65D" android:textSize="18sp" android:textStyle="bold" />
-            <TextView android:id="@+id/weather_high_seg_3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:includeFontPadding="false" android:text="╱" android:textColor="#F6B65D" android:textSize="18sp" android:textStyle="bold" />
-            <TextView android:id="@+id/weather_high_seg_4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:includeFontPadding="false" android:text="╲" android:textColor="#F6B65D" android:textSize="18sp" android:textStyle="bold" />
-            <TextView android:id="@+id/weather_high_seg_5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:includeFontPadding="false" android:text="╱" android:textColor="#F6B65D" android:textSize="18sp" android:textStyle="bold" />
-            <TextView android:id="@+id/weather_high_seg_6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:includeFontPadding="false" android:text="╲" android:textColor="#F6B65D" android:textSize="18sp" android:textStyle="bold" />
+            <TextView
+                android:id="@+id/weather_high_line"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:fontFamily="monospace"
+                android:text="╱╲╱╱╲╱╲"
+                android:textColor="#F6B65D"
+                android:textSize="22sp"
+                android:textScaleX="1.9"
+                android:textStyle="bold"
+                android:maxLines="1" />
         </LinearLayout>
 
         <LinearLayout
@@ -495,13 +502,20 @@
                 android:text="低"
                 android:textColor="#78BCEB"
                 android:textSize="9sp" />
-            <TextView android:id="@+id/weather_low_seg_0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:includeFontPadding="false" android:text="╲" android:textColor="#78BCEB" android:textSize="18sp" android:textStyle="bold" />
-            <TextView android:id="@+id/weather_low_seg_1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:includeFontPadding="false" android:text="╱" android:textColor="#78BCEB" android:textSize="18sp" android:textStyle="bold" />
-            <TextView android:id="@+id/weather_low_seg_2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:includeFontPadding="false" android:text="╲" android:textColor="#78BCEB" android:textSize="18sp" android:textStyle="bold" />
-            <TextView android:id="@+id/weather_low_seg_3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:includeFontPadding="false" android:text="╲" android:textColor="#78BCEB" android:textSize="18sp" android:textStyle="bold" />
-            <TextView android:id="@+id/weather_low_seg_4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:includeFontPadding="false" android:text="╱" android:textColor="#78BCEB" android:textSize="18sp" android:textStyle="bold" />
-            <TextView android:id="@+id/weather_low_seg_5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:includeFontPadding="false" android:text="╲" android:textColor="#78BCEB" android:textSize="18sp" android:textStyle="bold" />
-            <TextView android:id="@+id/weather_low_seg_6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:includeFontPadding="false" android:text="╱" android:textColor="#78BCEB" android:textSize="18sp" android:textStyle="bold" />
+            <TextView
+                android:id="@+id/weather_low_line"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:fontFamily="monospace"
+                android:text="╲╱╲╲╱╲╱"
+                android:textColor="#78BCEB"
+                android:textSize="22sp"
+                android:textScaleX="1.9"
+                android:textStyle="bold"
+                android:maxLines="1" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>
