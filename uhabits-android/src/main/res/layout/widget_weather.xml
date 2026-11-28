@@ -95,39 +95,39 @@
         android:orientation="horizontal"
         android:gravity="center">
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <TextView android:id="@+id/weather_day_0" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="今天" android:textColor="#FFFFFF" android:textSize="10sp"/>
-            <TextView android:id="@+id/weather_icon_0" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="☀️" android:textSize="18sp"/>
-            <TextView android:id="@+id/weather_desc_0" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp"/>
+            <TextView android:id="@+id/weather_day_0" android:layout_width="match_parent" android:layout_height="18dp" android:gravity="center" android:includeFontPadding="false" android:text="今天" android:textColor="#FFFFFF" android:textSize="10sp" android:maxLines="1" />
+            <TextView android:id="@+id/weather_icon_0" android:layout_width="match_parent" android:layout_height="26dp" android:gravity="center" android:includeFontPadding="false" android:text="☀️" android:textSize="18sp" android:maxLines="1" />
+            <TextView android:id="@+id/weather_desc_0" android:layout_width="match_parent" android:layout_height="30dp" android:gravity="center" android:includeFontPadding="false" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp" android:maxLines="2" android:lineSpacingExtra="0dp" />
         </LinearLayout>
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <TextView android:id="@+id/weather_day_1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="明天" android:textColor="#FFFFFF" android:textSize="10sp"/>
-            <TextView android:id="@+id/weather_icon_1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="☀️" android:textSize="18sp"/>
-            <TextView android:id="@+id/weather_desc_1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp"/>
+            <TextView android:id="@+id/weather_day_1" android:layout_width="match_parent" android:layout_height="18dp" android:gravity="center" android:includeFontPadding="false" android:text="今天" android:textColor="#FFFFFF" android:textSize="10sp" android:maxLines="1" />
+            <TextView android:id="@+id/weather_icon_1" android:layout_width="match_parent" android:layout_height="26dp" android:gravity="center" android:includeFontPadding="false" android:text="☀️" android:textSize="18sp" android:maxLines="1" />
+            <TextView android:id="@+id/weather_desc_1" android:layout_width="match_parent" android:layout_height="30dp" android:gravity="center" android:includeFontPadding="false" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp" android:maxLines="2" android:lineSpacingExtra="0dp" />
         </LinearLayout>
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <TextView android:id="@+id/weather_day_2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="周三" android:textColor="#FFFFFF" android:textSize="10sp"/>
-            <TextView android:id="@+id/weather_icon_2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="☀️" android:textSize="18sp"/>
-            <TextView android:id="@+id/weather_desc_2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp"/>
+            <TextView android:id="@+id/weather_day_2" android:layout_width="match_parent" android:layout_height="18dp" android:gravity="center" android:includeFontPadding="false" android:text="今天" android:textColor="#FFFFFF" android:textSize="10sp" android:maxLines="1" />
+            <TextView android:id="@+id/weather_icon_2" android:layout_width="match_parent" android:layout_height="26dp" android:gravity="center" android:includeFontPadding="false" android:text="☀️" android:textSize="18sp" android:maxLines="1" />
+            <TextView android:id="@+id/weather_desc_2" android:layout_width="match_parent" android:layout_height="30dp" android:gravity="center" android:includeFontPadding="false" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp" android:maxLines="2" android:lineSpacingExtra="0dp" />
         </LinearLayout>
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <TextView android:id="@+id/weather_day_3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_weight="1" android:text="周四" android:textColor="#FFFFFF" android:textSize="10sp"/>
-            <TextView android:id="@+id/weather_icon_3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="☀️" android:textSize="18sp"/>
-            <TextView android:id="@+id/weather_desc_3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp"/>
+            <TextView android:id="@+id/weather_day_3" android:layout_width="match_parent" android:layout_height="18dp" android:gravity="center" android:includeFontPadding="false" android:text="今天" android:textColor="#FFFFFF" android:textSize="10sp" android:maxLines="1" />
+            <TextView android:id="@+id/weather_icon_3" android:layout_width="match_parent" android:layout_height="26dp" android:gravity="center" android:includeFontPadding="false" android:text="☀️" android:textSize="18sp" android:maxLines="1" />
+            <TextView android:id="@+id/weather_desc_3" android:layout_width="match_parent" android:layout_height="30dp" android:gravity="center" android:includeFontPadding="false" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp" android:maxLines="2" android:lineSpacingExtra="0dp" />
         </LinearLayout>
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <TextView android:id="@+id/weather_day_4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="周五" android:textColor="#FFFFFF" android:textSize="10sp"/>
-            <TextView android:id="@+id/weather_icon_4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="☀️" android:textSize="18sp"/>
-            <TextView android:id="@+id/weather_desc_4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp"/>
+            <TextView android:id="@+id/weather_day_4" android:layout_width="match_parent" android:layout_height="18dp" android:gravity="center" android:includeFontPadding="false" android:text="今天" android:textColor="#FFFFFF" android:textSize="10sp" android:maxLines="1" />
+            <TextView android:id="@+id/weather_icon_4" android:layout_width="match_parent" android:layout_height="26dp" android:gravity="center" android:includeFontPadding="false" android:text="☀️" android:textSize="18sp" android:maxLines="1" />
+            <TextView android:id="@+id/weather_desc_4" android:layout_width="match_parent" android:layout_height="30dp" android:gravity="center" android:includeFontPadding="false" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp" android:maxLines="2" android:lineSpacingExtra="0dp" />
         </LinearLayout>
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <TextView android:id="@+id/weather_day_5" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="周六" android:textColor="#FFFFFF" android:textSize="10sp"/>
-            <TextView android:id="@+id/weather_icon_5" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="☀️" android:textSize="18sp"/>
-            <TextView android:id="@+id/weather_desc_5" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp"/>
+            <TextView android:id="@+id/weather_day_5" android:layout_width="match_parent" android:layout_height="18dp" android:gravity="center" android:includeFontPadding="false" android:text="今天" android:textColor="#FFFFFF" android:textSize="10sp" android:maxLines="1" />
+            <TextView android:id="@+id/weather_icon_5" android:layout_width="match_parent" android:layout_height="26dp" android:gravity="center" android:includeFontPadding="false" android:text="☀️" android:textSize="18sp" android:maxLines="1" />
+            <TextView android:id="@+id/weather_desc_5" android:layout_width="match_parent" android:layout_height="30dp" android:gravity="center" android:includeFontPadding="false" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp" android:maxLines="2" android:lineSpacingExtra="0dp" />
         </LinearLayout>
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <TextView android:id="@+id/weather_day_6" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="周日" android:textColor="#FFFFFF" android:textSize="10sp"/>
-            <TextView android:id="@+id/weather_icon_6" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="☀️" android:textSize="18sp"/>
-            <TextView android:id="@+id/weather_desc_6" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp"/>
+            <TextView android:id="@+id/weather_day_6" android:layout_width="match_parent" android:layout_height="18dp" android:gravity="center" android:includeFontPadding="false" android:text="今天" android:textColor="#FFFFFF" android:textSize="10sp" android:maxLines="1" />
+            <TextView android:id="@+id/weather_icon_6" android:layout_width="match_parent" android:layout_height="26dp" android:gravity="center" android:includeFontPadding="false" android:text="☀️" android:textSize="18sp" android:maxLines="1" />
+            <TextView android:id="@+id/weather_desc_6" android:layout_width="match_parent" android:layout_height="30dp" android:gravity="center" android:includeFontPadding="false" android:text="--°/--°" android:textColor="#E8EDF5" android:textSize="9sp" android:maxLines="2" android:lineSpacingExtra="0dp" />
         </LinearLayout>
     </LinearLayout>
 
