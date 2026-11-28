@@ -4,7 +4,6 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.os.Bundle
-import android.util.TypedValue
 import android.widget.RemoteViews
 import org.isoron.uhabits.R
 
@@ -32,7 +31,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
 
     private fun createForecastTestViews(context: Context, options: Bundle): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_weather_line_test)
-        applyResponsiveLineSize(context, views, options)
+        applyResponsiveLineCount(views, options)
         views.setTextViewText(R.id.weather_city, "天气七天预报测试")
         views.setTextViewText(R.id.weather_updated, "顶部栏与预报区独立测试")
         views.setTextViewText(R.id.weather_current_desc, "晴")
@@ -55,32 +54,44 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         return views
     }
 
-    private fun applyResponsiveLineSize(
-        context: Context,
-        views: RemoteViews,
-        options: Bundle
-    ) {
-        val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
-        val maxWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH)
-        val widgetWidthDp = when {
-            minWidth > 0 -> minWidth
-            maxWidth > 0 -> maxWidth
-            else -> return
+    /**
+     * The fixed-width widget uses its height to select the number of visible
+     * diagonal glyph segments. Dimensions supplied by AppWidgetOptions are dp.
+     */
+    private fun applyResponsiveLineCount(views: RemoteViews, options: Bundle) {
+        val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
+        val maxHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT)
+        val widgetHeightDp = when {
+            minHeight > 0 -> minHeight
+            maxHeight > 0 -> maxHeight
+            else -> 50
         }
 
-        // Reserve 22dp for the label, 10dp for horizontal padding, and a safety margin.
-        val availableLineWidthDp = (widgetWidthDp - 36f).coerceAtLeast(1f)
-        val fontScale = context.resources.configuration.fontScale.coerceAtLeast(1f)
-        val naturalLineWidthDp = 7f * 0.62f * 22f * 1.9f * fontScale
-        val fit = (availableLineWidthDp / naturalLineWidthDp).coerceIn(0.01f, 1f)
-        // Split the reduction between glyph height and horizontal stretch.
-        val scale = kotlin.math.sqrt(fit.toDouble()).toFloat()
-        val textSizeSp = 22f * scale
-        val textScaleX = 1.9f * scale
+        // Typical launcher row sizing: roughly 70dp per row minus 30dp spacing.
+        val visibleSegments = when {
+            widgetHeightDp < 85 -> 1   // 2x1
+            widgetHeightDp < 155 -> 2  // 2x2
+            widgetHeightDp < 225 -> 4  // 2x3
+            widgetHeightDp < 295 -> 5  // 2x4
+            else -> 7                  // 2x5
+        }
 
-        listOf(R.id.weather_high_line, R.id.weather_low_line).forEach { lineId ->
-            views.setTextViewTextSize(lineId, TypedValue.COMPLEX_UNIT_SP, textSizeSp)
-            views.setFloat(lineId, "setTextScaleX", textScaleX)
+        val high = "╱╲╱╱╲╱╲"
+        val low = "╲╱╲╲╱╲╱"
+        views.setTextViewText(R.id.weather_high_line, sampleLine(high, visibleSegments))
+        views.setTextViewText(R.id.weather_low_line, sampleLine(low, visibleSegments))
+    }
+
+    /** Keep both ends and distribute selected glyphs evenly across the trend. */
+    private fun sampleLine(line: String, count: Int): String {
+        if (count >= line.length) return line
+        if (count <= 1) return line.substring(0, 1)
+        val lastIndex = line.lastIndex
+        return buildString(count) {
+            for (i in 0 until count) {
+                val sourceIndex = (i * lastIndex.toFloat() / (count - 1)).toInt()
+                append(line[sourceIndex])
+            }
         }
     }
 }
